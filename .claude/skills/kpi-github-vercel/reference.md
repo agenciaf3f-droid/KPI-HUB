@@ -27,7 +27,7 @@ Convenções de commit, branch strategy, PR e Vercel. **Registro progressivo:** 
 
 | Serviço | Identificador |
 |---------|----------------|
-| **GitHub** | Repo: `https://github.com/agenciaf3f-droid/KPI-F3F`. Org: `agenciaf3f-droid`. Repo name: `KPI F3F`. |
+| **GitHub** | Repo: `https://github.com/agenciaf3f-droid/KPI-HUB`. Org: `agenciaf3f-droid`. Repo name: `KPI F3F`. |
 | **Vercel** | Projeto: `kpi`. **Produção (site oficial):** `https://personalglobal.app`. Previews: `kpi-*.vercel.app` por branch/commit. |
 
 Fonte de verdade também em [AGENTS.md](AGENTS.md) (seção 1 – Repository & deployment). Ao configurar Vercel (conectar repo, env vars), usar o repo acima; ao falar de "origin", "push", "PR", tratar deste repositório.

@@ -19,9 +19,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 | Serviço | Identificador |
 |---------|---------------|
-| **GitHub** | `agenciaf3f-droid/KPI-F3F` |
+| **GitHub** | `agenciaf3f-droid/KPI-HUB` |
 | **Supabase** | `https://ulikfkemdawinetjyhok.supabase.co` — ref `ulikfkemdawinetjyhok` |
-| **Vercel** | projeto `kpi-f3f` (org `team_zVUz7ywTl2lCsc6ULiPbRzD3`) |
+| **Vercel** | projeto `kpi-hub` (org `team_zVUz7ywTl2lCsc6ULiPbRzD3`) |
+| **Produção** | `https://kpis.agenciaf3f.com.br` |
 
 ## 2. Mapa do repositório
 

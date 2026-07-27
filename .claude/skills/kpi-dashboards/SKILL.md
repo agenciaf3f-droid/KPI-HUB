@@ -9,7 +9,7 @@ Skill para **dashboards** e telas **data-driven** no KPI F3F: KPIs, gráficos, t
 
 **Regra de leitura:** este arquivo é **normativo** (o quê é obrigatório). Exemplos longos, mapa de arquivos, snippets e fluxos detalhados ficam em [reference.md](reference.md).
 
-**Projeto único:** [AGENTS.md](../../AGENTS.md) — repo `agenciaf3f-droid/KPI-F3F`, Supabase `ulikfkemdawinetjyhok`, produção `personalglobal.app`. Escopo por **papel** e vínculos (`pessoa_id`, `user_id`, matrícula, turma, mentoria) conforme [Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md), [modulos-por-role](../../src/lib/config/modulos-por-role.ts) e [acessos-por-role](../../src/lib/config/acessos-por-role.ts). Não confundir com `org_id` de outros produtos.
+**Projeto único:** [AGENTS.md](../../AGENTS.md) — repo `agenciaf3f-droid/KPI-HUB`, Supabase `ulikfkemdawinetjyhok`, produção `personalglobal.app`. Escopo por **papel** e vínculos (`pessoa_id`, `user_id`, matrícula, turma, mentoria) conforme [Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md), [modulos-por-role](../../src/lib/config/modulos-por-role.ts) e [acessos-por-role](../../src/lib/config/acessos-por-role.ts). Não confundir com `org_id` de outros produtos.
 
 ---
 

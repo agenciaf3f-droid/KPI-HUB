@@ -145,8 +145,8 @@ Definidos em `_automation/projects.json`:
 
 | Projeto | Pasta no vault | Repo | Vercel |
 |---------|----------------|------|--------|
-| KPI F3F | `05_PROJETOS/kpi` | agenciaf3f-droid/KPI-F3F | kpi |
-| KPI F3F | `05_PROJETOS/kpi-f3f` | kpi-f3f | kpi-f3f |
+| KPI F3F | `05_PROJETOS/kpi` | agenciaf3f-droid/KPI-HUB | kpi |
+| KPI F3F | `05_PROJETOS/kpi-hub` | kpi-hub | kpi-hub |
 | PortalUploader | `05_PROJETOS/portal-uploader` | portaluploaders | portaluploaders |
 
 Não use pastas de `BackUps`.

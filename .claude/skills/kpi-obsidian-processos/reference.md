@@ -51,7 +51,7 @@ Detalhe: `07_OPERACAO/Formato de data Brasil.md`.
 
 05_PROJETOS/
   kpi/                    # docs do ERP (módulos, processos…)
-  kpi-f3f/
+  kpi-hub/
   portal-uploader/
 
 06_REUNIOES/
@@ -86,7 +86,7 @@ commit_count: 0
 pr_count: 0
 deploy_count: 0
 clickup_count: 0
-projects: [kpi, kpi-f3f]
+projects: [kpi, kpi-hub]
 modules: [financeiro, comercial]
 sources: [git, github, vercel, clickup]
 manual_review: pending   # ou done
@@ -186,7 +186,7 @@ Dentro de `05_PROJETOS/kpi/` a estrutura antiga continua útil:
 ```yaml
 ---
 type: module   # ou cadastro, processo, vinculo, e2e, moc, home…
-project: kpi   # ou kpi-f3f, portal-uploader, status-report
+project: kpi   # ou kpi-hub, portal-uploader, status-report
 status: active
 created: AAAA-MM-DD
 updated: AAAA-MM-DD

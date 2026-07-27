@@ -32,7 +32,7 @@ Na ordem que o `reference.md` manda — do mais específico ao mais genérico.
 | Categoria | De | Para | Ocorrências |
 |---|---|---|---|
 | Supabase | `wyjgflyydetzejslmocn` | `ulikfkemdawinetjyhok` | 15 |
-| GitHub | `global-educacao-tech/SGT` | `agenciaf3f-droid/KPI-F3F` | 4 |
+| GitHub | `global-educacao-tech/SGT` | `agenciaf3f-droid/KPI-HUB` | 4 |
 | Nome do projeto | `SGT` / `Sgt` | `KPI F3F` | 325 |
 | Projeto satélite | `Organizacao10x` / `Org10x` | `KPI F3F` | 11 |
 | Prefixo | `sgt-` | `kpi-` | 273 |
