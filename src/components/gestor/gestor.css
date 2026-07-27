@@ -599,3 +599,7 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 /* Aba /churn: o app do gestor aberto direto na seção Churn — o seletor interno
    de abas sai de cena (a sidebar do hub é quem navega). */
 .gestor-app.churn-only .tab-nav { display: none; }
+
+/* Aba /gestor: o botão Churn sai do seletor interno — Churn agora é aba
+   própria da sidebar (só admin). O markup fica intacto; só some da vista. */
+.gestor-app .tab-nav button[onclick*="tab3"] { display: none; }
