@@ -17,10 +17,25 @@ export default async function EquipePage() {
   if (!acesso) redirect("/login");
   if (!acesso.isAdmin) redirect("/");
 
-  const { data: membros } = await createAdminClient()
-    .from("hub_members")
-    .select("id, email, nome, areas, is_admin, avatar_url")
-    .order("nome");
+  const admin = createAdminClient();
+  const [{ data: membros }, { data: contas }] = await Promise.all([
+    admin.from("hub_members").select("id, user_id, email, nome, areas, is_admin, avatar_url").order("nome"),
+    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  ]);
+
+  // Status derivado do auth: entrou alguma vez = Ativo; recebeu e-mail de
+  // convite/definir senha = Convite enviado; senão = Pendente (senha repassada
+  // na mão, pessoa ainda não logou).
+  const contaPorId = new Map((contas?.users ?? []).map((u) => [u.id, u]));
+  const comStatus = (membros ?? []).map((m) => {
+    const conta = m.user_id ? contaPorId.get(m.user_id) : undefined;
+    const status: Membro["status"] = conta?.last_sign_in_at
+      ? "ativo"
+      : conta?.invited_at || (conta as { recovery_sent_at?: string } | undefined)?.recovery_sent_at
+        ? "convite"
+        : "pendente";
+    return { ...m, status };
+  });
 
   return (
     <div className="min-h-svh bg-background md:pl-28">
@@ -31,7 +46,7 @@ export default async function EquipePage() {
         isAdmin={acesso.isAdmin}
         avatarUrl={acesso.avatarUrl}
       />
-      <EquipeManager membros={(membros ?? []) as Membro[]} />
+      <EquipeManager membros={comStatus as Membro[]} />
     </div>
   );
 }

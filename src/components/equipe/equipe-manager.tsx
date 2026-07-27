@@ -26,12 +26,19 @@ export type Membro = {
   areas: string[];
   is_admin: boolean;
   avatar_url: string | null;
+  status: "ativo" | "convite" | "pendente";
 };
 
 const AREA_LABEL: Record<string, string> = {
   gestor: "Gestor",
   editor: "Vídeo",
   creator: "Creator",
+};
+
+const STATUS_BADGE: Record<Membro["status"], { rotulo: string; classe: string }> = {
+  ativo: { rotulo: "Ativo", classe: "border-transparent bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
+  convite: { rotulo: "Convite enviado", classe: "border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+  pendente: { rotulo: "Pendente", classe: "border-transparent bg-muted text-muted-foreground" },
 };
 
 export function EquipeManager({ membros }: { membros: Membro[] }) {
@@ -100,6 +107,9 @@ function MembroRow({ membro }: { membro: Membro }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <Badge variant="outline" className={STATUS_BADGE[membro.status].classe}>
+          {STATUS_BADGE[membro.status].rotulo}
+        </Badge>
         {membro.is_admin ? <Badge>Admin</Badge> : membro.areas.map((a) => (
           <Badge key={a} variant="secondary">{AREA_LABEL[a] ?? a}</Badge>
         ))}
