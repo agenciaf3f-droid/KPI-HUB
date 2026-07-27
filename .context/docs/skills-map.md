@@ -29,7 +29,7 @@ Adaptadas do pacote `sgt-*` do projeto SGT (`global-educacao-tech/SGT`). Relató
 | **kpi-diario-individual** | Registro diário do que foi feito, por pessoa e dia. |
 | **kpi-obsidian-processos** | Diário e docs no vault `SecondBrain` via MCP obsidian. Sem PII nem segredo. |
 
-## Arquivadas (8) — não invocar
+## Arquivadas (9) — não invocar
 
 Em `.claude/skills/_archived/`.
 
