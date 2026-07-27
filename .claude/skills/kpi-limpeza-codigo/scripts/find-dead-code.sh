@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Identifica código não usado (exports, arquivos órfãos, dependências) via knip.
 # Uso (a partir da raiz do repo):
-#   bash .cursor/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh           # projeto inteiro
-#   bash .cursor/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh src/modules/educacional  # um módulo
+#   bash .claude/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh           # projeto inteiro
+#   bash .claude/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh src/lib/  # um módulo
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

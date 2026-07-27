@@ -5,7 +5,7 @@ description: "Auth, profiles, users and routes in KPI F3F. Single login (Supabas
 
 # KPI F3F Auth e Rotas
 
-Responsável por **autenticação**, **perfis**, **usuários** e **rotas** no KPI F3F: login único (Supabase Auth), sessão, perfil do usuário, middleware, rotas protegidas vs públicas, redirects e configuração que afeta rotas. Stack: Next.js App Router; referências em [project-plan.md](.context/docs/project-plan.md) e [security.md](.context/docs/security.md).
+Responsável por **autenticação**, **perfis**, **usuários** e **rotas** no KPI F3F: login único (Supabase Auth), sessão, perfil do usuário, middleware, rotas protegidas vs públicas, redirects e configuração que afeta rotas. Stack: Next.js App Router; referências em [project-plan.md](.context/docs/project-plan.md) e security.md.
 
 ## Regra de ouro
 

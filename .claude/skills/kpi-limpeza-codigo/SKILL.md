@@ -46,8 +46,8 @@ Responsável por **código morto**, **duplicação**, **reaproveitamento** e **r
 
 **Identificar código morto de forma programática:** para exports não usados, arquivos órfãos e dependências não referenciadas, use **knip** (ferramenta para projetos TypeScript/JavaScript). Na raiz do repo:
 
-- Projeto inteiro: `bash .cursor/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh` ou `npx knip`
-- Um módulo: `bash .cursor/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh src/modules/<modulo>` ou `npx knip --directory src/modules/<modulo>`
+- Projeto inteiro: `bash .claude/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh` ou `npx knip`
+- Um módulo: `bash .claude/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh src/lib/<modulo>` ou `npx knip --directory src/lib/<modulo>`
 
 Revisar a saída antes de remover; respeitar as exceções do [reference.md](reference.md) (dynamic import, contrato externo, stubs).
 

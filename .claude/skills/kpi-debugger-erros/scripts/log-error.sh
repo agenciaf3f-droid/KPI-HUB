@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Anexa uma nova entrada ao troubleshooting-log.md com todos os campos.
-# Uso (a partir da raiz do repo): bash .cursor/skills/kpi-debugger-erros/scripts/log-error.sh "Descrição" "Causa raiz" "Solução" ["Arquivo(s)/Módulo"] ["Lição aprendida"]
-# Ex.: bash .cursor/skills/kpi-debugger-erros/scripts/log-error.sh "Aluno A via matrículas de B" "RLS sem filtro aluno_id" "Migration RLS USING (aluno_id = ...)"
+# Uso (a partir da raiz do repo): bash .claude/skills/kpi-debugger-erros/scripts/log-error.sh "Descrição" "Causa raiz" "Solução" ["Arquivo(s)/Módulo"] ["Lição aprendida"]
+# Ex.: bash .claude/skills/kpi-debugger-erros/scripts/log-error.sh "membro A via matrículas de B" "RLS sem filtro member_id" "Migration RLS USING (member_id = ...)"
 
 set -e
 DESC="$1"

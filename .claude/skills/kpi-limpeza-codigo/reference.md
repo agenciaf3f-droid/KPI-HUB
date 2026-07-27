@@ -8,7 +8,7 @@ Critérios e checklist para identificar código morto, duplicação e lixo. **Re
 
 ### O que considerar morto
 
-- **Exports não usados:** função, componente ou constante exportada que nenhum arquivo importa. Para identificar de forma programática, use **knip**: `npx knip` (projeto todo) ou `npx knip --directory src/modules/<modulo>` (um módulo). Script de conveniência: `bash .cursor/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh [diretório]`. Verificar exceções abaixo antes de remover.
+- **Exports não usados:** função, componente ou constante exportada que nenhum arquivo importa. Para identificar de forma programática, use **knip**: `npx knip` (projeto todo) ou `npx knip --directory src/lib/<modulo>` (um módulo). Script de conveniência: `bash .claude/skills/kpi-limpeza-codigo/scripts/find-dead-code.sh [diretório]`. Verificar exceções abaixo antes de remover.
 
 **Configuração do knip:** em monorepos ou quando houver muitos falsos positivos (ex.: entry points dinâmicos, libs que o knip não resolve), criar `knip.json` na raiz com entry points e `ignore`/`ignoreDependencies` conforme [documentação do knip](https://knip.dev/reference/configuration). O comando continua sendo `npx knip`; a config apenas refina o que é considerado usado.
 - **Funções/ métodos nunca chamados:** inclusive em classes; se só há definição e nenhuma chamada, candidato a remoção.
@@ -36,9 +36,9 @@ Critérios e checklist para identificar código morto, duplicação e lixo. **Re
 
 ## Reaproveitamento
 
-- Ao extrair código para **shared**: colocar em `src/shared/` (ou equivalente do projeto); seguir nomenclatura e estrutura das skills Frontend, Componentes e Backend.
-- **Hooks** duplicados → `src/shared/hooks/`.
-- **Utilitários** (formatação, validação) → `src/shared/utils/` ou similar.
+- Ao extrair código para **shared**: colocar em `src/lib/` (ou equivalente do projeto); seguir nomenclatura e estrutura das skills Frontend, Componentes e Backend.
+- **Hooks** duplicados → `src/lib/`.
+- **Utilitários** (formatação, validação) → `src/lib/utils.ts` ou similar.
 - **Componentes UI** reutilizáveis → skill Componentes (registrar no reference dela se for novo padrão).
 
 ---

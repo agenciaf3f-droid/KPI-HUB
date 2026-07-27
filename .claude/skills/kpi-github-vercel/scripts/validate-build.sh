@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Valida build e testes antes de PR. Uso: a partir da raiz do repo.
-# bash .cursor/skills/kpi-github-vercel/scripts/validate-build.sh
+# bash .claude/skills/kpi-github-vercel/scripts/validate-build.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../../../../" && pwd)"

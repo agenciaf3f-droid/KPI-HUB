@@ -1,10 +1,10 @@
 # Referência – KPI F3F Frontend (estrutura e tema)
 
-**Campos padronizados (CPF, telefone, data, moeda, calendário):** definição, especificação e registro de componentes e bibliotecas ficam na skill [KPI F3F Componentes](.context/skills/kpi-componentes/SKILL.md) e no [reference da skill Componentes](.context/skills/kpi-componentes/reference.md). Use sempre o componente registrado lá; não crie variantes nas telas.
+**Campos padronizados (CPF, telefone, data, moeda, calendário):** definição, especificação e registro de componentes e bibliotecas ficam na skill KPI F3F Componentes e no reference da skill Componentes. Use sempre o componente registrado lá; não crie variantes nas telas.
 
-**Listagens:** Toda tela de listagem usa **DataTable**, **BarraFiltrosPadrao** e **useColunasPersistidas** (import de `@/shared/ui` e `@/shared/hooks/useColunasPersistidas`). Não montar `<table>` próprio. Requisito: [requisitos-listas-e-filtros-padronizados.md](.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md). Registro: reference da skill Componentes § "Listas e filtros padronizados".
+**Listagens:** Toda tela de listagem usa `Table` (`@/components/ui/table`), e (import de `@/components/ui` e `@/lib/`). Não montar `<table>` próprio. Requisito: requisitos-listas-e-filtros-padronizados.md. Registro: reference da skill Componentes § "Listas e filtros padronizados".
 
-**Dashboards (KPIs, gráficos, drill-down):** skill [KPI F3F Dashboards](.cursor/skills/kpi-dashboards/SKILL.md); requisito [requisitos-dashboards-padronizados.md](.context/docs/requisitos/requisitos-dashboards-padronizados.md); ADR [004_dashboards_padronizados_sgt.md](.context/docs/adr/004_dashboards_padronizados_sgt.md). Componentes oficiais: `ChartCard`, `KpiMetricCard` em `@/shared/ui`. Escolher **Dashboard com URL** ou **Painel Analítico** antes de implementar; referência de código: `src/modules/educacional/dashboard/`.
+**Dashboards (KPIs, gráficos, drill-down):** skill [KPI F3F Dashboards](.claude/skills/kpi-dashboards/SKILL.md) Componentes oficiais: Card com gráfico, Card de métrica em `@/components/ui`. Escolher **Dashboard com URL** ou **Painel Analítico** antes de implementar; referência de código: `src/lib/<modulo>.ts`.
 
 ---
 
@@ -22,7 +22,7 @@
 ### 2. Breadcrumb
 
 - Acima do hero; itens: módulo (link) → contexto atual (texto).
-- Componente: `Breadcrumb` de `@/shared/ui/Breadcrumb`.
+- Componente: `Breadcrumb` de `@/components/ui`.
 
 ### 3. Hero (cartão superior)
 
@@ -65,19 +65,19 @@ Manter **neutros** (`gray`, `white`) para superfícies e texto secundário.
 
 ### 8. Código de referência (KPI F3F)
 
-- Layout + hero + abas: `src/modules/suporte/components/SuporteAdminLayoutShell.tsx`, `SuporteAdminTabs.tsx`
-- Blocos e painéis: `src/modules/suporte/components/suporte-admin-shared.tsx`, `SuporteAdminPanels.tsx`
+- Layout + hero + abas: `src/components/<componente>.tsx`, `SuporteAdminTabs.tsx`
+- Blocos e painéis: `src/components/<componente>.tsx`, `SuporteAdminPanels.tsx`
 - Rotas: `src/app/(dashboard)/suporte/admin/` (`layout.tsx`, subpastas por aba)
 
 ### 9. Quando subir para Componentes
 
-Se **3+ módulos** repetirem o mesmo shell (hero + tab grid + slot), extrair um componente genérico (ex.: `ModuleAdminShell`) em `@/shared/ui`, parametrizado por `accent`, `tabs[]`, `badges[]` — registro na skill **Componentes**. Até lá: **copiar estrutura** deste reference.
+Se **3+ módulos** repetirem o mesmo shell (hero + tab grid + slot), extrair um componente genérico (ex.: `ModuleAdminShell`) em `@/components/ui`, parametrizado por `accent`, `tabs[]`, `badges[]` — registro na skill **Componentes**. Até lá: **copiar estrutura** deste reference.
 
 ---
 
 ## Convenções de componentes (telas e uso)
 
-- **Nomenclatura:** PascalCase para componentes (ex.: `InputCpf`, `CardAluno`). Nome do arquivo igual ao componente (ex.: `InputCpf.tsx`).
+- **Nomenclatura:** PascalCase para componentes (ex.: `InputData`, `CardEntrega`). Nome do arquivo igual ao componente (ex.: `InputData.tsx`).
 - **Props:** interface `NomeDoComponenteProps` no mesmo arquivo ou em `types.ts` do módulo; exportar quando reutilizado.
 - **Estilos:** Tailwind nas classes do componente; variáveis de tema (cores, espaçamento) em `tailwind.config.ts` para reuso entre módulos.
 - **Estado de erro:** campos de formulário devem exibir mensagem de erro abaixo do input; usar cor e `aria-invalid`/`aria-describedby` para acessibilidade. Componentes de campo já devem seguir isso (ver skill Componentes).
@@ -95,9 +95,9 @@ Se **3+ módulos** repetirem o mesmo shell (hero + tab grid + slot), extrair um 
 
 ## Links
 
-- [KPI F3F Componentes](.context/skills/kpi-componentes/SKILL.md) – componentes e bibliotecas padronizados (campos, listas e filtros, mensagens).
-- [KPI F3F Dashboards](.context/skills/kpi-dashboards/SKILL.md) – KPIs, gráficos, filtros sincronizados, drill-down.
-- [Requisitos listas e filtros](.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md) – DataTable, FiltroBuscaTexto, DateRangePicker, critérios de aceite.
-- [Requisitos dashboards padronizados](.context/docs/requisitos/requisitos-dashboards-padronizados.md) – contrato transversal HUB.
+- KPI F3F Componentes – componentes e bibliotecas padronizados (campos, listas e filtros, mensagens).
+- [KPI F3F Dashboards](.claude/skills/kpi-dashboards/SKILL.md) – KPIs, gráficos, filtros sincronizados, drill-down.
+- Requisitos listas e filtros – `Table`, , DateRangePicker, critérios de aceite.
+- Requisitos dashboards padronizados – contrato transversal HUB.
 - [project-plan.md](.context/docs/project-plan.md) – stack e paradigma.
-- [architecture.md](.context/docs/architecture.md) – visão do HUB e módulos.
+- architecture.md – visão do HUB e módulos.

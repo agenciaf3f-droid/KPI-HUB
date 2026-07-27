@@ -6,7 +6,7 @@ Cenários de teste baseados em regras de negócio, edge cases de formulários e 
 
 ## Edge cases comuns em formulários
 
-Usar como checklist ao verificar validação; os comportamentos esperados seguem a skill [Componentes](.context/skills/kpi-componentes/SKILL.md).
+Usar como checklist ao verificar validação; os comportamentos esperados seguem a skill Componentes.
 
 ### CPF
 
@@ -44,28 +44,28 @@ Usar como checklist ao verificar validação; os comportamentos esperados seguem
 - Submit com um ou mais campos inválidos (formulário não deve submeter; mensagens de erro visíveis).
 - Submit com todos os campos válidos (sucesso).
 
-### Listas e filtros padronizados (DataTable, FiltroBuscaTexto, DateRangePicker)
+### Listas e filtros padronizados (`Table`, , DateRangePicker)
 
-Requisito e critérios de aceite: [requisitos-listas-e-filtros-padronizados.md](.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md).
+Requisito e critérios de aceite: requisitos-listas-e-filtros-padronizados.md.
 
-- **FiltroBuscaTexto:** debounce 500 ms; ao mudar o termo, paginação (quando houver) reseta para página 1; Enter aplica busca na hora.
+- **:** debounce 500 ms; ao mudar o termo, paginação (quando houver) reseta para página 1; Enter aplica busca na hora.
 - **DateRangePicker:** presets pt-BR aplicam período correto; intervalo personalizado (from/to) envia YYYY-MM-DD; "usados recentemente" persiste no localStorage.
-- **DataTable:** ordenação por coluna (clique no header alterna asc/desc); colunas redimensionáveis (arrastar borda); estados loading ("Carregando..."), empty ("Nenhum registro encontrado." + ação), erro (mensagem + "Tentar novamente").
+- **`Table`:** ordenação por coluna (clique no header alterna asc/desc); colunas redimensionáveis (arrastar borda); estados loading ("Carregando..."), empty ("Nenhum registro encontrado." + ação), erro (mensagem + "Tentar novamente").
 - **Colunas:** visibilidade (menu Colunas) e persistência no localStorage (chave por módulo); após refresh, configuração mantida.
-- **Integração:** toda listagem usa DataTable + BarraFiltrosPadrao + useColunasPersistidas; nenhum `<table>` próprio por módulo.
+- **Integração:** toda listagem usa `Table` +  + ; nenhum `<table>` próprio por módulo.
 
 ---
 
 ## Cenários E2E (Playwright) – exemplos
 
-Baseados nas regras de negócio do [project-plan](.context/docs/project-plan.md) e [data-flow](.context/docs/data-flow.md).
+Baseados nas regras de negócio do [project-plan](.context/docs/project-plan.md) e data-flow.
 
 ### Fluxo de matrícula completo (exemplo)
 
 - Acessar aplicação (e fazer login se rotas forem protegidas).
 - Navegar até o fluxo de matrícula (ex.: Comercial → cliente → contrato ou tela de matrícula).
 - Preencher dados obrigatórios com valores válidos (ou usar dados de teste).
-- Submeter e verificar que o resultado esperado aparece (ex.: mensagem de sucesso, redirecionamento, aluno criado).
+- Submeter e verificar que o resultado esperado aparece (ex.: mensagem de sucesso, redirecionamento, membro criado).
 - (Opcional) Verificar que usuário não autenticado é redirecionado para login quando aplicável.
 
 ### Fluxo login → área protegida
@@ -77,7 +77,7 @@ Baseados nas regras de negócio do [project-plan](.context/docs/project-plan.md)
 ### Fluxo contrato assinado → onboarding (quando implementado)
 
 - Simular ou receber evento de contrato assinado (conforme sistema satélite).
-- Verificar que o aluno aparece na área do Guia do Aluno ou que o onboarding foi disparado (conforme regra de negócio).
+- Verificar que o membro aparece na área do Guia do membro ou que o onboarding foi disparado (conforme regra de negócio).
 
 Cenários críticos adotados pelo projeto podem ser listados aqui (registro progressivo).
 
@@ -100,7 +100,7 @@ Cenários críticos adotados pelo projeto podem ser listados aqui (registro prog
 
 | Tipo | Local | Exemplo |
 |------|--------|---------|
-| **Unitários (Jest/RTL)** | Arquivo `.spec.ts` ao lado do arquivo de código | `src/modules/educacional/services/MatriculaService.spec.ts` |
+| **Unitários (Jest/RTL)** | Arquivo `.spec.ts` ao lado do arquivo de código | `src/lib/deliveries.spec.ts` |
 | **E2E (Playwright)** | Pasta `tests/e2e/` na raiz do projeto | `tests/e2e/matricula.spec.ts`, `tests/e2e/login.spec.ts` |
 
 - **Unitários:** preferir sempre o mesmo diretório do código (colocation); exceção: `__tests__/` no módulo quando o time adotar.
@@ -111,7 +111,7 @@ Cenários críticos adotados pelo projeto podem ser listados aqui (registro prog
 ## Playwright – convenções
 
 - **Localização:** `tests/e2e/` na raiz (ver tabela acima).
-- **Auth em E2E:** usar bypass ou usuário de teste conforme [skill Auth e Rotas](.context/skills/kpi-auth-rotas/SKILL.md).
+- **Auth em E2E:** usar bypass ou usuário de teste conforme [skill Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md).
 - **Comando:** `npx playwright test` ou script `npm run test:e2e` quando configurado no `package.json`.
 
 ---
@@ -119,7 +119,7 @@ Cenários críticos adotados pelo projeto podem ser listados aqui (registro prog
 ## Jest / RTL – convenções
 
 - **Padrão de nome:** `*.spec.ts`, `*.spec.tsx` (ou `*.test.ts` / `*.test.tsx`).
-- **Onde colocar:** ao lado do arquivo testado (ex.: `PessoaService.spec.ts` ao lado de `PessoaService.ts` em `src/modules/<modulo>/services/`).
+- **Onde colocar:** ao lado do arquivo testado (ex.: `PessoaService.spec.ts` ao lado de `PessoaService.ts` em `src/lib/<modulo>/services/`).
 - **Mocks:** repositórios e clientes externos mockados; não depender de banco ou API real nos unitários.
 
 ---
@@ -139,7 +139,7 @@ Cenários críticos adotados pelo projeto podem ser listados aqui (registro prog
 ## Links
 
 - [project-plan.md](.context/docs/project-plan.md) – regras de negócio e fluxos.
-- [data-flow.md](.context/docs/data-flow.md) – entidades e integração.
-- [testing-strategy.md](.context/docs/testing-strategy.md) – estratégia de testes do KPI F3F.
-- [KPI F3F Componentes](.context/skills/kpi-componentes/SKILL.md) – specs de campos (CPF, telefone, data, moeda).
-- [KPI F3F Auth e Rotas](.context/skills/kpi-auth-rotas/SKILL.md) – bypass auth para E2E.
+- data-flow.md – entidades e integração.
+- testing-strategy.md – estratégia de testes do KPI F3F.
+- KPI F3F Componentes – specs de campos (CPF, telefone, data, moeda).
+- [KPI F3F Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md) – bypass auth para E2E.

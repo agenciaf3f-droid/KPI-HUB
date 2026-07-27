@@ -2,7 +2,7 @@
 
 Tabela de delegação (tarefa → skill), ordens multi-skill e regras para evitar conflitos. Fonte de verdade do mapa: [.context/docs/skills-map.md](.context/docs/skills-map.md).
 
-**Onde buscar (centralizado):** Requisitos → `.context/docs/requisitos/`. Componentes UI → `@/shared/ui` e [reference Componentes](.cursor/skills/kpi-componentes/reference.md). Mensagens → `src/shared/messages/`. Listas/filtros → [requisitos-listas-e-filtros-padronizados.md](.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md) + DataTable/BarraFiltrosPadrao/useColunasPersistidas. **Dashboards** → [requisitos-dashboards-padronizados.md](.context/docs/requisitos/requisitos-dashboards-padronizados.md) + [ADR 004](.context/docs/adr/004_dashboards_padronizados_sgt.md) + [kpi-dashboards/SKILL.md](.cursor/skills/kpi-dashboards/SKILL.md) + `ChartCard`/`KpiMetricCard` em `@/shared/ui`. Índice completo: [.context/docs/README.md](.context/docs/README.md) § "Onde buscar".
+**Onde buscar (centralizado):** Requisitos → ``. Componentes UI → `@/components/ui` e reference Componentes. Mensagens → `src/lib/`. Listas/filtros → requisitos-listas-e-filtros-padronizados.md + `Table`//. **Dashboards** → requisitos-dashboards-padronizados.md + ADR 004 + [kpi-dashboards/SKILL.md](.claude/skills/kpi-dashboards/SKILL.md) + Card com gráfico/Card de métrica em `@/components/ui`. Índice completo: [.context/docs/README.md](.context/docs/README.md) § "Onde buscar".
 
 ---
 
@@ -12,17 +12,17 @@ Tabela de delegação (tarefa → skill), ordens multi-skill e regras para evita
 |--------------------------|-----------------|----------------------------------------|
 | Criar/alterar tabelas, RLS, migrations, Supabase | **Supabase / Engenheiro de dados** | Entidades centrais (se for tabela central); Documentação (se alterar fluxo). |
 | Login, sessão, perfil, middleware, rotas protegidas | **Auth e Rotas** | Supabase (tabela de perfil); Frontend (telas de login/perfil). |
-| Definir/alterar modelo usuário ou pessoa/aluno; "uma pessoa única" | **Entidades centrais** | Supabase (implementar schema); Backend (services que tocam pessoa/usuário). |
+| Definir/alterar modelo usuário ou membro/cliente; "uma pessoa única" | **Entidades centrais** | Supabase (implementar schema); Backend (services que tocam pessoa/usuário). |
 | Criar um novo módulo no HUB | **Novo módulo** | Orquestra: Organizar → Entidades/Integrações (se necessário) → Supabase → Backend → Frontend → Auth → Documentação. |
 | Commit, PR, merge, conflitos, Vercel | **GitHub + Vercel** | Documentação (se mudou scaffolding); QA (testes no PR). |
 | Services, repositories, entidades de domínio | **Backend** | Supabase (tipos, acesso via repo); Auth (user_id na sessão). |
-| Como dois módulos se comunicam; webhook/satélite; contrato; atualizar doc de integração e vínculos | **Integrações e vínculos** | Mantém [integracao-e-vinculos-modulos.md](.context/docs/integracao-e-vinculos-modulos.md) (quem fala com quem, campos de integração, campos comuns). Backend (implementar); Documentação (índice/Onde buscar). |
+| Como dois módulos se comunicam; webhook/satélite; contrato; atualizar doc de integração e vínculos | **Integrações e vínculos** | Mantém integracao-e-vinculos-modulos.md (quem fala com quem, campos de integração, campos comuns). Backend (implementar); Documentação (índice/Onde buscar). |
 | Atualizar .context/docs, README, ADR, glossário, índice | **Documentação** | — |
 | Onde colocar arquivo; estrutura de pastas; mover/reorganizar | **Organizar repositório** | Documentação (se mudar mapa); Limpeza (se também for conteúdo). |
 | Código morto, duplicação, refatorar, remover lixo | **Limpeza de código** | Organizar (se for extrair para shared e mover). |
 | Páginas, rotas, layouts, componentes de tela | **Frontend** | Componentes (usar campos padronizados); Auth (rotas protegidas). |
 | Dashboard / visão analítica (KPIs, gráficos, drill-down, filtros de período, performance) | **Dashboards** | Frontend (rotas/layout base); Backend/API (agregações); UX (complexo); Auth (escopo); Supabase (view/índice se necessário). |
-| **Listas, filtros, tabelas padronizadas** (DataTable, busca, período, colunas) | **Componentes** (definir/registrar) + **Frontend** (usar DataTable, BarraFiltrosPadrao, useColunasPersistidas). | Requisito: `.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md`. Nenhum módulo monta tabela própria. Em dashboards, a tabela de detalhe segue o mesmo padrão (**Dashboards** + Componentes/Frontend). |
+| **Listas, filtros, tabelas padronizadas** (`Table`, busca, período, colunas) | **Componentes** (definir/registrar) + **Frontend** (usar `Table`, , ). | Requisito: ``. Nenhum módulo monta tabela própria. Em dashboards, a tabela de detalhe segue o mesmo padrão (**Dashboards** + Componentes/Frontend). |
 | Criar/padronizar componente CPF, telefone, data, moeda, calendário, CEP, listas, mensagens | **Componentes** | Frontend (usa depois). |
 | Testes unitários, E2E, edge cases em formulários | **QA / Tester** | — (testa o que Backend/Frontend fizeram). |
 | Auditar RLS; dados sensíveis no client; N+1 | **Security & Performance** | Supabase/Backend/Frontend (implementar correções após reporte). |
@@ -32,7 +32,7 @@ Tabela de delegação (tarefa → skill), ordens multi-skill e regras para evita
 | Trazer sistema legado para o KPI F3F; migrar sistema antigo | **Migração e Tradução de Legado** | Mapa de Tradução primeiro; depois Entidades → Supabase → Auth → Backend → UX/Frontend. |
 | "O que falta fazer?", criar tasks de um plano, marcar concluído, listar urgente/atrasado | **ClickUp PM** | Usa MCP ClickUp; Consultoria (se plano vir de requisitos); Gerente (ordem técnica). |
 | Relatório, auditoria ou parecer **por skills**; nota global e lacunas pós-implementação | **Relatório de módulo** | Entradas: resumo, `git diff --name-only`, opcional plano/requisitos; consulta [skills-map](.context/docs/skills-map.md). Não substitui **Security & Performance** para auditoria formal só de RLS (combinar quando necessário). |
-| **Novo campo em pessoas ou tabela auditável** (Supabase altera coluna) | **Supabase** (DDL) + **Backend** (incluir em CAMPOS_AUDITAVEIS do chatbot) | Ao adicionar coluna em pessoas/educacional/pessoa_redes_sociais, Backend inclui em `src/modules/chatbot/services/chat-tools.ts` → `CAMPOS_AUDITAVEIS` e ajusta `auditarCampo` se origem for outra tabela. Não criar tool nova. Ver [ESTRATEGIA-AUDITORIAS-E-CONSULTAS.md](.context/docs/chatbot/ESTRATEGIA-AUDITORIAS-E-CONSULTAS.md). |
+| **Novo campo em pessoas ou tabela auditável** (Supabase altera coluna) | **Supabase** (DDL) + **Backend** (incluir em CAMPOS_AUDITAVEIS do chatbot) | Ao adicionar coluna em pessoas/educacional/pessoa_redes_sociais, Backend inclui em `src/lib/deliveries.ts` → `CAMPOS_AUDITAVEIS` e ajusta `auditarCampo` se origem for outra tabela. Não criar tool nova. Ver ESTRATEGIA-AUDITORIAS-E-CONSULTAS.md. |
 
 ---
 
@@ -59,7 +59,7 @@ Tabela de delegação (tarefa → skill), ordens multi-skill e regras para evita
 
 ## Regras de fronteira (não invadir)
 
-- **Supabase:** só esquema, RLS, migrations, MCP. Não services, não telas, não regras de pessoa/aluno (Entidades centrais define).
+- **Supabase:** só esquema, RLS, migrations, MCP. Não services, não telas, não regras de membro/cliente (Entidades centrais define).
 - **Backend:** só application layer (services, repos, entidades). Não tabelas/RLS (Supabase), não UI (Frontend).
 - **Frontend:** só telas e uso de componentes. Não criar campos padronizados (Componentes), não esquema (Supabase).
 - **Dashboards:** só padrões de dashboard (KPI, gráfico, drill-down, Query keys, performance de visualização). Não campos reutilizáveis (Componentes), não schema/RLS (Supabase), não regra de negócio pesada sem Backend.
@@ -84,8 +84,8 @@ Tabela de delegação (tarefa → skill), ordens multi-skill e regras para evita
 
 | Regra | Skills envolvidas |
 |-------|-------------------|
-| **Supabase – projeto obrigatório** | A skill **Supabase / Engenheiro de dados** opera **exclusivamente** no projeto `ulikfkemdawinetjyhok`. Ao delegar qualquer tarefa de banco/RLS/migrations ao MCP Supabase, usar sempre este projeto; sem exceção. Ferramentas MCP referenciadas na skill: list_tables, apply_migration, execute_sql, list_migrations, generate_typescript_types, get_advisors, get_project, get_project_url, get_logs, get_publishable_keys, edge functions, branches (detalhes em `.cursor/skills/kpi-supabase-data-engineer/SKILL.md` § 3). |
-| **Chatbot – novos campos auditáveis** | Ao criar/alteger coluna em pessoas, educacional_matriculas, pessoa_redes_sociais (Supabase), o Backend deve incluir o campo em `CAMPOS_AUDITAVEIS` em `src/modules/chatbot/services/chat-tools.ts` e ajustar `auditarCampo` se a origem for outra tabela. Não criar tool nova para cada pergunta; reutilizar `auditar_campo`. Ver `.context/docs/chatbot/ESTRATEGIA-AUDITORIAS-E-CONSULTAS.md`. |
+| **Supabase – projeto obrigatório** | A skill **Supabase / Engenheiro de dados** opera **exclusivamente** no projeto `ulikfkemdawinetjyhok`. Ao delegar qualquer tarefa de banco/RLS/migrations ao MCP Supabase, usar sempre este projeto; sem exceção. Ferramentas MCP referenciadas na skill: list_tables, apply_migration, execute_sql, list_migrations, generate_typescript_types, get_advisors, get_project, get_project_url, get_logs, get_publishable_keys, edge functions, branches (detalhes em `.claude/skills/kpi-supabase-data-engineer/SKILL.md` § 3). |
+| **Chatbot – novos campos auditáveis** | Ao criar/alteger coluna em pessoas, educacional_matriculas, pessoa_redes_sociais (Supabase), o Backend deve incluir o campo em `CAMPOS_AUDITAVEIS` em `src/lib/deliveries.ts` e ajustar `auditarCampo` se a origem for outra tabela. Não criar tool nova para cada pergunta; reutilizar `auditar_campo`. Ver ``. |
 
 ---
 
@@ -93,4 +93,4 @@ Tabela de delegação (tarefa → skill), ordens multi-skill e regras para evita
 
 - [skills-map.md](.context/docs/skills-map.md) – lista e "Quando usar cada skill".
 - [AGENTS.md](AGENTS.md) – mandato, repo map, PR, testes, docs.
-- Skills individuais: `.context/skills/<nome-skill>/SKILL.md` e `reference.md`; ativas no Cursor: `.cursor/skills/<nome-skill>/`.
+- Skills individuais: `.claude/skills/<nome-skill>/SKILL.md` e `reference.md`; ativas no Cursor: `.claude/skills/<nome-skill>/`.

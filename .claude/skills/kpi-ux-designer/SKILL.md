@@ -13,11 +13,11 @@ Ponte entre **ideia e tela**: define estrutura da interface, hierarquia visual, 
 - **Hierarquia visual** (título, subtítulo, grupos, ênfase) → esta skill.
 - **Fluxo do usuário** (passos, navegação, ações principais) → esta skill.
 - **Copy** (botões, labels, mensagens de erro, loading, empty state) → esta skill.
-- **Implementar** em código (JSX, componentes) → skills [Frontend](.context/skills/kpi-frontend/SKILL.md) e [Componentes](.context/skills/kpi-componentes/SKILL.md); esta skill **define o quê** mostrar e **como** dizer.
+- **Implementar** em código (JSX, componentes) → skills [Frontend](.claude/skills/kpi-frontend/SKILL.md) e Componentes; esta skill **define o quê** mostrar e **como** dizer.
 
 ## Quando usar esta skill
 
-- Desenhar uma **nova tela** ou fluxo (ex.: tela de matrícula, dashboard do aluno, lista de tarefas) antes de codar: produzir mockup textual e copy.
+- Desenhar uma **nova tela** ou fluxo (ex.: tela de matrícula, dashboard do membro, lista de tarefas) antes de codar: produzir mockup textual e copy.
 - **Melhorar copy** de botões, mensagens de erro, placeholders ou labels existentes.
 - Definir **estados de loading** (o que mostrar enquanto carrega) e **empty state** (o que mostrar quando não há dados; texto e sugestão de ação).
 - Definir **fluxo** entre telas (ex.: lista → detalhe → edição; wizard de cadastro em quantos passos e o que cada um contém).

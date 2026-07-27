@@ -5,12 +5,12 @@ description: "GitHub and Vercel for KPI F3F. Commits (Conventional Commits), pus
 
 # KPI F3F GitHub + Vercel
 
-Responsável por **fluxo Git** (commits, branches, PR, merge), **resolução de conflitos** e **integração Vercel** (deploy, preview, env). Alinha ao [AGENTS.md](AGENTS.md) (PR & Commit Guidelines) e ao [development-workflow.md](.context/docs/development-workflow.md) quando existir. Esta skill **orienta e executa** comandos e passos; não altera secrets ou produção sem confirmação.
+Responsável por **fluxo Git** (commits, branches, PR, merge), **resolução de conflitos** e **integração Vercel** (deploy, preview, env). Alinha ao [AGENTS.md](AGENTS.md) (PR & Commit Guidelines) e ao development-workflow.md quando existir. Esta skill **orienta e executa** comandos e passos; não altera secrets ou produção sem confirmação.
 
 ## Regra de ouro
 
 - **Commits:** sempre Conventional Commits (`feat(scope): description`); escopo opcional mas recomendado (ex.: `feat(auth): login com redirect`). Esta skill sugere mensagem e valida formato.
-- **PR:** antes do merge, rodar `npm run build && npm run test`; documentação e índice atualizados se houver mudança em estrutura ou scaffolding. Se houve DDL: validar `npx supabase migration list --linked` (Local == Remote) conforme [migrations-workflow.md](.context/docs/supabase/migrations-workflow.md). Anexar amostras (CLI, captura) quando mudança afetar UI/comportamento visível.
+- **PR:** antes do merge, rodar `npm run build && npm run test`; documentação e índice atualizados se houver mudança em estrutura ou scaffolding. Se houve DDL: validar `npx supabase migration list --linked` (Local == Remote) conforme migrations-workflow.md. Anexar amostras (CLI, captura) quando mudança afetar UI/comportamento visível.
 - **Branch strategy:** definir e documentar no [reference.md](reference.md); padrão comum é `main` (produção) e branches de feature/fix a partir de `main` ou de `develop` se o time adotar. Esta skill segue a estratégia documentada.
 - **Vercel:** deploy automático a partir do repo (branch principal = production; demais = preview). **Produção (site oficial):** `https://personalglobal.app`. Variáveis de ambiente e configuração de projeto: esta skill orienta onde configurar; **nunca** sobrescrever env de produção sem confirmação explícita.
 - **Conflitos:** esta skill guia a resolução (identificar arquivos, manter intenção de ambas as partes, testar após merge); não faz force-push em branch compartilhada sem confirmação.
@@ -69,4 +69,4 @@ O [reference.md](reference.md) contém:
 ## Referência adicional
 
 - Convenções, branch strategy, conflitos e Vercel: [reference.md](reference.md) (neste diretório).
-- Diretrizes de PR e commit no projeto: [AGENTS.md](AGENTS.md) (seção 6). Workflow de desenvolvimento: [development-workflow.md](.context/docs/development-workflow.md) (quando existir).
+- Diretrizes de PR e commit no projeto: [AGENTS.md](AGENTS.md) (seção 6). Workflow de desenvolvimento: development-workflow.md (quando existir).

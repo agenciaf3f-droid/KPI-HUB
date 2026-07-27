@@ -71,7 +71,7 @@ Definir e manter aqui as regras adotadas pelo time.
 | **Proteção** | `main` protegida (PR obrigatório, build verde)? A definir no GitHub. |
 | **Merge** | Merge commit ou squash? Rebase antes do merge? A definir. |
 
-Ao adotar regras, preencher a tabela e referenciar em [development-workflow.md](.context/docs/development-workflow.md) se existir.
+Ao adotar regras, preencher a tabela e referenciar em development-workflow.md se existir.
 
 ---
 
@@ -82,12 +82,12 @@ Antes de marcar PR como pronto para review:
 - [ ] `npm run build` passa.
 - [ ] `npm run test` passa.
 - [ ] Commits no padrão Conventional Commits.
-- [ ] Se houve mudanca de schema: migration aplicada via CLI (`db push --linked`); `npx supabase migration list --linked` mostra Local == Remote (sem drift). Runbook: [.context/docs/supabase/migrations-workflow.md](.context/docs/supabase/migrations-workflow.md).
+- [ ] Se houve mudanca de schema: migration aplicada via CLI (`db push --linked`); `npx supabase migration list --linked` mostra Local == Remote (sem drift). Runbook: 
 - [ ] Se mudou scaffolding ou adicionou doc em `.context/docs/`: indice (README.md de .context/docs) atualizado.
 - [ ] Se mudança afeta UI ou comportamento visível: anexar amostra (captura, output CLI) no PR quando útil.
 - [ ] Descrição do PR explica o quê e o porquê; link para issue se houver.
 
-**Validação local:** rodar `bash .cursor/skills/kpi-github-vercel/scripts/validate-build.sh` (na raiz do repo) ou usar o comando **/pre-pr** no chat.
+**Validação local:** rodar `bash .claude/skills/kpi-github-vercel/scripts/validate-build.sh` (na raiz do repo) ou usar o comando **/pre-pr** no chat.
 
 ---
 
@@ -140,5 +140,5 @@ Fonte de verdade do projeto e domínio: [AGENTS.md](AGENTS.md) e esta seção. T
 ## Links
 
 - [AGENTS.md](AGENTS.md) – PR & Commit Guidelines (seção 6).
-- [development-workflow.md](.context/docs/development-workflow.md) – branching e contribuição (quando existir).
-- [KPI F3F Documentação](.context/skills/kpi-documentacao/SKILL.md) – quando atualizar índice e docs.
+- development-workflow.md – branching e contribuição (quando existir).
+- [KPI F3F Documentação](.claude/skills/kpi-documentacao/SKILL.md) – quando atualizar índice e docs.

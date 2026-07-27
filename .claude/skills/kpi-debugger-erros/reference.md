@@ -8,7 +8,7 @@ Formato do log de erros, quando consultar e integração com QA e subagente. **R
 
 **Local:** [.context/docs/troubleshooting-log.md](.context/docs/troubleshooting-log.md).
 
-**Script para nova entrada:** execute `bash .cursor/skills/kpi-debugger-erros/scripts/log-error.sh "Descrição" "Causa raiz" "Solução" ["Arquivo(s)/Módulo"] ["Lição aprendida"]` (a partir da raiz do repo) para formatar e anexar a entrada ao log. Os dois últimos argumentos são opcionais; se omitidos, o script insere *(preencher se necessário)* — revise o arquivo depois para completar.
+**Script para nova entrada:** execute `bash .claude/skills/kpi-debugger-erros/scripts/log-error.sh "Descrição" "Causa raiz" "Solução" ["Arquivo(s)/Módulo"] ["Lição aprendida"]` (a partir da raiz do repo) para formatar e anexar a entrada ao log. Os dois últimos argumentos são opcionais; se omitidos, o script insere *(preencher se necessário)* — revise o arquivo depois para completar.
 
 Cada entrada deve ter:
 
@@ -19,17 +19,17 @@ Cada entrada deve ter:
 | **Arquivo(s) / Módulo** | Onde o erro se manifestou ou onde estava a causa (arquivo, tabela, rota). |
 | **Causa raiz** | Resumo da causa identificada (ex.: RLS faltando filtro por user_id; estado não atualizado após submit). |
 | **Solução** | O que foi feito para corrigir (alteração mínima; se migration ou service, indicar onde). |
-| **Lição aprendida** | O que evitar no futuro ou padrão a seguir (ex.: "sempre filtrar por aluno_id em tabelas do módulo"; "não usar admin client em API route"). |
+| **Lição aprendida** | O que evitar no futuro ou padrão a seguir (ex.: "sempre filtrar por member_id em tabelas do módulo"; "não usar admin client em API route"). |
 
 Exemplo de entrada (Markdown):
 
 ```markdown
-### 2025-02-06 – Aluno vê dados de outro na lista de matrículas
+### 2025-02-06 – membro vê dados de outro na lista de matrículas
 - **Descrição:** Na tela de matrículas, usuário A via matrículas do usuário B.
 - **Arquivo(s):** `educacional_matriculas` (RLS); `MatriculaRepository.ts`.
-- **Causa raiz:** Política RLS da tabela não filtrava por `aluno_id` na cláusula USING.
-- **Solução:** Migration ajustando RLS para `USING (aluno_id = auth.uid()::text ou equivalente)`; regressão via QA.
-- **Lição aprendida:** Em tabelas por aluno, RLS deve sempre incluir filtro por aluno_id (ou user_id conforme vínculo). Consultar skill Entidades centrais e Security & Performance antes de nova tabela.
+- **Causa raiz:** Política RLS da tabela não filtrava por `member_id` na cláusula USING.
+- **Solução:** Migration ajustando RLS para `USING (member_id = auth.uid()::text ou equivalente)`; regressão via QA.
+- **Lição aprendida:** Em tabelas por membro, RLS deve sempre incluir filtro por member_id (ou user_id conforme vínculo). Consultar skill Entidades centrais e Security & Performance antes de nova tabela.
 ```
 
 ---
@@ -62,5 +62,5 @@ Exemplo de entrada (Markdown):
 ## Links
 
 - [troubleshooting-log.md](.context/docs/troubleshooting-log.md) – arquivo de log.
-- [KPI F3F QA / Tester](.context/skills/kpi-qa-tester/SKILL.md) – testes e regressão.
+- [KPI F3F QA / Tester](.claude/skills/kpi-qa-tester/SKILL.md) – testes e regressão.
 - [skills-map.md](.context/docs/skills-map.md) – quando usar a skill Debugger.

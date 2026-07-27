@@ -5,7 +5,7 @@ description: Produces a governance-focused module audit report for KPI F3F with 
 
 # KPI F3F Relatório de módulo — Auditoria e parecer por skills
 
-Gera **relatório escrito** (não substitui implementação). Foco: governança do HUB KPI F3F, **Supabase/RLS**, isolamento e escopo de dados conforme policies, **Next.js App Router**, integração com **entidades centrais** (`pessoa`/`aluno`/`user_id`), qualidade e rastreabilidade (testes, docs, Vercel).
+Gera **relatório escrito** (não substitui implementação). Foco: governança do HUB KPI F3F, **Supabase/RLS**, isolamento e escopo de dados conforme policies, **Next.js App Router**, integração com **entidades centrais** (`pessoa`/`membro`/`user_id`), qualidade e rastreabilidade (testes, docs, Vercel).
 
 ## Quando aplicar
 
@@ -17,10 +17,10 @@ Gera **relatório escrito** (não substitui implementação). Foco: governança 
 
 O usuário deve fornecer **nesta ordem** (o que faltar vira **lacuna** na seção 6):
 
-1. **Resumo do módulo** (5–10 linhas): o que faz, principais fluxos, telas/rotas (`src/app/(dashboard)/...`, `src/app/api/...`, `src/modules/...`).
+1. **Resumo do módulo** (5–10 linhas): o que faz, principais fluxos, telas/rotas (`src/app/(dashboard)/...`, `src/app/api/...`, `src/lib/...`).
 2. **Arquivos alterados**: saída de `git diff --name-only main..HEAD` (ou branch base acordada, ex.: `develop`).
 3. **Opcional**: trechos de logs (build/test), migrations/RLS relevantes (`supabase/migrations/`, scripts em `supabase/scripts/`).
-4. **Opcional**: trecho de plano ativo em `.context/docs/project-plan.md`, `.context/docs/PLAN-*.md` ou requisitos em `.context/docs/requisitos/` que cubram o módulo.
+4. **Opcional**: trecho de plano ativo em `.context/docs/project-plan.md`, `.context/docs/PLAN-*.md` ou requisitos em `` que cubram o módulo.
 
 Se o agente puder **ler o repositório**, cruzar arquivos citados com o resumo; se não houver evidência no chat nem no repo acessível, marcar **lacuna**.
 
@@ -31,7 +31,7 @@ Se o agente puder **ler o repositório**, cruzar arquivos citados com o resumo; 
 - Sempre indicar **risco** e **impacto** (produto / engenharia / operação).
 - **Próximos passos por skill** na ordem canônica KPI F3F (ajustar ao escopo do módulo; citar desvio se for só UI estática ou só script):
   - Modelo/tabelas centrais: **Entidades centrais** (regras) → **Supabase** (schema/RLS) → **Backend** → **Frontend** ou **Dashboards** (telas data-heavy) → **Auth e Rotas** → **QA** → **Documentação**.
-  - Integração entre módulos: **Integrações e vínculos** (contrato) antes ou em paralelo ao Backend conforme [integracao-e-vinculos-modulos.md](.context/docs/integracao-e-vinculos-modulos.md).
+  - Integração entre módulos: **Integrações e vínculos** (contrato) antes ou em paralelo ao Backend conforme integracao-e-vinculos-modulos.md.
   - Campos reutilizáveis novos: **Componentes** antes do **Frontend** que for consumir.
 - **Lista de skills:** basear-se em [.context/docs/skills-map.md](.context/docs/skills-map.md). Para cada skill **relevante** ao módulo, emitir parecer; para skills **fora de escopo**, usar **N/A** com uma linha.
 - **kpi-skill-gerente** não recebe nota de implementação; pode receber nota de **orquestração do relatório** (N/A) ou ser omitida do parecer detalhado.
@@ -50,7 +50,7 @@ Notas por skill usam a mesma escala ou **N/A**.
 
 ## Skills KPI F3F cobertas no parecer detalhado
 
-Usar estes identificadores (alinhados ao repositório em `.cursor/skills/kpi-*/`):
+Usar estes identificadores (alinhados ao repositório em `.claude/skills/kpi-*/`):
 
 `kpi-supabase-data-engineer`, `kpi-backend`, `kpi-frontend`, `kpi-dashboards`, `kpi-auth-rotas`, `kpi-integracoes-vinculos`, `kpi-entidades-centrais`, `kpi-qa-tester`, `kpi-security-performance`, `kpi-documentacao`, `kpi-debugger-erros`, `kpi-consultoria-processos`, `kpi-ux-designer`, `kpi-componentes`, `kpi-limpeza-codigo`, `kpi-organizar-repositorio`, `kpi-migracao-legado`, `kpi-novo-modulo`, `kpi-github-vercel`, `kpi-clickup-pm`, `kpi-obsidian-processos`.
 
@@ -85,7 +85,7 @@ Lista numerada; cada item com **skill dona** entre parênteses (ex.: `kpi-supaba
 
 ### 5) Ordem sugerida de execução (próximos passos por skill)
 
-Sequência única ou tabela: skill → próximo passo concreto (uma linha cada), respeitando dependências em [.cursor/skills/kpi-skill-gerente/reference.md](.cursor/skills/kpi-skill-gerente/reference.md).
+Sequência única ou tabela: skill → próximo passo concreto (uma linha cada), respeitando dependências em [.claude/skills/kpi-skill-gerente/reference.md](.claude/skills/kpi-skill-gerente/reference.md).
 
 ### 6) Lacunas / assunções
 
@@ -93,11 +93,11 @@ Bullet list do que faltou (evidência, testes não rodados, RLS não auditado, p
 
 ## Boas práticas
 
-- Citar caminhos com formato de código quando útil: `src/app/...`, `src/modules/...`, `.context/docs/...`, `supabase/migrations/...`.
+- Citar caminhos com formato de código quando útil: `src/app/...`, `src/lib/...`, `.context/docs/...`, `supabase/migrations/...`.
 - Não usar emojis no relatório.
 - Se o módulo tocar **cron** (`vercel.json`), **secrets** (`CRON_SECRET`, service role em API routes) ou **MCP Supabase/Vercel**, mencionar em riscos/operação conforme [AGENTS.md](AGENTS.md).
 
 ## Referência adicional
 
 - Mapa e fronteiras: [.context/docs/skills-map.md](.context/docs/skills-map.md)
-- Ordem multi-skill e conflitos: [.cursor/skills/kpi-skill-gerente/reference.md](.cursor/skills/kpi-skill-gerente/reference.md)
+- Ordem multi-skill e conflitos: [.claude/skills/kpi-skill-gerente/reference.md](.claude/skills/kpi-skill-gerente/reference.md)

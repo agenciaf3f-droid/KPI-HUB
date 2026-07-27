@@ -2,7 +2,7 @@
 
 Complemento normativo de [SKILL.md](SKILL.md). Use este arquivo para **exemplos**, **mapa de arquivos**, **fluxos** e **decisões de implementação**. O Frontend continua sendo a base de páginas; esta skill entra em **dashboard / visão analítica / métricas + gráficos + tabela sincronizada**.
 
-**Requisito transversal (HUB):** [requisitos-dashboards-padronizados.md](../../.context/docs/requisitos/requisitos-dashboards-padronizados.md) — índice em [.context/docs/README.md](../../.context/docs/README.md) § Onde buscar. **ADR:** [004_dashboards_padronizados_sgt.md](../../.context/docs/adr/004_dashboards_padronizados_sgt.md). **QA smoke:** [cenarios-dashboards-smoke.md](../../.context/docs/qa/cenarios-dashboards-smoke.md).
+**Requisito transversal (HUB):** requisitos-dashboards-padronizados.md — índice em [.context/docs/README.md](../../.context/docs/README.md)
 
 ---
 
@@ -21,7 +21,7 @@ Complemento normativo de [SKILL.md](SKILL.md). Use este arquivo para **exemplos*
 
 ## Listagens padronizadas
 
-Tabela de detalhe em dashboard: **DataTable + BarraFiltrosPadrao + useColunasPersistidas** — [requisitos-listas-e-filtros-padronizados.md](../../.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md). KPIs e gráficos ficam acima; não substituem essa regra.
+Tabela de detalhe em dashboard: **`Table` +  + ** — requisitos-listas-e-filtros-padronizados.md. KPIs e gráficos ficam acima; não substituem essa regra.
 
 ---
 
@@ -32,7 +32,7 @@ Tabela de detalhe em dashboard: **DataTable + BarraFiltrosPadrao + useColunasPer
 | Dashboard novo com métricas novas no banco | UX (opcional) → Supabase (view/RPC/índice) → Backend → **Dashboards** → QA |
 | Só mudança visual | **Dashboards** (+ Frontend se rotas/layout) |
 | Performance ruim | Security & Performance → Backend/Supabase → Dashboards → QA |
-| Componente reutilizável novo (ChartCard global, virtualização) | Componentes → Dashboards |
+| Componente reutilizável novo (Card com gráfico global, virtualização) | Componentes → Dashboards |
 | Auditoria de módulo | kpi-relatorio-modulo → correções por skill dona |
 
 ---
@@ -41,9 +41,9 @@ Tabela de detalhe em dashboard: **DataTable + BarraFiltrosPadrao + useColunasPer
 
 | Módulo / rota | Padrão | Observação |
 |---------------|--------|------------|
-| `src/modules/educacional/dashboard/` (Validação de cadastro) | **Painel Analítico** | Referência oficial (mar/2026) |
+| `src/lib/<modulo>.ts` (Validação de cadastro) | **Painel Analítico** | Referência oficial (mar/2026) |
 | Educacional — shell + `filter-url` | **URL** | `EducacionalDashboardShell`, `useEducacionalDashboardFilters` |
-| Analytics eventos (`EventoMetricasDashboard`) | Legado / híbrido | Recharts + DataTable; alinhado a dashboards, não ao Painel Analítico completo |
+| Analytics eventos (`EventoMetricasDashboard`) | Legado / híbrido | Recharts + `Table`; alinhado a dashboards, não ao Painel Analítico completo |
 | Analytics mentores, aniversariantes, eventos convidados | Gráficos pontuais | Avaliar convergência só se houver refactor planejado |
 
 Não forçar rewrite de legado; novos painéis seguem Educacional ou URL conforme [SKILL.md](SKILL.md).
@@ -53,7 +53,7 @@ Não forçar rewrite de legado; novos painéis seguem Educacional ou URL conform
 ## Arquitetura e camadas
 
 ```text
-src/modules/{modulo}/dashboard/
+src/lib/{modulo}/dashboard/
   types-{modulo}.ts
   services/{modulo}-dashboard-aggregate.ts   # puro, testado
   services/{modulo}-dashboard-service.ts   # fetch + aggregate
@@ -77,7 +77,7 @@ src/modules/{modulo}/dashboard/
 - `DrillDown` — `enabled: open && !!filtros` (ou segment).
 - Admin client — só com comentário de justificativa (RLS).
 
-Server Actions de exemplo (Educacional): `obterDashboardValidacaoCadastro`, `obterValidacaoDrillDown` em `src/app/(dashboard)/educacional/actions.ts`.
+Server Actions de exemplo (Creator): `obterDashboardValidacaoCadastro`, `obterValidacaoDrillDown` em `src/app/(dashboard)/educacional/actions.ts`.
 
 ---
 
@@ -88,7 +88,7 @@ Server Actions de exemplo (Educacional): `obterDashboardValidacaoCadastro`, `obt
 - Evitar `useEffect` só para fetch; usar Query ou Server Action + hidratação quando fizer sentido.
 
 ```ts
-// src/modules/{modulo}/dashboard/hooks/useModuloDashboardQuery.ts
+// src/lib/{modulo}/dashboard/hooks/useModuloDashboardQuery.ts
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
@@ -106,7 +106,7 @@ export function useModuloDashboardQuery(filters: ModuloDashboardFilters) {
 }
 ```
 
-**URL + Query:** normalizar filtros antes de compor `queryKey` e `searchParams` (ordem estável de chaves, tipos coerentes). Educacional: `src/modules/educacional/dashboard/lib/filter-url.ts` + testes.
+**URL + Query:** normalizar filtros antes de compor `queryKey` e `searchParams` (ordem estável de chaves, tipos coerentes). Educacional: `src/lib/<modulo>.ts` + testes.
 
 ---
 
@@ -118,7 +118,7 @@ export function useModuloDashboardQuery(filters: ModuloDashboardFilters) {
 - Navegação voltar/avançar preserva estado coerente.
 - Invalidar query após mutations que alterem métricas exibidas.
 
-Layout sugerido (módulo com abas): [painel com abas no Frontend](../kpi-frontend/reference.md) — header → toolbar → KPIs → 2–4 gráficos → DataTable → dialog de detalhe.
+Layout sugerido (módulo com abas): [painel com abas no Frontend](../kpi-frontend/reference.md) — header → toolbar → KPIs → 2–4 gráficos → `Table` → dialog de detalhe.
 
 ---
 
@@ -148,10 +148,10 @@ Sub-painel: KPIs + um gráfico principal + drill-down; **filtros locais** (`useS
 | Camada | Componente |
 |--------|------------|
 | Gráficos | `recharts`: Pie, Bar (empilhado/agrupado), Area/Line/Bar + `Brush` |
-| Card | `ChartCard` — skeleton ~280px, erro + retry |
-| KPI | `KpiMetricCard` |
+| Card | Card com gráfico — skeleton ~280px, erro + retry |
+| KPI | Card de métrica |
 | Modais | `<dialog>` nativo + `showModal()` / `close()` |
-| Período | Presets + `DateRangePickerCompleto` |
+| Período | Presets + `DateRangePicker` |
 | Prefs | `localStorage` (modelo ativo, tipo de gráfico temporal) |
 
 ### Catálogo de modelos
@@ -190,7 +190,7 @@ Query key sugerida: `['{modulo}-drill-down', filtros]`.
 - Filtros locais no sub-painel (não herdar URL do pai).
 - Modelos com `objective` + `howItHelps` (onboarding sem doc externa).
 - Drill-down em dialog (mantém contexto).
-- `ChartCard` e `KpiMetricCard` em `src/shared/ui/dashboard/` — importar de `@/shared/ui` (registro em **KPI F3F Componentes**). Tema de cores: `chart-theme.ts` no módulo.
+- Card com gráfico e Card de métrica em `src/components/ui/` — importar de `@/components/ui` (registro em **KPI F3F Componentes**). Tema de cores: `chart-theme.ts` no módulo.
 
 ### Ordem ao criar novo painel
 
@@ -221,7 +221,7 @@ Query key sugerida: `['{modulo}-drill-down', filtros]`.
 - `prefers-reduced-motion` em animações Framer.
 
 ```tsx
-// src/modules/{modulo}/dashboard/components/ModuloChartSummary.tsx
+// src/lib/{modulo}/dashboard/components/ModuloChartSummary.tsx
 type ModuloChartSummaryProps = { title: string; summary: string }
 
 export function ModuloChartSummary({ title, summary }: ModuloChartSummaryProps) {
@@ -302,7 +302,7 @@ Smoke manual: limpar filtros, trocar modelo, abrir drill-down, conferir escopo p
 - [SKILL.md](SKILL.md) — norma enxuta
 - [skills-map.md](../../.context/docs/skills-map.md)
 - [AGENTS.md](../../AGENTS.md)
-- [KPI F3F Frontend](../kpi-frontend/SKILL.md) · [Componentes](../kpi-componentes/SKILL.md)
-- Código: `src/modules/educacional/dashboard/`
+- [KPI F3F Frontend](../kpi-frontend/SKILL.md) · Componentes
+- Código: `src/lib/<modulo>.ts`
 
 Estudos externos ou tendências de mercado **não** são regra desta skill até virarem ADR ou doc em `.context/docs/`.

@@ -17,13 +17,13 @@ Descrever a tela em texto/markdown para o Frontend implementar. Incluir:
 Exemplo mínimo:
 
 ```markdown
-## Tela: Lista de alunos
+## Tela: Lista de membros
 
-- Cabeçalho: título "Alunos", botão "Novo aluno".
+- Cabeçalho: título "membros", botão "Novo membro".
 - Filtro: campo busca (placeholder "Buscar por nome ou email"), botão "Filtrar".
 - Tabela: colunas Nome, Email, Status, Ações (ícone editar, ícone excluir).
-- Empty state: "Nenhum aluno encontrado." + botão "Cadastrar primeiro aluno".
-- Loading: texto "Carregando alunos..."
+- Empty state: "Nenhum membro encontrado." + botão "Cadastrar primeiro membro".
+- Loading: texto "Carregando membros..."
 ```
 
 ---
@@ -36,7 +36,7 @@ Exemplo mínimo:
 - **Placeholders:** texto de exemplo que não substitui o label (ex.: "000.000.000-00" para CPF).
 - **Mensagens de erro:** específicas e acionáveis (ex.: "CPF inválido." ou "Preencha o CPF."); evitar só "Erro" ou "Campo inválido" sem contexto.
 - **Empty state:** frase curta + ação sugerida (ex.: "Nenhum resultado encontrado." + "Limpar filtros" ou "Cadastrar primeiro item").
-- **Loading:** "Carregando..." ou "Carregando [recurso]..." (ex.: "Carregando alunos...").
+- **Loading:** "Carregando..." ou "Carregando [recurso]..." (ex.: "Carregando membros...").
 - **Idioma:** pt-BR em toda a interface (AGENTS.md).
 
 ---
@@ -48,7 +48,7 @@ Para cada tela ou lista que depende de dados:
 | Estado   | O que definir |
 |----------|----------------|
 | **Loading** | Texto exibido (ex.: "Carregando..."); se usar skeleton/spinner, indicar. |
-| **Empty**   | Texto (ex.: "Nenhum registro encontrado."); botão ou link de ação (ex.: "Cadastrar primeiro aluno"). |
+| **Empty**   | Texto (ex.: "Nenhum registro encontrado."); botão ou link de ação (ex.: "Cadastrar primeiro membro"). |
 | **Erro**    | Mensagem (ex.: "Não foi possível carregar. Tente novamente."); ação (ex.: botão "Tentar novamente"). |
 
 Registrar no mockup ou em tabela por tela quando o projeto padronizar.
@@ -57,7 +57,7 @@ Registrar no mockup ou em tabela por tela quando o projeto padronizar.
 
 ## Hierarquia visual
 
-- **Título da página:** um h1 por tela; nome claro do contexto (ex.: "Alunos", "Matrícula", "Configurações").
+- **Título da página:** um h1 por tela; nome claro do contexto (ex.: "membros", "Matrícula", "Configurações").
 - **Subtítulos e seções:** h2/h3 para agrupar (ex.: "Dados pessoais", "Contato"); ordem lógica (dados principais antes de secundários).
 - **Ênfase:** ações principais (ex.: "Salvar") em destaque; secundárias (ex.: "Cancelar") em estilo menos enfático; seguir padrão shadcn/ui (variant default vs outline vs ghost).
 - **Agrupamento:** campos relacionados no mesmo Card ou fieldset; não misturar muitas ações no mesmo bloco sem separação visual.
@@ -133,4 +133,4 @@ Use este bloco como **template** quando o usuário pedir refatoração no mesmo 
 
 - [project-plan.md](.context/docs/project-plan.md) – stack (shadcn/ui, Tailwind).
 - [KPI F3F Frontend](../kpi-frontend/SKILL.md) – quem implementa as telas.
-- [KPI F3F Componentes](../kpi-componentes/SKILL.md) – componentes e campos padronizados.
+- KPI F3F Componentes – componentes e campos padronizados.

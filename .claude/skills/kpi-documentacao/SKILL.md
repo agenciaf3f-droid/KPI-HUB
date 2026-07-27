@@ -10,7 +10,7 @@ Responsável por **quando e como documentar** no KPI F3F: manter `.context/docs/
 ## Regra de ouro
 
 - **Atualizar `.context/docs/`** (índice, guias, novos docs) → esta skill.
-- **Manter "Onde buscar"** no [.context/docs/README.md](.context/docs/README.md): quando surgir novo padrão centralizado (requisitos, componentes, mensagens, acessos, **integração e vínculos entre módulos**), incluir na tabela "Onde buscar (a busca no lugar certo)" para que agentes e devs encontrem em um único lugar. O doc [integracao-e-vinculos-modulos.md](.context/docs/integracao-e-vinculos-modulos.md) é mantido em **conteúdo** pela skill Integrações e vínculos; esta skill mantém o **índice** e a entrada "Onde buscar" para esse doc.
+- **Manter "Onde buscar"** no [.context/docs/README.md](.context/docs/README.md): quando surgir novo padrão centralizado (requisitos, componentes, mensagens, acessos, **integração e vínculos entre módulos**), incluir na tabela "Onde buscar (a busca no lugar certo)" para que agentes e devs encontrem em um único lugar. O doc integracao-e-vinculos-modulos.md é mantido em **conteúdo** pela skill Integrações e vínculos; esta skill mantém o **índice** e a entrada "Onde buscar" para esse doc.
 - **Atualizar README** da raiz e do repositório quando a estrutura ou o onboarding mudar → esta skill.
 - **Criar ou atualizar ADRs** (decisões de arquitetura) → esta skill.
 - **Atualizar glossário** (termos de domínio, entidades, siglas) → esta skill.
@@ -19,8 +19,8 @@ Responsável por **quando e como documentar** no KPI F3F: manter `.context/docs/
 ## Quando usar esta skill
 
 - **Mudança de scaffolding ou estrutura** (novas pastas, novo módulo, alteração no mapa de diretórios) → atualizar `.context/docs/README.md`, Document Map e, se aplicável, AGENTS.md (Repository Map); ver [reference.md](reference.md).
-- **Nova decisão de arquitetura** (ex.: adoção de padrão X, mudança de fluxo de dados) → criar ADR em `.context/docs/adr/` (ou `docs/adr/`) e referenciar no índice. Para gerar o boilerplate: `bash .cursor/skills/kpi-documentacao/scripts/create-adr.sh "Título do ADR"` (na raiz do repo); em seguida **adicionar o ADR ao .context/docs/README.md**.
-- **Novo termo de domínio** ou alteração de conceito (ex.: nova entidade, novo fluxo) → atualizar [glossary.md](.context/docs/glossary.md) e, se necessário, data-flow ou architecture.
+- **Nova decisão de arquitetura** (ex.: adoção de padrão X, mudança de fluxo de dados) → criar ADR em `` (ou `docs/adr/`) e referenciar no índice. Para gerar o boilerplate: `bash .claude/skills/kpi-documentacao/scripts/create-adr.sh "Título do ADR"` (na raiz do repo); em seguida **adicionar o ADR ao .context/docs/README.md**.
+- **Novo termo de domínio** ou alteração de conceito (ex.: nova entidade, novo fluxo) → atualizar glossary.md e, se necessário, data-flow ou architecture.
 - **Novo documento** em `.context/docs/` (ex.: guia de onboarding, playbook de deploy) → criar o arquivo e **adicionar ao índice** (README e Document Map).
 - **Remoção ou renomeação** de doc → atualizar índice e links que apontam para o arquivo.
 - **Pedido explícito** do usuário para "documentar X", "atualizar a documentação" ou "criar ADR para decisão Y".

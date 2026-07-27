@@ -7,7 +7,7 @@ description: Audits and fixes responsiveness across an KPI F3F module or screen 
 
 Skill de **manutenção responsiva certeira** por módulo ou tela. Quando acionada, **audita** todo o módulo/tela informado (páginas, toolbar/busca, filtros, modais, tabelas, KPI strips, formulários, processos) e aplica as **correções responsivas padronizadas do KPI F3F** — sem inventar padrão novo e sem alterar regra de negócio.
 
-Estende a skill [KPI F3F Frontend](../kpi-frontend/SKILL.md) (camada de apresentação). Mudanças em **componentes compartilhados** (`src/shared/ui`) são delegadas à skill [KPI F3F Componentes](../kpi-componentes/SKILL.md). Comportamento/breakpoints podem ser validados com [KPI F3F UX / Designer](../kpi-ux-designer/SKILL.md).
+Estende a skill [KPI F3F Frontend](../kpi-frontend/SKILL.md) (camada de apresentação). Mudanças em **componentes compartilhados** (`src/components/ui`) são delegadas à skill KPI F3F Componentes. Comportamento/breakpoints podem ser validados com [KPI F3F UX / Designer](../kpi-ux-designer/SKILL.md).
 
 ## Escopo
 
@@ -43,13 +43,13 @@ Auditoria de responsividade — módulo/tela: ___________
 - [ ] 10. Registrar correções (se foi bug) no troubleshooting-log
 ```
 
-**Passo 1 — Mapear:** localizar os arquivos do módulo em `src/modules/<modulo>/` (e a página em `src/app/(dashboard)/<modulo>/`). Identificar todos os `<dialog>`, listagens (`DataTable`/`<table>`), barras de filtro e dashboards.
+**Passo 1 — Mapear:** localizar os arquivos do módulo em `src/lib/<modulo>/` (e a página em `src/app/(dashboard)/<modulo>/`). Identificar todos os `<dialog>`, listagens (``Table``/`<table>`), barras de filtro e dashboards.
 
 **Passos 2–7 — Aplicar padrões:** usar os padrões canônicos abaixo. Detalhes, exemplos completos e referências de arquivos do repositório em [reference.md](reference.md).
 
 **Passo 8 — Validar:** mentalmente (ou com o usuário) conferir 1366x768 (notebook), zoom 125% e largura mobile (~375px). Rodar `npm run build` e os testes do módulo. Não introduzir TS/lint novos.
 
-**Passos 9–10 — Fronteiras:** se a correção certa for em `src/shared/ui` (ex.: `FiltroBuscaTexto`, `DataTable`), **não alterar direto** — validar impacto em todos os consumidores e acionar a skill **KPI F3F Componentes** (ou aplicar via prop/classe só no módulo). Se a tarefa nasceu de um bug, registrar no `troubleshooting-log.md` (skill **KPI F3F Debugger**).
+**Passos 9–10 — Fronteiras:** se a correção certa for em `src/components/ui` (ex.: ``, ``Table``), **não alterar direto** — validar impacto em todos os consumidores e acionar a skill **KPI F3F Componentes** (ou aplicar via prop/classe só no módulo). Se a tarefa nasceu de um bug, registrar no `troubleshooting-log.md` (skill **KPI F3F Debugger**).
 
 ## Padrões canônicos (resumo — completo no reference)
 
@@ -68,11 +68,11 @@ Referência aprovada no repo: `ComercialContratoEditar.tsx` (`flex max-h-[92vh] 
 
 - Container: `flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center`.
 - Busca: `w-full sm:w-64` (não largura fixa que force overflow).
-- Barra de filtros: `flex-wrap` + larguras fluidas; alinhar a `BarraFiltrosPadrao` quando existir.
+- Barra de filtros: `flex-wrap` + larguras fluidas; alinhar a `` quando existir.
 
 ### Padrão C — Tabelas e KPI strips
 
-Envolver toda `<table>`/`DataTable`/strip de KPIs em `<div className="overflow-x-auto">` (padrão de `EducacionalDashboardShell.tsx`). Em mobile a tabela rola horizontalmente em vez de quebrar o layout.
+Envolver toda `<table>`/``Table``/strip de KPIs em `<div className="overflow-x-auto">` (padrão de `EducacionalDashboardShell.tsx`). Em mobile a tabela rola horizontalmente em vez de quebrar o layout.
 
 ### Padrão D — Grids de dashboard
 
@@ -99,4 +99,4 @@ Grids de campos: `grid grid-cols-1 sm:grid-cols-2 gap-4`. Wizards/passos: empilh
 
 - Padrões completos, exemplos de código e arquivos de referência no repo: [reference.md](reference.md).
 - Camada de apresentação e listagens padronizadas: [KPI F3F Frontend](../kpi-frontend/SKILL.md).
-- Componentes compartilhados (alterações em `src/shared/ui`): [KPI F3F Componentes](../kpi-componentes/SKILL.md).
+- Componentes compartilhados (alterações em `src/components/ui`): KPI F3F Componentes.

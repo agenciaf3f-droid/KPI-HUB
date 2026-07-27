@@ -9,7 +9,7 @@ Responsável por **absorver sistemas existentes** (legados ou descentralizados) 
 
 ## Regra de ouro
 
-- **Não replicar o erro:** Se o sistema antigo tinha tabelas de "alunos" ou "clientes" duplicadas por módulo, esta skill **deve** mapear esses dados para a **entidade central** `pessoas` (ou convenção adotada). Nunca criar no KPI F3F uma cópia do modelo fragmentado do legado. Alinhar à skill [Entidades centrais](../kpi-entidades-centrais/SKILL.md).
+- **Não replicar o erro:** Se o sistema antigo tinha tabelas de "membros" ou "clientes" duplicadas por módulo, esta skill **deve** mapear esses dados para a **entidade central** `pessoas` (ou convenção adotada). Nunca criar no KPI F3F uma cópia do modelo fragmentado do legado. Alinhar à skill Entidades centrais.
 - **Análise antes da ação:** Antes de codar, a skill **deve** gerar um **Mapa de Tradução** (De: Legado → Para: KPI F3F): quais tabelas viram o quê, qual login vira Supabase Auth, quais telas viram quais rotas/componentes, qual lógica vira quais services/repositories. O mapa pode ser um doc em `.context/docs/` (ex.: `migracao-<sistema>.md` ou `requisitos/mapa-traducao-<sistema>.md`). Registrar no [reference.md](reference.md) quando houver migração em andamento.
 - **Desduplicação obrigatória:** Ao migrar dados, verificar se o registro **já existe** no KPI F3F (ex.: mesma pessoa por CPF ou documento). Se sim, **vincular via ID** (pessoa_id, user_id); não criar novo cadastro. Checklist no [reference.md](reference.md).
 - **Delegar implementação:** Esta skill **não** cria tabelas, RLS, services nem telas sozinha; usa a [matriz de tradução técnica](reference.md#matriz-de-tradução-técnica) para indicar **qual skill** faz cada parte e em que ordem.
@@ -20,7 +20,7 @@ Responsável por **absorver sistemas existentes** (legados ou descentralizados) 
 - **Analisar** um projeto ou banco legado (Postgres, MySQL, outro) e definir **como** ele será absorvido pelo KPI F3F (schema, auth, entidades, UI, lógica).
 - **Gerar o Mapa de Tradução** (documento De: Legado → Para: KPI F3F) antes de qualquer implementação de migração.
 - **Planejar migração de dados:** scripts SQL ou ETL que preservem integridade referencial (pessoa_id, user_id) e desdupliquem quando necessário.
-- **Dúvida** "como mapear a tabela antiga de alunos para o KPI F3F?" ou "o legado usa login próprio; como unificar com Supabase Auth?" → consultar ou produzir via esta skill (e [reference.md](reference.md)).
+- **Dúvida** "como mapear a tabela antiga de membros para o KPI F3F?" ou "o legado usa login próprio; como unificar com Supabase Auth?" → consultar ou produzir via esta skill (e [reference.md](reference.md)).
 
 ## Fluxo de trabalho
 
@@ -35,13 +35,13 @@ Responsável por **absorver sistemas existentes** (legados ou descentralizados) 
 
 O [reference.md](reference.md) contém:
 
-- **Matriz de tradução técnica:** Elemento legado → Destino no KPI F3F → Skill responsável (banco, login, cadastro aluno, UI, queries, etc.).
+- **Matriz de tradução técnica:** Elemento legado → Destino no KPI F3F → Skill responsável (banco, login, cadastro membro, UI, queries, etc.).
 - **Checklist de migração:** Desduplicação (já existe no KPI F3F? vincular por ID); Segurança (RLS cobre permissões do antigo?); Limpeza (código morto e libs obsoletas descartados).
-- **Onde salvar o Mapa de Tradução:** convenção (ex.: `.context/docs/migracao/` ou `requisitos/`); Documentação atualiza o índice.
+- **Onde salvar o Mapa de Tradução:** convenção (ex.: `` ou `requisitos/`); Documentação atualiza o índice.
 
 ## Integração com outras skills
 
-- **Entidades centrais:** Garantir que cadastros duplicados do legado (aluno por sistema) viram um único registro em `pessoas` e referências por ID. Esta skill define o mapeamento; Entidades valida o modelo; Supabase implementa.
+- **Entidades centrais:** Garantir que cadastros duplicados do legado (membro por sistema) viram um único registro em `pessoas` e referências por ID. Esta skill define o mapeamento; Entidades valida o modelo; Supabase implementa.
 - **Supabase:** Schema central, RLS, migrations e scripts de carga. Esta skill produz o mapa (tabela antiga → tabela KPI F3F); Supabase executa.
 - **Auth e Rotas:** Login único; mapear usuários legados para Supabase Auth e perfil. Esta skill define "como" (ex.: migrar usuários, vincular a pessoa_id); Auth implementa.
 - **Backend:** Lógica legada → Services e Repositories. Esta skill identifica o que migrar e para qual módulo; Backend implementa.
@@ -53,4 +53,4 @@ O [reference.md](reference.md) contém:
 ## Referência
 
 - Matriz de tradução, checklist e onde salvar: [reference.md](reference.md).
-- Modelo central (pessoa única): [Entidades centrais](../kpi-entidades-centrais/SKILL.md). Schema e RLS: [Supabase](../kpi-supabase-data-engineer/SKILL.md).
+- Modelo central (pessoa única): Entidades centrais. Schema e RLS: [Supabase](../kpi-supabase-data-engineer/SKILL.md).

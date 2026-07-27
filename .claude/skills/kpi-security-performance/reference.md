@@ -6,27 +6,27 @@ Checklists para auditoria de RLS, análise de dados sensíveis no client-side e 
 
 ## Checklist: auditoria de policies RLS
 
-Use ao auditar uma tabela (ex.: `financeiro_transacoes`). Pergunta central: **um aluno (ou usuário A) consegue ver ou alterar dados de outro aluno (usuário B)?**
+Use ao auditar uma tabela (ex.: `financeiro_transacoes`). Pergunta central: **um membro (ou usuário A) consegue ver ou alterar dados de outro membro (usuário B)?**
 
 ### Por operação
 
-- **SELECT:** a política `USING` restringe às linhas do próprio usuário/aluno/tenant? (ex.: `aluno_id = auth.uid()` ou join com tabela que vincula `user_id` ao aluno; ou `user_id = auth.uid()` quando a tabela tem `user_id`).
-- **INSERT:** a política `WITH CHECK` garante que o usuário só insere com `aluno_id`/`user_id` dele (ou do contexto permitido)?
+- **SELECT:** a política `USING` restringe às linhas do próprio usuário/membro/tenant? (ex.: `member_id = auth.uid()` ou join com tabela que vincula `user_id` ao membro; ou `user_id = auth.uid()` quando a tabela tem `user_id`).
+- **INSERT:** a política `WITH CHECK` garante que o usuário só insere com `member_id`/`user_id` dele (ou do contexto permitido)?
 - **UPDATE:** idem; usuário não pode atualizar linhas de outro.
 - **DELETE:** idem; usuário não pode deletar linhas de outro.
 
 ### Pontos comuns de falha
 
-- **RLS desabilitado** na tabela com dados por usuário/aluno → qualquer cliente autenticado pode ver tudo.
-- **Política permissiva demais:** ex.: `USING (true)` ou sem filtro por `aluno_id`/`user_id`.
-- **Tabela com `aluno_id` mas política usando só `auth.uid()`** sem vínculo: verificar se existe tabela que relaciona `auth.uid()` ao `aluno_id` (ex.: perfil ou aluno tem `user_id`); a política pode usar subquery ou função que retorna o `aluno_id` do usuário logado.
-- **Admin client (service role)** usado em rota de API que devolve dados por usuário → bypass de RLS; ver skill [Auth e Rotas](.context/skills/kpi-auth-rotas/SKILL.md). Esta skill **aponta** o uso; a correção é usar cliente com sessão (RLS ativo).
+- **RLS desabilitado** na tabela com dados por usuário/membro → qualquer cliente autenticado pode ver tudo.
+- **Política permissiva demais:** ex.: `USING (true)` ou sem filtro por `member_id`/`user_id`.
+- **Tabela com `member_id` mas política usando só `auth.uid()`** sem vínculo: verificar se existe tabela que relaciona `auth.uid()` ao `member_id` (ex.: perfil ou membro tem `user_id`); a política pode usar subquery ou função que retorna o `member_id` do usuário logado.
+- **Admin client (service role)** usado em rota de API que devolve dados por usuário → bypass de RLS; ver skill [Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md). Esta skill **aponta** o uso; a correção é usar cliente com sessão (RLS ativo).
 
 ### Saída da auditoria
 
 - Lista de políticas da tabela (SELECT, INSERT, UPDATE, DELETE).
 - Para cada uma: está restringindo corretamente? Sim/Não.
-- Se Não: descrever o cenário de vazamento (ex.: "Aluno A pode SELECT transações onde aluno_id = B") e sugerir condição correta (ex.: `USING (aluno_id = (SELECT id FROM alunos WHERE user_id = auth.uid()))` ou equivalente).
+- Se Não: descrever o cenário de vazamento (ex.: "membro A pode SELECT transações onde member_id = B") e sugerir condição correta (ex.: `USING (member_id = (SELECT id FROM membros WHERE user_id = auth.uid()))` ou equivalente).
 
 ---
 
@@ -37,7 +37,7 @@ Use ao analisar um componente ou fluxo frontend. Objetivo: **não expor no brows
 ### O que verificar
 
 - **Tokens e chaves:** `service_role` key, `CRON_SECRET`, tokens de API internos nunca no código do client nem em variáveis de ambiente expostas ao build do client (Next.js: só variáveis `NEXT_PUBLIC_*` vão ao client).
-- **Dados de outros usuários:** a API ou o estado do componente está retornando/guardando dados que deveriam ser filtrados por RLS (ex.: lista de transações de todos os alunos)? Se o backend usar cliente com RLS e `user_id` correto, não deveria; se o componente receber payload com dados de outros, é falha no backend ou na forma de chamada.
+- **Dados de outros usuários:** a API ou o estado do componente está retornando/guardando dados que deveriam ser filtrados por RLS (ex.: lista de transações de todos os membros)? Se o backend usar cliente com RLS e `user_id` correto, não deveria; se o componente receber payload com dados de outros, é falha no backend ou na forma de chamada.
 - **Campos desnecessários:** resposta de API que inclui campos sensíveis (ex.: hash interno, dados de auditoria que não precisam na tela); sugerir limitar o que é enviado ao client (select específico ou DTO).
 - **Estado global (Context, store):** não guardar no client o que não é necessário para a UI (ex.: token JWT é necessário para chamadas; copiar objeto inteiro de "perfil" com campos internos pode ser excesso).
 - **URLs e logs:** não logar em console (em prod) objetos com dados sensíveis; não colocar IDs sensíveis ou tokens em query params visíveis.
@@ -90,12 +90,12 @@ Achados recorrentes ou regras do projeto podem ser anotados aqui para não repet
 
 | Item | Descrição |
 |------|-----------|
-| *(vazio por enquanto)* | Ex.: "Tabelas do módulo financeiro sempre devem ter RLS por aluno_id ou user_id." |
+| *(vazio por enquanto)* | Ex.: "Tabelas do módulo financeiro sempre devem ter RLS por member_id ou user_id." |
 
 ---
 
 ## Links
 
-- [security.md](.context/docs/security.md) – políticas de auth e RLS do KPI F3F.
-- [KPI F3F Supabase / Engenheiro de dados](.context/skills/kpi-supabase-data-engineer/SKILL.md) – quem implementa RLS; esta skill audita.
-- [KPI F3F Auth e Rotas](.context/skills/kpi-auth-rotas/SKILL.md) – regra de não usar admin client em rotas de API.
+- security.md – políticas de auth e RLS do KPI F3F.
+- [KPI F3F Supabase / Engenheiro de dados](.claude/skills/kpi-supabase-data-engineer/SKILL.md) – quem implementa RLS; esta skill audita.
+- [KPI F3F Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md) – regra de não usar admin client em rotas de API.

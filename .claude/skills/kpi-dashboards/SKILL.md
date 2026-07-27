@@ -1,15 +1,15 @@
 ---
 name: kpi-dashboards
-description: Owns data-heavy dashboards in KPI F3F — KPI cards, charts, tables, filters, drill-down, accessibility and performance. Extends KPI F3F Frontend; uses TanStack Query v5, Recharts and DataTable/list patterns from shared UI. Optional features (virtualization, Visx/ECharts, axe-core) require explicit approval and registration in other KPI F3F skills.
+description: Owns data-heavy dashboards in KPI F3F — KPI cards, charts, tables, filters, drill-down, accessibility and performance. Extends KPI F3F Frontend; uses TanStack Query v5, Recharts and `Table`/list patterns from shared UI. Optional features (virtualization, Visx/ECharts, axe-core) require explicit approval and registration in other KPI F3F skills.
 ---
 
 # KPI F3F Dashboards
 
-Skill para **dashboards** e telas **data-driven** no KPI F3F: KPIs, gráficos, tabelas, filtros sincronizados, drill-down, freshness e exportações. Complementa [KPI F3F Frontend](.cursor/skills/kpi-frontend/SKILL.md) (rotas, layout, composição base); não substitui.
+Skill para **dashboards** e telas **data-driven** no KPI F3F: KPIs, gráficos, tabelas, filtros sincronizados, drill-down, freshness e exportações. Complementa [KPI F3F Frontend](.claude/skills/kpi-frontend/SKILL.md) (rotas, layout, composição base); não substitui.
 
 **Regra de leitura:** este arquivo é **normativo** (o quê é obrigatório). Exemplos longos, mapa de arquivos, snippets e fluxos detalhados ficam em [reference.md](reference.md).
 
-**Projeto único:** [AGENTS.md](../../AGENTS.md) — repo `agenciaf3f-droid/KPI-F3F`, Supabase `ulikfkemdawinetjyhok`, produção `personalglobal.app`. Escopo por **papel** e vínculos (`pessoa_id`, `user_id`, matrícula, turma, mentoria) conforme [Auth e Rotas](.cursor/skills/kpi-auth-rotas/SKILL.md), [modulos-por-role](../../src/shared/config/modulos-por-role.ts) e [acessos-por-role](../../src/shared/config/acessos-por-role.ts). Não confundir com `org_id` de outros produtos.
+**Projeto único:** [AGENTS.md](../../AGENTS.md) — repo `agenciaf3f-droid/KPI-F3F`, Supabase `ulikfkemdawinetjyhok`, produção `personalglobal.app`. Escopo por **papel** e vínculos (`pessoa_id`, `user_id`, matrícula, turma, mentoria) conforme [Auth e Rotas](.claude/skills/kpi-auth-rotas/SKILL.md), [modulos-por-role](../../src/lib/config/modulos-por-role.ts) e [acessos-por-role](../../src/lib/config/acessos-por-role.ts). Não confundir com `org_id` de outros produtos.
 
 ---
 
@@ -52,7 +52,7 @@ Conferir `package.json` antes de codar.
 | Uso | Pacote / padrão |
 |-----|-----------------|
 | Cache | `@tanstack/react-query` **v5** — `placeholderData`, `staleTime` quando fizer sentido |
-| Tabelas | **DataTable** + **BarraFiltrosPadrao** + **useColunasPersistidas** — [requisitos listas](../../.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md) |
+| Tabelas | `Table` (`@/components/ui/table`) — requisitos listas |
 | Gráficos | `recharts` |
 | UI | shadcn/ui + Tailwind + `lucide-react` |
 | Datas | `date-fns` (`date-fns-tz` só com requisito de fuso) |
@@ -72,7 +72,7 @@ Conferir `package.json` antes de codar.
 | Exportação PDF / formatos ricos | Fora do padrão; requisito + stack + aprovação |
 | Debounce externo | Helper local; evitar `lodash` sem aprovação |
 
-Se a dependência alterar **padrão arquitetural** do HUB, registrar em `.context/docs/adr/` ou documento interno (via **KPI F3F Documentação**). Uso pontual em um módulo não autoriza outros a copiarem a lib.
+Se a dependência alterar **padrão arquitetural** do HUB, registrar em `` ou documento interno (via **KPI F3F Documentação**). Uso pontual em um módulo não autoriza outros a copiarem a lib.
 
 ---
 
@@ -104,7 +104,7 @@ Telas **simples** não devem ser bloqueadas por cerimônia excessiva — checkli
 
 ## Contrato de dados
 
-Consumo via **Server Actions**, **Route Handlers** (`src/app/api/*`) ou **services/repositories** ([KPI F3F Backend](.cursor/skills/kpi-backend/SKILL.md)). **Não** criar tabelas, RLS, views ou migrations → [KPI F3F Supabase](.cursor/skills/kpi-supabase-data-engineer/SKILL.md).
+Consumo via **Server Actions**, **Route Handlers** (`src/app/api/*`) ou **services/repositories** ([KPI F3F Backend](.claude/skills/kpi-backend/SKILL.md)). **Não** criar tabelas, RLS, views ou migrations → [KPI F3F Supabase](.claude/skills/kpi-supabase-data-engineer/SKILL.md).
 
 Todo payload deve especificar: filtros e período efetivo; KPIs; séries; segmentos de drill-down; catálogos de multi-select; `updatedAt` ou justificativa; escopo/permissões.
 
@@ -117,7 +117,7 @@ Camadas obrigatórias: `types` → `*-aggregate.ts` (puro, testado) → `*-servi
 | Padrão | Uso resumido |
 |--------|----------------|
 | **Dashboard com URL** | Principal do módulo; `from`/`to` e filtros em `searchParams`; botão limpar filtros |
-| **Painel Analítico** | Sub-painel; filtros locais; modelos em `localStorage`; referência: `src/modules/educacional/dashboard/` |
+| **Painel Analítico** | Sub-painel; filtros locais; modelos em `localStorage`; referência: `src/lib/<modulo>.ts` |
 
 Checklists e componentes: [reference.md](reference.md#padrão-painel-analítico).
 
@@ -128,7 +128,7 @@ Checklists e componentes: [reference.md](reference.md#padrão-painel-analítico)
 | Skill | Papel |
 |-------|--------|
 | **Frontend** | Rotas, layouts, composição base |
-| **Componentes** | DataTable, filtros, campos; virtualização quando aprovada |
+| **Componentes** | `Table`, filtros, campos; virtualização quando aprovada |
 | **Backend** | Services, agregações, actions |
 | **Supabase** | Views, RPC, índices, RLS |
 | **Auth e Rotas** | Escopo por role/sessão |
@@ -147,7 +147,7 @@ Checklists e componentes: [reference.md](reference.md#padrão-painel-analítico)
 - Cor como único indicador de status.
 - `useEffect` só para fetch quando Query/Server Action resolve.
 - Query key com filtros não normalizados.
-- Tabela HTML própria onde deveria ser DataTable.
+- Tabela HTML própria onde deveria ser `Table`.
 - Instalar lib opcional sem aprovação/ADR.
 - Admin client sem justificativa documentada.
 - Lógica de negócio duplicada entre service e componente.
@@ -179,7 +179,7 @@ Checklists e componentes: [reference.md](reference.md#padrão-painel-analítico)
 2. **Estrutura** — seções, estados, progressive disclosure, drill-down.
 3. **Contrato de dados** — filtros, payload, KPIs, séries, escopo.
 4. **Plano** — passos por camada e caminhos de arquivo.
-5. **Código** — `src/app/`, `src/modules/`, `src/shared/` conforme repo.
+5. **Código** — `src/app/`, `src/lib/`, `src/lib/` conforme repo.
 6. **Testes** — aggregate; RTL; E2E se crítico.
 7. **Riscos** — performance, permissão, deps opcionais.
 
@@ -190,11 +190,11 @@ Não incluir exemplos extensos nem links externos como regra nesta resposta — 
 ## Referência
 
 - [reference.md](reference.md) — exemplos, Painel Analítico, hooks, mapa Educacional.
-- [requisitos-dashboards-padronizados.md](../../.context/docs/requisitos/requisitos-dashboards-padronizados.md) — padrão transversal no HUB (índice `.context/docs`).
-- [ADR 004 — Dashboards padronizados](../../.context/docs/adr/004_dashboards_padronizados_sgt.md) — governança HUB.
-- [QA smoke dashboards](../../.context/docs/qa/cenarios-dashboards-smoke.md) — checklist manual.
-- Componentes: `ChartCard`, `KpiMetricCard` em `@/shared/ui` — [reference Componentes](../kpi-componentes/reference.md) § Dashboards.
-- [requisitos-listas-e-filtros-padronizados.md](../../.context/docs/requisitos/requisitos-listas-e-filtros-padronizados.md) — tabelas de detalhe em dashboards.
-- [KPI F3F Frontend](.cursor/skills/kpi-frontend/SKILL.md) · [Componentes](.cursor/skills/kpi-componentes/SKILL.md) · [Backend](.cursor/skills/kpi-backend/SKILL.md)
+- requisitos-dashboards-padronizados.md — padrão transversal no HUB (índice `.context/docs`).
+- ADR 004 — Dashboards padronizados — governança HUB.
+- QA smoke dashboards — checklist manual.
+- Componentes: Card com gráfico, Card de métrica em `@/components/ui` — reference Componentes § Dashboards.
+- requisitos-listas-e-filtros-padronizados.md — tabelas de detalhe em dashboards.
+- [KPI F3F Frontend](.claude/skills/kpi-frontend/SKILL.md) · Componentes · [Backend](.claude/skills/kpi-backend/SKILL.md)
 - [skills-map.md](../../.context/docs/skills-map.md) · [AGENTS.md](../../AGENTS.md)
-- Código referência: `src/modules/educacional/dashboard/`
+- Código referência: `src/lib/<modulo>.ts`

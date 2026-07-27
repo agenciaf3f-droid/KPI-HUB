@@ -12,8 +12,8 @@ Responsável pela **camada de aplicação** do KPI F3F: regras de negócio, serv
 - **Services (casos de uso)** → esta skill.
 - **Repositories (acesso Supabase)** → esta skill.
 - **Entidades de domínio** com comportamento quando fizer sentido → esta skill.
-- **Esquema, RLS e migrations** → skill [KPI F3F Supabase / Engenheiro de dados](.context/skills/kpi-supabase-data-engineer/SKILL.md).
-- **Telas, rotas e componentes de UI** → skills [Frontend](.context/skills/kpi-frontend/SKILL.md) e [Componentes](.context/skills/kpi-componentes/SKILL.md).
+- **Esquema, RLS e migrations** → skill [KPI F3F Supabase / Engenheiro de dados](.claude/skills/kpi-supabase-data-engineer/SKILL.md).
+- **Telas, rotas e componentes de UI** → skills [Frontend](.claude/skills/kpi-frontend/SKILL.md) e Componentes.
 
 ## Stack (aprovada)
 
@@ -27,25 +27,25 @@ Responsável pela **camada de aplicação** do KPI F3F: regras de negócio, serv
 
 - Criar ou alterar **services** (casos de uso) de um módulo.
 - Criar ou alterar **repositories** (leitura/escrita no Supabase).
-- Definir ou alterar **entidades de domínio** (Pessoa, Aluno, Contrato, etc.) com comportamento.
+- Definir ou alterar **entidades de domínio** (Pessoa, membro, Contrato, etc.) com comportamento.
 - Expor dados ou ações para o frontend (API routes, Server Actions) que delegam à camada de services.
-- Integrar com **sistemas satélites** (ex.: receber evento "contrato assinado" e chamar service que matricula aluno e dispara onboarding).
+- Integrar com **sistemas satélites** (ex.: receber evento "contrato assinado" e chamar service que matricula membro e dispara onboarding).
 - Definir ou padronizar **contratos** entre módulos (quem chama qual service; DTOs de entrada/saída) – em conjunto com a skill Integrações quando houver.
 
 ## Regras
 
 - **Um padrão por projeto:** estrutura de pastas e convenções de nomes únicas; ver [reference.md](reference.md). Novos módulos seguem o mesmo padrão.
 - **Repositories encapsulam Supabase:** nenhum service importa o cliente Supabase diretamente; usa apenas o repositório injetado.
-- **Services sem UI:** services não conhecem React nem componentes; recebem e retornam dados (tipos, DTOs com sufixo `Dto` em `src/modules/<modulo>/dtos/`).
+- **Services sem UI:** services não conhecem React nem componentes; recebem e retornam dados (tipos, DTOs com sufixo `Dto` em `src/lib/<modulo>/dtos/`).
 - **Erros:** usar classe **AppError** (código + status HTTP); não lançar strings nem `Error` genérico. Ver [reference.md](reference.md).
-- **Entidades centrais:** usar sempre por ID (`user_id`, `pessoa_id`/`aluno_id`); não duplicar cadastros; alinhar à skill Entidades centrais quando existir.
+- **Entidades centrais:** usar sempre por ID (`user_id`, `pessoa_id`/`member_id`); não duplicar cadastros; alinhar à skill Entidades centrais quando existir.
 - **Registro progressivo:** ao adotar um padrão novo (ex.: formato de erro, base service, DTOs), documentar no [reference.md](reference.md) para todo o backend seguir.
 
 ## Estrutura de pastas (referência)
 
-- `src/modules/<modulo>/` – services, repositories, entidades e DTOs (`dtos/`) do módulo.
-- `src/shared/` ou `src/domain/` – entidades e tipos compartilhados entre módulos (ex.: Pessoa, Aluno) quando fizer sentido centralizar.
-- `src/infra/` – cliente Supabase, factory de repositórios, config; não colocar regras de negócio aqui.
+- `src/lib/<modulo>/` – services, repositories, entidades e DTOs (`dtos/`) do módulo.
+- `src/lib/` ou `src/lib/` – entidades e tipos compartilhados entre módulos (ex.: Pessoa, membro) quando fizer sentido centralizar.
+- `src/lib/` – cliente Supabase, factory de repositórios, config; não colocar regras de negócio aqui.
 - Detalhes e exemplos de nomenclatura em [reference.md](reference.md) (neste diretório).
 
 ## Criar Service, Repository e Entity (script)
@@ -53,10 +53,10 @@ Responsável pela **camada de aplicação** do KPI F3F: regras de negócio, serv
 Para gerar a trindade de um módulo a partir da raiz do repositório:
 
 ```bash
-bash .cursor/skills/kpi-backend/scripts/create-layer.sh <modulo> <Entidade>
+bash .claude/skills/kpi-backend/scripts/create-layer.sh <modulo> <Entidade>
 ```
 
-Ex.: `bash .cursor/skills/kpi-backend/scripts/create-layer.sh educacional Matricula` gera `entities/Matricula.ts`, `repositories/MatriculaRepository.ts` e `services/MatriculaService.ts`. Em seguida ajustar tabela no repository e adicionar DTOs em `dtos/` conforme [reference.md](reference.md).
+Ex.: `bash .claude/skills/kpi-backend/scripts/create-layer.sh educacional Matricula` gera `entities/Matricula.ts`, `repositories/MatriculaRepository.ts` e `services/MatriculaService.ts`. Em seguida ajustar tabela no repository e adicionar DTOs em `dtos/` conforme [reference.md](reference.md).
 
 ## Integração com outras skills
 

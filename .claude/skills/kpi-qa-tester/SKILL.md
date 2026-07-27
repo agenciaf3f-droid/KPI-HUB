@@ -20,22 +20,22 @@ Especialista em **cenários de teste** baseados nas **regras de negócio** do KP
 - Pedidos como: *"Crie um script Playwright para testar o fluxo de matrícula completo"* → E2E com Playwright.
 - Pedidos como: *"Gere casos de teste unitários para este novo Service de cálculo financeiro"* → Jest (e RTL se houver UI) para o service.
 - Pedidos como: *"Verifique se o formulário valida todos os edge cases (CPF inválido, data futura, etc.)"* → cenários de validação e testes para os campos padronizados (CPF, telefone, data, moeda) conforme [reference.md](reference.md) e skill Componentes.
-- Definir ou expandir **cenários de teste** para um módulo ou fluxo com base no [project-plan](.context/docs/project-plan.md) e no [data-flow](.context/docs/data-flow.md).
+- Definir ou expandir **cenários de teste** para um módulo ou fluxo com base no [project-plan](.context/docs/project-plan.md) e no data-flow.
 - Garantir que **novas features** tenham teste correspondente (AGENTS.md: toda feature nova com arquivo de teste).
 - **Pre-PR:** rodar `npm run build && npm run test` e corrigir falhas antes do merge.
 
 ## Stack de testes (projeto)
 
-- **Unitários e componentes:** Jest + React Testing Library. **Local:** arquivo `.spec.ts` ao lado do código (ex.: `src/modules/educacional/services/MatriculaService.spec.ts`).
+- **Unitários e componentes:** Jest + React Testing Library. **Local:** arquivo `.spec.ts` ao lado do código (ex.: `src/lib/deliveries.spec.ts`).
 - **E2E:** Playwright (rápido, boa integração CI). **Local:** pasta `tests/e2e/` na raiz (ex.: `tests/e2e/matricula.spec.ts`).
 - **Comando:** `npm run test`; watch: `npm run test -- --watch`. Pre-PR: `npm run build && npm run test`.
 
 ## Regras
 
-- **Cenários baseados em regras de negócio:** consultar [project-plan.md](.context/docs/project-plan.md) e [data-flow.md](.context/docs/data-flow.md) para fluxos (ex.: cliente → contrato assinado → aluno → onboarding; tarefas e mentores). Testes E2E devem cobrir esses fluxos; unitários devem cobrir services que implementam essas regras.
-- **Edge cases de formulário:** usar as especificações da skill [Componentes](.context/skills/kpi-componentes/SKILL.md) (CPF, telefone, data, moeda) para definir casos inválidos e limites; listar no [reference.md](reference.md) os edge cases comuns (CPF inválido, data futura, campo vazio, etc.).
+- **Cenários baseados em regras de negócio:** consultar [project-plan.md](.context/docs/project-plan.md) e data-flow.md para fluxos (ex.: cliente → contrato assinado → membro → onboarding; tarefas e mentores). Testes E2E devem cobrir esses fluxos; unitários devem cobrir services que implementam essas regras.
+- **Edge cases de formulário:** usar as especificações da skill Componentes (CPF, telefone, data, moeda) para definir casos inválidos e limites; listar no [reference.md](reference.md) os edge cases comuns (CPF inválido, data futura, campo vazio, etc.).
 - **Onde colocar testes:** unitários ao lado do código (`.spec.ts` junto ao arquivo); E2E em `tests/e2e/`. Ver [reference.md](reference.md) – Convenção de pastas.
-- **Dados de teste:** usar seeds ou dados de teste; nunca dados reais de produção ([testing-strategy.md](.context/docs/testing-strategy.md)).
+- **Dados de teste:** usar seeds ou dados de teste; nunca dados reais de produção (testing-strategy.md).
 - **E2E e auth:** se o projeto usar bypass de auth para E2E (skill Auth e Rotas), usar o header/config documentado na skill Auth e Rotas para os testes Playwright.
 
 ## Tipos de tarefa (resumo)
@@ -58,4 +58,4 @@ Detalhes e exemplos de edge cases no [reference.md](reference.md) (neste diretó
 ## Referência adicional
 
 - Edge cases comuns (CPF, data, etc.), exemplos de cenários E2E e unitários, e checklist: [reference.md](reference.md) (neste diretório).
-- Estratégia de testes do projeto: [testing-strategy.md](.context/docs/testing-strategy.md).
+- Estratégia de testes do projeto: testing-strategy.md.

@@ -46,7 +46,7 @@ Estes problemas já ocorreram em outro sistema; a skill Auth e Rotas existe para
 - **Problema:** Jobs/cron precisam chamar rotas internas sem sessão de usuário.
 - **Regra:** `CRON_SECRET` é obrigatório. Middleware e Route Handler validam `Authorization: Bearer <CRON_SECRET>` em defesa dupla. Secret ausente retorna 503; inválido retorna 401. Nunca liberar a rota quando a variável estiver vazia.
 - **Piloto WhatsApp:** usa secret dedicado `WHATSAPP_CHATBOT_PILOT_SECRET` com a mesma regra fail-closed. Query secret é exceção apenas no webhook piloto que não suporta header customizado.
-- **Implementação canônica:** `src/infra/auth/internal-api-auth.ts`.
+- **Implementação canônica:** `src/lib/auth.ts`.
 
 ---
 
@@ -74,12 +74,12 @@ Preencher quando o projeto definir:
 | **Primeiro login / troca obrigatória de senha** | Definido | Flag `app_metadata.must_change_password` no Auth. Criação de usuário pode exigir troca no primeiro login; middleware força `/configuracoes/perfil?primeiro-acesso=1` até o usuário trocar senha. Admin pode redefinir senha de usuários e marcar troca obrigatória no próximo login. |
 | **Bypass E2E** | A definir | Nome do header (ex.: x-e2e-bypass-auth) e condição quando testes E2E forem adotados. |
 | **Cron / internal auth** | Definido | `CRON_SECRET` obrigatório para crons e fila WhatsApp; `WHATSAPP_CHATBOT_PILOT_SECRET` obrigatório para piloto/chatbot financeiro. Middleware + handler validam; ausente 503, inválido 401. |
-| **Formularios publicos logado** | Definido | Rotas `/p/*` (formulario-evento, desafio-formulario, certificados, etc.) acessiveis com sessao ativa; redirect de autenticado apenas em `/login`. Policy em `src/infra/auth/public-route-policy.ts`. |
+| **Formularios publicos logado** | Definido | Rotas `/p/*` (formulario-evento, desafio-formulario, certificados, etc.) acessiveis com sessao ativa; redirect de autenticado apenas em `/login`. Policy em `src/lib/supabase/middleware.ts`. |
 
 ---
 
 ## Links
 
-- [security.md](.context/docs/security.md) – políticas de auth e RLS.
+- security.md – políticas de auth e RLS.
 - [project-plan.md](.context/docs/project-plan.md) – stack e objetivos.
-- [data-flow.md](.context/docs/data-flow.md) – fluxo de auth e entidades.
+- data-flow.md – fluxo de auth e entidades.

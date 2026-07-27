@@ -188,7 +188,7 @@ tituloDiarioIndividualPtBr("2026-07-13")
 1. `gerarRelatorioEstruturadoViaIa` — obrigatorio
 2. `gerarResumoInformal` — entregavel ao usuario
 
-Doc: `.context/docs/integracao-diario-operacional-contratos.md`
+Doc: ``
 
 ## Categorias (`do_categorias.slug`)
 

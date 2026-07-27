@@ -79,7 +79,7 @@ Todas as operações abaixo devem ser feitas **sempre no projeto `ulikfkemdawine
 ### Tipagem e Edge Functions
 | Ferramenta | Uso |
 | ---------- | --- |
-| `generate_typescript_types` | Gerar tipos TS do esquema (ex.: `src/infra/database.types.ts`) |
+| `generate_typescript_types` | Gerar tipos TS do esquema (ex.: `src/lib/types.ts`) |
 | `list_edge_functions` | Listar edge functions |
 | `get_edge_function` | Detalhes de uma edge function |
 | `deploy_edge_function` | Deploy de edge function (quando a tarefa envolver backend serverless) |
@@ -101,7 +101,7 @@ Todas as operações abaixo devem ser feitas **sempre no projeto `ulikfkemdawine
 - Aplicar DDL via MCP `apply_migration` ou `execute_sql` sem versionar pelo CLI.
 - Usar `db query -f` + `migration repair` como fluxo padrão (legado; substituído por `db push`).
 
-**Runbook canônico:** [.context/docs/supabase/migrations-workflow.md](../../.context/docs/supabase/migrations-workflow.md)
+**Runbook canônico:** 
 
 ## 4. Workflows principais
 
@@ -116,7 +116,7 @@ Todas as operações abaixo devem ser feitas **sempre no projeto `ulikfkemdawine
 2. `npx supabase migration new <nome_snake_case>` → edita o `.sql` gerado em `supabase/migrations/`.
 3. Incluir RLS na mesma migration quando aplicável.
 4. `npx supabase db push --linked --yes` → aplica e registra histórico (nome do arquivo = versão remota).
-5. `npx supabase gen types typescript --project-ref ulikfkemdawinetjyhok > src/infra/database.types.ts`
+5. `npx supabase gen types typescript --project-ref ulikfkemdawinetjyhok > src/lib/types.ts`
 6. `npm run build && npm run test`
 7. Validar drift: `npx supabase migration list --linked` (Local == Remote).
 8. MCP `get_advisors` (security/performance) após aplicar.
@@ -139,7 +139,7 @@ Atalho Windows: `scripts/supabase-nova-migration.ps1 -Nome <nome> -Aplicar`
 
 ### Tipos TypeScript
 
-- Após mudanças de esquema: `generate_typescript_types` e persistir (ex.: `src/infra/database.types.ts`).
+- Após mudanças de esquema: `generate_typescript_types` e persistir (ex.: `src/lib/types.ts`).
 
 ### Branches e Edge Functions
 
@@ -150,36 +150,36 @@ Atalho Windows: `scripts/supabase-nova-migration.ps1 -Nome <nome> -Aplicar`
 
 - [ ] Nomes em snake_case; tabelas/colunas seguem convenções (seção 7).
 - [ ] Tipos adequados (UUID para IDs, timestamptz para datas).
-- [ ] RLS considerado em tabelas com dados por usuário/aluno.
+- [ ] RLS considerado em tabelas com dados por usuário/membro.
 - [ ] Sem dados mock ou secrets; DDL idempotente quando fizer sentido.
 - [ ] `npx supabase migration list --linked` confirma Local == Remote antes do commit.
 - [ ] Migration aplicada via `db push --linked`, não via Dashboard/MCP `apply_migration`.
 
 ## 6. Integração com o KPI F3F
 
-- **Entidades centrais:** tabelas core (usuário, aluno) únicas; módulos referenciam por `user_id` / `aluno_id`. Ver `.context/docs/architecture.md` e `.context/docs/data-flow.md`.
-- **Segurança:** RLS alinhado a `.context/docs/security.md`.
+- **Entidades centrais:** tabelas core (usuário, membro) únicas; módulos referenciam por `user_id` / `member_id`. Ver `` e ``.
+- **Segurança:** RLS alinhado a ``.
 - Nenhuma outra skill aplica migrações ou altera RLS/esquema.
-- **Chatbot (auditorias):** ao adicionar coluna em pessoas, educacional_matriculas ou pessoa_redes_sociais, avisar ou delegar ao Backend: incluir o campo em `CAMPOS_AUDITAVEIS` em `src/modules/chatbot/services/chat-tools.ts` para que o chatbot possa auditar ("quantos sem X?") sem criar tool nova. Ver `.context/docs/chatbot/ESTRATEGIA-AUDITORIAS-E-CONSULTAS.md`.
+- **Chatbot (auditorias):** ao adicionar coluna em pessoas, educacional_matriculas ou pessoa_redes_sociais, avisar ou delegar ao Backend: incluir o campo em `CAMPOS_AUDITAVEIS` em `src/lib/deliveries.ts` para que o chatbot possa auditar ("quantos sem X?") sem criar tool nova. Ver ``.
 
 ## 7. Convenções de nomes e tipos (referência)
 
 ### Tabelas
 
-- **snake_case** (ex.: `alunos`, `modulo_estoque_produtos`).
-- Plural para entidades; nome descritivo para junção (ex.: `aluno_turma_matricula`).
+- **snake_case** (ex.: `membros`, `modulo_estoque_produtos`).
+- Plural para entidades; nome descritivo para junção (ex.: `entrega_membro_sessao`).
 - Por módulo: prefixo (ex.: `estoque_produtos`, `financeiro_lancamentos`).
 
 ### Colunas
 
-- **snake_case**: `created_at`, `aluno_id`, `user_id`, `nome_completo`.
-- FK: sufixo `_id` (ex.: `aluno_id`, `user_id`).
+- **snake_case**: `created_at`, `member_id`, `user_id`, `nome_completo`.
+- FK: sufixo `_id` (ex.: `member_id`, `user_id`).
 - Booleanos: `is_`, `has_` ou `ativo`.
 - Datas: `timestamptz`; sufixos `_at` (ex.: `created_at`, `updated_at`).
 
 ### Migrations
 
-- Nome: **snake_case**, descritivo (ex.: `create_tabela_alunos`, `add_rls_modulo_financeiro`).
+- Nome: **snake_case**, descritivo (ex.: `create_tabela_entregas`, `add_rls_creator_deliveries`).
 - Uma migração = uma mudança lógica.
 
 ### Tipos de campos (PostgreSQL)
@@ -200,7 +200,7 @@ Atalho Windows: `scripts/supabase-nova-migration.ps1 -Nome <nome> -Aplicar`
 - Habilitar RLS em tabelas com dados por usuário/contexto.
 - Políticas por operação (SELECT, INSERT, UPDATE, DELETE).
 - Usar `auth.uid()` quando o vínculo for por usuário (ex.: `user_id = auth.uid()`).
-- Nome de política: `nome_tabela_operacao_escopo` (ex.: `alunos_select_own`).
+- Nome de política: `nome_tabela_operacao_escopo` (ex.: `deliveries_select_own`).
 
 Exemplo mínimo:
 
@@ -218,4 +218,4 @@ CREATE POLICY "minha_tabela_insert_own"
 
 ## Referência adicional
 
-- Doc completo e referência estendida: `.context/docs/skill-supabase-data-engineer.md`
+- Doc completo e referência estendida: ``
