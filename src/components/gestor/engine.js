@@ -20,6 +20,11 @@ import { GESTOR_MARKUP } from "./markup";
 
 const hub = createClient();
 
+// Do 2o script inline do original: as FUNCOES de la eram mortas
+// (calculaLeadTimeRepasse sem chamador), mas esta declaracao e viva —
+// applyRoster preenche e o motor le (setor por telefone).
+const EQUIPE_POR_TELEFONE = new Map();
+
 
 /* ================================================================
    CONSTANTS
