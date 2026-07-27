@@ -1,0 +1,52 @@
+import { BarChart3, Grid2X2, Layers } from "lucide-react";
+import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+type NavigationItem = "fila" | "metricas";
+
+export function AppHeader({ activeItem = "fila", fullName, queueHref = "/", metricsHref = "/metricas", accountHref = "/seguranca", showQueue = true }: { activeItem?: NavigationItem; fullName?: string; queueHref?: string; metricsHref?: string; accountHref?: string | null; showQueue?: boolean }) {
+  return (
+    <aside className="sticky top-0 z-20 flex h-16 w-full items-center justify-between bg-sidebar px-4 text-sidebar-foreground md:fixed md:inset-y-0 md:left-0 md:h-svh md:w-28 md:flex-col md:px-0 md:py-5">
+      <div className="flex items-center gap-3 md:flex-col">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+          <Layers className="size-5" />
+        </div>
+        <span className="text-sm font-semibold md:hidden">Produção Criativa</span>
+      </div>
+
+      <nav className="flex items-center gap-1 md:hidden" aria-label="Navegação principal">
+        {showQueue ? <NavButton active={activeItem === "fila"} href={queueHref} label="Fila"><Grid2X2 /></NavButton> : null}
+        <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
+      </nav>
+
+      <nav className="hidden flex-col items-center gap-3 md:flex" aria-label="Navegação principal">
+        {showQueue ? <NavButton active={activeItem === "fila"} href={queueHref} label="Fila"><Grid2X2 /></NavButton> : null}
+        <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
+      </nav>
+
+      <div className="flex items-center gap-2 md:flex-col">
+        <ThemeToggle />
+        {accountHref ? <Link href={accountHref} className="grid size-9 place-items-center rounded-full bg-card text-xs font-semibold text-foreground transition-colors hover:bg-accent md:size-10" aria-label="Abrir segurança da conta">{fullName?.slice(0, 1).toUpperCase() ?? "M"}</Link> : <span className="grid size-9 place-items-center rounded-full bg-card text-xs font-semibold text-foreground md:size-10" title="Acesso administrativo por link">{fullName?.slice(0, 1).toUpperCase() ?? "A"}</span>}
+      </div>
+    </aside>
+  );
+}
+
+function NavButton({ active = false, href, label, children }: { active?: boolean; href?: string; label: string; children: React.ReactNode }) {
+  const className = active ? "flex size-10 items-center justify-center rounded-2xl bg-card text-foreground transition-colors hover:bg-card md:size-11" : "flex size-10 items-center justify-center rounded-2xl text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:size-11";
+
+  if (!href) {
+    return <span aria-disabled="true" title={`${label} em breve`} className={`${className} cursor-not-allowed opacity-45`}>{children}</span>;
+  }
+
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className={className}
+    >
+      {children}
+    </Link>
+  );
+}
