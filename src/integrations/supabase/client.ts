@@ -19,5 +19,10 @@ export const supabase = createBrowserClient<Database>(
       // batem com os tipos public. (Comentário e técnica do original.)
       schema: "controle_edicao" as "public",
     },
+    // O default é singleton POR URL: sem isto, este client e o do hub
+    // (@/lib/supabase/client) disputam a mesma instância e um herda o schema
+    // do outro — foi o que deixou o combobox de clientes vazio (a query ia
+    // para public.clients, que não existe).
+    isSingleton: false,
   },
 );

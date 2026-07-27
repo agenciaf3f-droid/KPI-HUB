@@ -27,8 +27,8 @@ export function InviteEditorDialog() {
       toast.error("Preencha email e nome do editor");
       return;
     }
-    if (password.length < 6) {
-      toast.error("A senha inicial precisa de ao menos 6 caracteres");
+    if (password && password.length < 6) {
+      toast.error("A senha inicial precisa de ao menos 6 caracteres (ou deixe em branco para convidar por e-mail)");
       return;
     }
     setSending(true);
@@ -46,7 +46,11 @@ export function InviteEditorDialog() {
         return;
       }
 
-      toast.success(`${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`);
+      toast.success(
+        body?.conviteEnviado
+          ? `Convite enviado por e-mail para ${email.trim()}.`
+          : `${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`,
+      );
       setOpen(false);
       setEmail("");
       setName("");
@@ -103,17 +107,17 @@ export function InviteEditorDialog() {
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="invite-password">Senha inicial</Label>
+            <Label htmlFor="invite-password">Senha inicial (opcional)</Label>
             <Input
               id="invite-password"
               type="text"
               autoComplete="off"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Em branco → convite por e-mail"
             />
             <p className="text-xs text-muted-foreground">
-              Você repassa a senha; o editor troca depois em Minha conta.
+              Em branco, o editor recebe um e-mail para criar a própria senha.
             </p>
           </div>
           <DialogFooter>

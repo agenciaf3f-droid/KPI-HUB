@@ -103,7 +103,8 @@ function MembroRow({ membro }: { membro: Membro }) {
         {membro.is_admin ? <Badge>Admin</Badge> : membro.areas.map((a) => (
           <Badge key={a} variant="secondary">{AREA_LABEL[a] ?? a}</Badge>
         ))}
-        {membro.is_admin ? null : confirming ? (
+        {/* A conta raiz da agência não sai; outros admins saem (o servidor ainda barra remover a si mesmo). */}
+        {membro.email === "agenciaf3f@gmail.com" ? null : confirming ? (
           <Button variant="destructive" size="sm" onClick={handleRemove} disabled={removing}>
             {removing ? <Loader2 className="size-4 animate-spin" /> : null}
             Confirmar
@@ -131,6 +132,7 @@ function AdicionarMembroDialog() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [areas, setAreas] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const toggleArea = (area: string) =>
@@ -138,12 +140,12 @@ function AdicionarMembroDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim() || !email.trim() || !areas.length) {
-      toast.error("Preencha nome, e-mail e ao menos uma área.");
+    if (!nome.trim() || !email.trim() || (!areas.length && !isAdmin)) {
+      toast.error("Preencha nome, e-mail e ao menos uma área (ou marque Admin).");
       return;
     }
-    if (senha.length < 6) {
-      toast.error("A senha inicial precisa de ao menos 6 caracteres.");
+    if (senha && senha.length < 6) {
+      toast.error("A senha inicial precisa de ao menos 6 caracteres (ou deixe em branco para convidar por e-mail).");
       return;
     }
     setSaving(true);
@@ -151,20 +153,23 @@ function AdicionarMembroDialog() {
       const res = await fetch("/api/equipe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: nome.trim(), email: email.trim(), senha, areas }),
+        body: JSON.stringify({ nome: nome.trim(), email: email.trim(), senha, areas, isAdmin }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) throw new Error(body?.error ?? "Não foi possível adicionar o membro.");
       toast.success(
-        body?.contaNova
-          ? `${nome.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`
-          : `${nome.trim()} adicionado. A conta já existia — a senha antiga continua valendo.`,
+        body?.conviteEnviado
+          ? `Convite enviado por e-mail para ${email.trim()}.`
+          : body?.contaNova
+            ? `${nome.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`
+            : `${nome.trim()} adicionado. A conta já existia — a senha antiga continua valendo.`,
       );
       setOpen(false);
       setNome("");
       setEmail("");
       setSenha("");
       setAreas([]);
+      setIsAdmin(false);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível adicionar o membro.");
@@ -202,9 +207,11 @@ function AdicionarMembroDialog() {
             <Input id="membro-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@gmail.com" autoComplete="off" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="membro-senha">Senha inicial</Label>
-            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres" autoComplete="off" />
-            <p className="text-xs text-muted-foreground">Você repassa a senha; a pessoa troca depois em Minha conta.</p>
+            <Label htmlFor="membro-senha">Senha inicial (opcional)</Label>
+            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → convite por e-mail" autoComplete="off" />
+            <p className="text-xs text-muted-foreground">
+              Em branco, a pessoa recebe um e-mail do Supabase para criar a própria senha. Preenchida, você repassa e ela troca em Minha conta.
+            </p>
           </div>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Área</legend>
@@ -221,6 +228,18 @@ function AdicionarMembroDialog() {
                 </label>
               ))}
             </div>
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isAdmin}
+                onChange={() => setIsAdmin((v) => !v)}
+                className="size-4 rounded border-border accent-primary"
+              />
+              <span>
+                Admin
+                <span className="ml-1.5 text-xs text-muted-foreground">vê todas as abas e gerencia a equipe</span>
+              </span>
+            </label>
           </fieldset>
           <DialogFooter>
             <Button type="submit" disabled={saving} className="w-full">

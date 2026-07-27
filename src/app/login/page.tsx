@@ -64,6 +64,26 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPassword(event: React.MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form;
+    const email = String(new FormData(form ?? undefined).get("email") ?? "").trim();
+    if (!email) {
+      toast.error("Digite seu e-mail no campo acima primeiro.");
+      return;
+    }
+    if (!isSupabaseConfigured()) return;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/definir-senha`,
+      });
+      if (error) throw error;
+      toast.success(`Enviamos um link de redefinição para ${email}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar o e-mail.");
+    }
+  }
+
   async function handleMfaSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!isSupabaseConfigured()) return;
@@ -141,7 +161,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-4">
                   <label htmlFor="password" className="text-sm font-medium">Senha</label>
-                  <button type="button" className="text-xs font-semibold text-primary transition-colors hover:text-primary/75">
+                  <button type="button" onClick={handleForgotPassword} className="text-xs font-semibold text-primary transition-colors hover:text-primary/75">
                     Esqueci minha senha
                   </button>
                 </div>

@@ -23,14 +23,18 @@ export async function POST(request: Request) {
     const nome = String(body.nome ?? "").trim();
     const email = String(body.email ?? "").trim().toLowerCase();
     const senha = String(body.senha ?? "");
-    const areas = Array.isArray(body.areas)
+    const isAdmin = body.isAdmin === true;
+    let areas = Array.isArray(body.areas)
       ? body.areas.filter((a: unknown): a is string => typeof a === "string" && AREAS_VALIDAS.includes(a))
       : [];
+    // Admin vê tudo — se nenhuma área veio marcada, ganha as três.
+    if (isAdmin && !areas.length) areas = [...AREAS_VALIDAS];
 
     if (!nome || !email.includes("@") || !areas.length) {
-      return NextResponse.json({ error: "Preencha nome, e-mail e ao menos uma área." }, { status: 400 });
+      return NextResponse.json({ error: "Preencha nome, e-mail e ao menos uma área (ou marque Admin)." }, { status: 400 });
     }
-    if (senha.length < 6) {
+    // Senha em branco = convite por e-mail do próprio Supabase.
+    if (senha && senha.length < 6) {
       return NextResponse.json({ error: "A senha inicial precisa de ao menos 6 caracteres." }, { status: 400 });
     }
 
@@ -52,22 +56,34 @@ export async function POST(request: Request) {
     if (listError) throw listError;
     let user = lista.users.find((u) => (u.email ?? "").toLowerCase() === email) ?? null;
     let contaNova = false;
+    let conviteEnviado = false;
 
     if (!user) {
-      const { data: created, error: createError } = await admin.auth.admin.createUser({
-        email,
-        password: senha,
-        email_confirm: true,
-        user_metadata: { full_name: nome },
-      });
-      if (createError || !created.user) throw createError ?? new Error("Não foi possível criar a conta.");
-      user = created.user;
+      if (senha) {
+        const { data: created, error: createError } = await admin.auth.admin.createUser({
+          email,
+          password: senha,
+          email_confirm: true,
+          user_metadata: { full_name: nome },
+        });
+        if (createError || !created.user) throw createError ?? new Error("Não foi possível criar a conta.");
+        user = created.user;
+      } else {
+        // Convite do próprio Supabase: e-mail com link que cai em /definir-senha.
+        const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+          data: { full_name: nome },
+          redirectTo: `${new URL(request.url).origin}/definir-senha`,
+        });
+        if (inviteError || !invited.user) throw inviteError ?? new Error("Não foi possível enviar o convite.");
+        user = invited.user;
+        conviteEnviado = true;
+      }
       contaNova = true;
     }
 
     const { error: memberError } = await admin
       .from("hub_members")
-      .insert({ user_id: user.id, email, nome, areas });
+      .insert({ user_id: user.id, email, nome, areas, is_admin: isAdmin });
     if (memberError) {
       if (contaNova) await admin.auth.admin.deleteUser(user.id);
       throw memberError;
@@ -108,7 +124,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, contaNova });
+    return NextResponse.json({ ok: true, contaNova, conviteEnviado });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Não foi possível adicionar o membro." },
@@ -131,13 +147,18 @@ export async function DELETE(request: Request) {
     const admin = createAdminClient();
     const { data: membro, error: findError } = await admin
       .from("hub_members")
-      .select("id, is_admin")
+      .select("id, email, is_admin")
       .eq("id", id)
       .maybeSingle();
     if (findError) throw findError;
     if (!membro) return NextResponse.json({ error: "Membro não encontrado." }, { status: 404 });
-    if (membro.is_admin) {
-      return NextResponse.json({ error: "A conta admin da agência não pode ser removida." }, { status: 400 });
+    // Com vários admins, admin remove admin — menos a conta raiz da agência
+    // e a si mesmo (para nunca zerar o acesso à aba Equipe).
+    if (membro.email === "agenciaf3f@gmail.com") {
+      return NextResponse.json({ error: "A conta da agência não pode ser removida." }, { status: 400 });
+    }
+    if (membro.id === acesso.memberId) {
+      return NextResponse.json({ error: "Você não pode remover a si mesmo." }, { status: 400 });
     }
 
     const { error: deleteError } = await admin.from("hub_members").delete().eq("id", id);
