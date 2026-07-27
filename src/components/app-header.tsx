@@ -5,12 +5,14 @@ import type { Panel } from "@/lib/panels";
 
 type NavigationItem = "fila" | "metricas" | Panel;
 
-export function AppHeader({ activeItem = "fila", fullName, queueHref = "/", metricsHref = "/metricas", accountHref = "/seguranca", showQueue = true, panels = [] }: { activeItem?: NavigationItem; fullName?: string; queueHref?: string; metricsHref?: string; accountHref?: string | null; showQueue?: boolean; panels?: Panel[] }) {
+export function AppHeader({ activeItem = "fila", fullName, queueHref = "/creator", metricsHref = "/metricas", accountHref = "/seguranca", showQueue = true, panels = [] }: { activeItem?: NavigationItem; fullName?: string; queueHref?: string; metricsHref?: string; accountHref?: string | null; showQueue?: boolean; panels?: Panel[] }) {
   const links = (
     <>
-      {showQueue ? <NavButton active={activeItem === "fila"} href={queueHref} label="Fila"><Grid2X2 /></NavButton> : null}
-      {panels.includes("editor") ? <NavButton active={activeItem === "editor"} href="/editor" label="Edição"><Scissors /></NavButton> : null}
-      {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Atendimento"><MessagesSquare /></NavButton> : null}
+      {panels.includes("creator") || activeItem === "fila" || activeItem === "creator" ? (
+        <NavButton active={activeItem === "creator" || activeItem === "fila"} href="/creator" label="Creator"><Grid2X2 /></NavButton>
+      ) : null}
+      {panels.includes("editor") ? <NavButton active={activeItem === "editor"} href="/editor" label="Editor"><Scissors /></NavButton> : null}
+      {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Gestor"><MessagesSquare /></NavButton> : null}
       <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
     </>
   );

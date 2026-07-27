@@ -623,12 +623,24 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // Lovable Cloud (auth provider for the dashboard)
-const AUTH_SUPA_URL = 'https://dptnojreulmixycpprqv.supabase.co';
-const AUTH_SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwdG5vanJldWxtaXh5Y3BwcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTYxNjEsImV4cCI6MjA4NzE3MjE2MX0.BL2-KclibEoqEhiBJnLc4xKTTMmnSGCNf1o-_EagxRQ';
+const AUTH_SUPA_URL = 'https://ulikfkemdawinetjyhok.supabase.co';
+const AUTH_SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaWtma2VtZGF3aW5ldGp5aG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTU3MjcsImV4cCI6MjA4NzE3MTcyN30.IL_-kYLbJJj7AxLm25CygHmLBps74GX8pvsFZ1ieqIY';
 const authClient = window.supabase.createClient(AUTH_SUPA_URL, AUTH_SUPA_KEY, {
   auth: { storage: localStorage, persistSession: true, autoRefreshToken: true }
 });
 window.__authClient = authClient;
+
+// Ponte hub -> dashboard: herda a sessão do KPI HUB (cookies) via /gestor-session.
+// Com sessão válida, o overlay de login nem aparece.
+(async () => {
+  try {
+    const r = await fetch('/gestor-session', { credentials: 'same-origin' });
+    if (r.ok) {
+      const s = await r.json();
+      if (s && s.access_token) await authClient.auth.setSession(s);
+    }
+  } catch (e) {}
+})();
 
 function showApp(){ document.getElementById('login-overlay').style.display = 'none'; }
 function showLogin(){ document.getElementById('login-overlay').style.display = 'flex'; }
