@@ -51,7 +51,11 @@ export function InviteEditorDialog() {
         setInviteLink(body.linkConvite);
         toast.success(`${name.trim()} adicionado. Envie o link de convite.`);
       } else {
-        toast.success(`${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`);
+        toast.success(
+          body?.conviteEnviado
+            ? `Convite enviado por e-mail para ${email.trim()}.`
+            : `${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`,
+        );
         setOpen(false);
       }
       setEmail("");
@@ -143,7 +147,7 @@ export function InviteEditorDialog() {
               placeholder="Em branco → convite por e-mail"
             />
             <p className="text-xs text-muted-foreground">
-              Em branco, o editor recebe um e-mail para criar a própria senha.
+              Em branco, o editor recebe um e-mail de convite para criar a própria senha.
             </p>
           </div>
           <DialogFooter>

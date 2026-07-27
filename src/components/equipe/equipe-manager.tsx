@@ -164,9 +164,11 @@ function AdicionarMembroDialog() {
         toast.success(`${nome.trim()} adicionado. Envie o link de convite.`);
       } else {
         toast.success(
-          body?.contaNova
-            ? `${nome.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`
-            : `${nome.trim()} adicionado. A conta já existia — a senha antiga continua valendo.`,
+          body?.conviteEnviado
+            ? `Convite enviado por e-mail para ${email.trim()}.`
+            : body?.contaNova
+              ? `${nome.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`
+              : `${nome.trim()} adicionado. A conta já existia — a senha antiga continua valendo.`,
         );
         setOpen(false);
       }
@@ -237,9 +239,9 @@ function AdicionarMembroDialog() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="membro-senha">Senha inicial (opcional)</Label>
-            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → link de convite" autoComplete="off" />
+            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → convite por e-mail" autoComplete="off" />
             <p className="text-xs text-muted-foreground">
-              Em branco, geramos um link de convite para você mandar — a pessoa cria a própria senha. Preenchida, você repassa e ela troca em Minha conta.
+              Em branco, a pessoa recebe um e-mail de convite e cria a própria senha. Preenchida, você repassa e ela troca em Minha conta.
             </p>
           </div>
           <fieldset className="space-y-2">
