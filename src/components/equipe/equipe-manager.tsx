@@ -134,6 +134,7 @@ function AdicionarMembroDialog() {
   const [areas, setAreas] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [linkGerado, setLinkGerado] = useState<string | null>(null);
 
   const toggleArea = (area: string) =>
     setAreas((current) => (current.includes(area) ? current.filter((a) => a !== area) : [...current, area]));
@@ -157,14 +158,18 @@ function AdicionarMembroDialog() {
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) throw new Error(body?.error ?? "Não foi possível adicionar o membro.");
-      toast.success(
-        body?.conviteEnviado
-          ? `Convite enviado por e-mail para ${email.trim()}.`
-          : body?.contaNova
+      if (body?.linkConvite) {
+        // Dialog fica aberto mostrando o link — o admin copia e manda por WhatsApp.
+        setLinkGerado(body.linkConvite);
+        toast.success(`${nome.trim()} adicionado. Envie o link de convite.`);
+      } else {
+        toast.success(
+          body?.contaNova
             ? `${nome.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`
             : `${nome.trim()} adicionado. A conta já existia — a senha antiga continua valendo.`,
-      );
-      setOpen(false);
+        );
+        setOpen(false);
+      }
       setNome("");
       setEmail("");
       setSenha("");
@@ -179,7 +184,13 @@ function AdicionarMembroDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) setLinkGerado(null);
+      }}
+    >
       <DialogTrigger
         render={
           <Button size="sm" className="rounded-full">
@@ -189,11 +200,29 @@ function AdicionarMembroDialog() {
       />
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Adicionar membro</DialogTitle>
+          <DialogTitle>{linkGerado ? "Convite pronto" : "Adicionar membro"}</DialogTitle>
           <DialogDescription>
-            A pessoa entra com este e-mail e senha em kpis.agenciaf3f.com.br e vê só as abas da área dela.
+            {linkGerado
+              ? "Mande este link para a pessoa (WhatsApp etc.). Ele abre a criação de senha e entra direto no hub."
+              : "A pessoa entra com este e-mail e senha em kpis.agenciaf3f.com.br e vê só as abas da área dela."}
           </DialogDescription>
         </DialogHeader>
+        {linkGerado ? (
+          <div className="space-y-3">
+            <p className="break-all rounded-xl bg-muted p-3 text-xs text-muted-foreground">{linkGerado}</p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(linkGerado)
+                  .then(() => toast.success("Link copiado."))
+                  .catch(() => toast.error("Não deu para copiar — selecione o texto acima."));
+              }}
+            >
+              Copiar link de convite
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="membro-nome">Nome</Label>
@@ -208,9 +237,9 @@ function AdicionarMembroDialog() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="membro-senha">Senha inicial (opcional)</Label>
-            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → convite por e-mail" autoComplete="off" />
+            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → link de convite" autoComplete="off" />
             <p className="text-xs text-muted-foreground">
-              Em branco, a pessoa recebe um e-mail do Supabase para criar a própria senha. Preenchida, você repassa e ela troca em Minha conta.
+              Em branco, geramos um link de convite para você mandar — a pessoa cria a própria senha. Preenchida, você repassa e ela troca em Minha conta.
             </p>
           </div>
           <fieldset className="space-y-2">
@@ -248,6 +277,7 @@ function AdicionarMembroDialog() {
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

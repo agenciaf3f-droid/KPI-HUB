@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     if (listError) throw listError;
     let user = lista.users.find((u) => (u.email ?? "").toLowerCase() === email) ?? null;
     let contaNova = false;
-    let conviteEnviado = false;
+    let linkConvite: string | null = null;
 
     if (!user) {
       if (senha) {
@@ -69,14 +69,20 @@ export async function POST(request: Request) {
         if (createError || !created.user) throw createError ?? new Error("Não foi possível criar a conta.");
         user = created.user;
       } else {
-        // Convite do próprio Supabase: e-mail com link que cai em /definir-senha.
-        const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-          data: { full_name: nome },
-          redirectTo: `${new URL(request.url).origin}/definir-senha`,
+        // Sem senha: link de convite do próprio Supabase (generateLink cria a
+        // conta e devolve a URL — o admin manda por WhatsApp). E-mail automático
+        // não rola: sem SMTP próprio o Supabase só entrega para o time do projeto.
+        const { data: invited, error: inviteError } = await admin.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: {
+            data: { full_name: nome },
+            redirectTo: `${new URL(request.url).origin}/definir-senha`,
+          },
         });
-        if (inviteError || !invited.user) throw inviteError ?? new Error("Não foi possível enviar o convite.");
+        if (inviteError || !invited.user) throw inviteError ?? new Error("Não foi possível gerar o convite.");
         user = invited.user;
-        conviteEnviado = true;
+        linkConvite = invited.properties?.action_link ?? null;
       }
       contaNova = true;
     }
@@ -124,7 +130,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, contaNova, conviteEnviado });
+    return NextResponse.json({ ok: true, contaNova, linkConvite });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Não foi possível adicionar o membro." },

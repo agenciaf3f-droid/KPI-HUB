@@ -20,6 +20,7 @@ export function InviteEditorDialog() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +47,13 @@ export function InviteEditorDialog() {
         return;
       }
 
-      toast.success(
-        body?.conviteEnviado
-          ? `Convite enviado por e-mail para ${email.trim()}.`
-          : `${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`,
-      );
-      setOpen(false);
+      if (body?.linkConvite) {
+        setInviteLink(body.linkConvite);
+        toast.success(`${name.trim()} adicionado. Envie o link de convite.`);
+      } else {
+        toast.success(`${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`);
+        setOpen(false);
+      }
       setEmail("");
       setName("");
       setPassword("");
@@ -63,7 +65,13 @@ export function InviteEditorDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) setInviteLink(null);
+      }}
+    >
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
@@ -74,11 +82,29 @@ export function InviteEditorDialog() {
       />
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Convidar Editor</DialogTitle>
+          <DialogTitle>{inviteLink ? "Convite pronto" : "Convidar Editor"}</DialogTitle>
           <DialogDescription>
-            O editor entra com este e-mail e senha e vê só a aba Vídeo.
+            {inviteLink
+              ? "Mande este link para o editor. Ele cria a senha e entra direto na aba Vídeo."
+              : "O editor entra com este e-mail e senha e vê só a aba Vídeo."}
           </DialogDescription>
         </DialogHeader>
+        {inviteLink ? (
+          <div className="space-y-3">
+            <p className="break-all rounded-xl bg-muted p-3 text-xs text-muted-foreground">{inviteLink}</p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(inviteLink)
+                  .then(() => toast.success("Link copiado."))
+                  .catch(() => toast.error("Não deu para copiar — selecione o texto acima."));
+              }}
+            >
+              Copiar link de convite
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={handleInvite} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="invite-email">Email do editor</Label>
@@ -127,6 +153,7 @@ export function InviteEditorDialog() {
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
