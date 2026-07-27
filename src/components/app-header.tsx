@@ -1,4 +1,4 @@
-import { Grid2X2, Layers, MessagesSquare, Scissors, TrendingDown, Users } from "lucide-react";
+import { Grid2X2, MessagesSquare, Scissors, TrendingDown, Users } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Panel } from "@/lib/panels";
@@ -21,10 +21,9 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/conta
 
   return (
     <aside className="sticky top-0 z-20 flex h-16 w-full items-center justify-between bg-sidebar px-4 text-sidebar-foreground md:fixed md:inset-y-0 md:left-0 md:h-svh md:w-28 md:flex-col md:px-0 md:py-5">
+      {/* Sem logo (pedido do usuário) — o div vazio segura o justify-between
+          para a navegação continuar centrada no desktop. */}
       <div className="flex items-center gap-3 md:flex-col">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
-          <Layers className="size-5" />
-        </div>
         <span className="text-sm font-semibold md:hidden">KPI F3F</span>
       </div>
 
