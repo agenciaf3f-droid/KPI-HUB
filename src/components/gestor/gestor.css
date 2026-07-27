@@ -595,3 +595,7 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 }
 .btn-expand:hover { background:#f3f4f6; color:var(--text); }
 
+
+/* Aba /churn: o app do gestor aberto direto na seção Churn — o seletor interno
+   de abas sai de cena (a sidebar do hub é quem navega). */
+.gestor-app.churn-only .tab-nav { display: none; }

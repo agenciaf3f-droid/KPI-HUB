@@ -1,9 +1,9 @@
-import { Grid2X2, Layers, MessagesSquare, Scissors } from "lucide-react";
+import { Grid2X2, Layers, MessagesSquare, Scissors, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Panel } from "@/lib/panels";
 
-type NavigationItem = "fila" | Panel;
+type NavigationItem = "fila" | "churn" | Panel;
 
 export function AppHeader({ activeItem = "fila", fullName, accountHref = "/seguranca", panels = [] }: { activeItem?: NavigationItem; fullName?: string; accountHref?: string | null; panels?: Panel[] }) {
   const links = (
@@ -13,6 +13,7 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/segur
       {panels.includes("creator") || activeItem === "fila" || activeItem === "creator" ? (
         <NavButton active={activeItem === "creator" || activeItem === "fila"} href="/creator" label="Creator"><Grid2X2 /></NavButton>
       ) : null}
+      {panels.includes("gestor") ? <NavButton active={activeItem === "churn"} href="/churn" label="Churn"><TrendingDown /></NavButton> : null}
     </>
   );
 
