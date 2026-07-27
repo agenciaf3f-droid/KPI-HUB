@@ -1,11 +1,11 @@
-import { Grid2X2, Layers, MessagesSquare, Scissors, TrendingDown } from "lucide-react";
+import { Grid2X2, Layers, MessagesSquare, Scissors, TrendingDown, Users } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Panel } from "@/lib/panels";
 
-type NavigationItem = "fila" | "churn" | Panel;
+type NavigationItem = "fila" | "churn" | "equipe" | "conta" | Panel;
 
-export function AppHeader({ activeItem = "fila", fullName, accountHref = "/seguranca", panels = [] }: { activeItem?: NavigationItem; fullName?: string; accountHref?: string | null; panels?: Panel[] }) {
+export function AppHeader({ activeItem = "fila", fullName, accountHref = "/conta", panels = [], isAdmin = false, avatarUrl }: { activeItem?: NavigationItem; fullName?: string; accountHref?: string | null; panels?: Panel[]; isAdmin?: boolean; avatarUrl?: string }) {
   const links = (
     <>
       {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Gestor"><MessagesSquare /></NavButton> : null}
@@ -13,7 +13,9 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/segur
       {panels.includes("creator") || activeItem === "fila" || activeItem === "creator" ? (
         <NavButton active={activeItem === "creator" || activeItem === "fila"} href="/creator" label="Creator"><Grid2X2 /></NavButton>
       ) : null}
-      {panels.includes("gestor") ? <NavButton active={activeItem === "churn"} href="/churn" label="Churn"><TrendingDown /></NavButton> : null}
+      {/* Churn e Equipe são abas exclusivas do admin — pedido do usuário. */}
+      {isAdmin ? <NavButton active={activeItem === "churn"} href="/churn" label="Churn"><TrendingDown /></NavButton> : null}
+      {isAdmin ? <NavButton active={activeItem === "equipe"} href="/equipe" label="Equipe"><Users /></NavButton> : null}
     </>
   );
 
@@ -32,7 +34,18 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/segur
 
       <div className="flex items-center gap-2 md:flex-col">
         <ThemeToggle />
-        {accountHref ? <Link href={accountHref} className="grid size-9 place-items-center rounded-full bg-card text-xs font-semibold text-foreground transition-colors hover:bg-accent md:size-10" aria-label="Abrir segurança da conta">{fullName?.slice(0, 1).toUpperCase() ?? "M"}</Link> : <span className="grid size-9 place-items-center rounded-full bg-card text-xs font-semibold text-foreground md:size-10" title="Acesso administrativo por link">{fullName?.slice(0, 1).toUpperCase() ?? "A"}</span>}
+        {accountHref ? (
+          <Link href={accountHref} className="grid size-9 place-items-center overflow-hidden rounded-full bg-card text-xs font-semibold text-foreground transition-colors hover:bg-accent md:size-10" aria-label="Abrir minha conta">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="size-full object-cover" />
+            ) : (
+              fullName?.slice(0, 1).toUpperCase() ?? "M"
+            )}
+          </Link>
+        ) : (
+          <span className="grid size-9 place-items-center rounded-full bg-card text-xs font-semibold text-foreground md:size-10" title="Acesso administrativo por link">{fullName?.slice(0, 1).toUpperCase() ?? "A"}</span>
+        )}
       </div>
     </aside>
   );

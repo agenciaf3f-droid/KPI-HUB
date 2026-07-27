@@ -62,11 +62,51 @@ export async function validateSession(req) {
   const email = (user.email || "").toLowerCase();
   const ok = allow.some((rule) => (rule.startsWith("@") ? email.endsWith(rule) : email === rule));
   if (!ok) {
-    console.warn(`[auth] acesso negado para ${email}`);
-    return { ok: false, status: 403, error: "not authorized" };
+    // Segunda chance: membros convidados pela aba Equipe do hub. A tabela
+    // hub_members (área gestor) autoriza sem precisar editar ALLOWED_EMAILS
+    // na Vercel a cada convite.
+    const membro = await isHubGestor(email);
+    if (!membro) {
+      console.warn(`[auth] acesso negado para ${email}`);
+      return { ok: false, status: 403, error: "not authorized" };
+    }
   }
 
   return { ok: true, user };
+}
+
+// Cache em memória por instância: uma janela de dados dispara dezenas de
+// requests em segundos — não faz sentido perguntar ao banco em todas.
+const hubGestorCache = new Map(); // email -> { ok, until }
+const HUB_GESTOR_TTL_MS = 60_000;
+
+/** Consulta hub_members no projeto de dados: email com área gestor (ou admin). */
+async function isHubGestor(email) {
+  if (!email) return false;
+  const cached = hubGestorCache.get(email);
+  if (cached && cached.until > Date.now()) return cached.ok;
+
+  const url = process.env.SUPABASE_DATA_URL;
+  const key = process.env.SUPABASE_DATA_SERVICE_KEY;
+  if (!url || !key) return false;
+
+  let ok = false;
+  try {
+    const q = `${url}/rest/v1/hub_members?select=id&email=eq.${encodeURIComponent(email)}&or=(areas.cs.{gestor},is_admin.is.true)&limit=1`;
+    const r = await fetch(q, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (r.ok) {
+      const rows = await r.json().catch(() => []);
+      ok = Array.isArray(rows) && rows.length > 0;
+    }
+  } catch {
+    ok = false; // banco fora do ar = nega; ALLOWED_EMAILS continua sendo o caminho garantido
+  }
+
+  hubGestorCache.set(email, { ok, until: Date.now() + HUB_GESTOR_TTL_MS });
+  return ok;
 }
 
 /**

@@ -2,8 +2,9 @@ import "server-only";
 
 import { cache } from "react";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isSupabaseAdminConfigured, isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
  * Resolução de sessão entre os três painéis.
@@ -36,6 +37,21 @@ export type PanelAccess = {
   gestorName?: string;
   /** `creator_profiles.id` — resolvido no banco, não neste mapa. */
   creatorProfileId?: string;
+  /** `hub_members.id` — presente quando o acesso veio da tabela. */
+  memberId?: string;
+  /** `hub_members.nome` — nome de exibição. */
+  fullName?: string;
+  avatarUrl?: string;
+};
+
+/** Linha de `public.hub_members` — a fonte de verdade de acesso desde a 0009. */
+export type HubMemberRow = {
+  id: string;
+  email: string;
+  nome: string;
+  areas: string[];
+  is_admin: boolean;
+  avatar_url: string | null;
 };
 
 type PanelIdentity = {
@@ -85,6 +101,35 @@ export const GESTOR_ROSTER = [
   { nome: "Denzel", setor: "CRIACAO" },
 ] as const;
 
+/**
+ * Parte pura — testável sem banco. Converte uma linha de `hub_members` no
+ * acesso dela: `areas` → painéis na ordem da sidebar (gestor, editor, creator);
+ * admin abre os três. `editorName`/`gestorName` saem do `nome` — que precisa
+ * bater caractere a caractere com as colunas de texto livre dos painéis.
+ */
+export function memberToAccess(member: HubMemberRow): PanelAccess {
+  const isAdmin = member.is_admin === true;
+  const has = (area: string) => isAdmin || member.areas.includes(area);
+
+  const panels: Panel[] = [];
+  if (has("gestor")) panels.push("gestor");
+  if (has("editor")) panels.push("editor");
+  if (has("creator")) panels.push("creator");
+
+  return {
+    email: member.email.trim().toLowerCase(),
+    panels,
+    isAdmin,
+    // "Admin" preserva o comportamento do mapa antigo: o painel do Editor
+    // mostra "Visão administrativa" e não filtra por editor_name.
+    editorName: isAdmin ? "Admin" : member.areas.includes("editor") ? member.nome : undefined,
+    gestorName: member.areas.includes("gestor") ? member.nome : undefined,
+    memberId: member.id,
+    fullName: member.nome,
+    avatarUrl: member.avatar_url ?? undefined,
+  };
+}
+
 /** Parte pura — testável sem banco. */
 export function resolveIdentity(email: string, creatorProfileId?: string): PanelAccess {
   const key = email.trim().toLowerCase();
@@ -118,6 +163,17 @@ export const getPanelAccess = cache(async (): Promise<PanelAccess | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 
+  // Fonte de verdade: hub_members (sem policies — só o service role lê).
+  if (isSupabaseAdminConfigured()) {
+    const { data: member } = await createAdminClient()
+      .from("hub_members")
+      .select("id, email, nome, areas, is_admin, avatar_url")
+      .eq("email", user.email.trim().toLowerCase())
+      .maybeSingle();
+    if (member) return memberToAccess(member as HubMemberRow);
+  }
+
+  // Fallback: mapa hardcoded + creator_profiles (contas anteriores à 0009).
   const { data: profile } = await supabase
     .from("creator_profiles")
     .select("id")

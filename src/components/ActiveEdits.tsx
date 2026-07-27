@@ -12,9 +12,15 @@ type VideoEdit = Tables<"video_edits">;
 
 interface ActiveEditsProps {
   edits: VideoEdit[];
+  /**
+   * Nome de quem pode controlar o cronômetro. Só o dono da edição pausa,
+   * retoma ou conclui — admin vê tudo em andamento, mas não mexe em nada
+   * que não seja dele.
+   */
+  controlEditor?: string;
 }
 
-export function ActiveEdits({ edits }: ActiveEditsProps) {
+export function ActiveEdits({ edits, controlEditor }: ActiveEditsProps) {
   if (edits.length === 0) return null;
 
   return (
@@ -25,14 +31,18 @@ export function ActiveEdits({ edits }: ActiveEditsProps) {
       </h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {edits.map((edit) => (
-          <ActiveEditCard key={edit.id} edit={edit} />
+          <ActiveEditCard
+            key={edit.id}
+            edit={edit}
+            canControl={!controlEditor || edit.editor_name === controlEditor}
+          />
         ))}
       </div>
     </section>
   );
 }
 
-function ActiveEditCard({ edit }: { edit: VideoEdit }) {
+function ActiveEditCard({ edit, canControl = true }: { edit: VideoEdit; canControl?: boolean }) {
   const pauseEdit = usePauseEdit();
   const resumeEdit = useResumeEdit();
   const finishEditing = useFinishEditing();
@@ -155,6 +165,11 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           </div>
         )}
 
+        {!canControl ? (
+          <p className="text-[11px] text-muted-foreground">
+            Cronômetro de {edit.editor_name} — só quem edita controla.
+          </p>
+        ) : (
         <div className="flex flex-wrap gap-2">
           {isEditing ? (
             <Button variant="outline" size="sm" onClick={handlePause} disabled={pauseEdit.isPending}>
@@ -196,6 +211,7 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
             </span>
           )}
         </div>
+        )}
       </CardContent>
     </Card>
   );

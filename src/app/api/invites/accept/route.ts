@@ -42,6 +42,19 @@ export async function POST(request: Request) {
       throw profileError;
     }
 
+    // Registra na equipe do hub: é o hub_members que abre a aba Creator.
+    const { error: memberError } = await admin.from("hub_members").insert({
+      user_id: userData.user.id,
+      email,
+      nome: fullName,
+      areas: ["creator"],
+    });
+    if (memberError) {
+      await admin.from("creator_profiles").delete().eq("id", userData.user.id);
+      await admin.auth.admin.deleteUser(userData.user.id);
+      throw memberError;
+    }
+
     const { data: claimed, error: claimError } = await admin
       .from("creator_team_invites")
       .update({ claimed_at: new Date().toISOString(), claimed_by: userData.user.id })
@@ -50,6 +63,7 @@ export async function POST(request: Request) {
       .select("id")
       .maybeSingle();
     if (claimError || !claimed) {
+      await admin.from("hub_members").delete().eq("user_id", userData.user.id);
       await admin.from("creator_profiles").delete().eq("id", userData.user.id);
       await admin.auth.admin.deleteUser(userData.user.id);
       return NextResponse.json({ error: "Este convite acabou de ser utilizado." }, { status: 409 });

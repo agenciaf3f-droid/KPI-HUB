@@ -13,12 +13,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 
 export function InviteEditorDialog() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -27,35 +27,32 @@ export function InviteEditorDialog() {
       toast.error("Preencha email e nome do editor");
       return;
     }
+    if (password.length < 6) {
+      toast.error("A senha inicial precisa de ao menos 6 caracteres");
+      return;
+    }
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke("invite-editor", {
-        body: {
-          email: email.trim(),
-          name: name.trim(),
-          redirectTo: window.location.origin + "/redefinir-senha",
-        },
+      // Mesmo endpoint da aba Equipe, com a área editor pré-marcada.
+      // (Antes chamava a edge function "invite-editor", que nunca foi deployada.)
+      const res = await fetch("/api/equipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: name.trim(), email: email.trim(), senha: password, areas: ["editor"] }),
       });
-
-      if (error) {
-        // supabase-js coloca a mensagem real no context (resposta não-2xx / função ausente).
-        let msg = "Não foi possível enviar o convite. Verifique se a função foi implantada.";
-        try {
-          const b = await error.context?.json();
-          if (b?.error) msg = b.error;
-        } catch {
-          /* mantém msg padrão */
-        }
-        toast.error(msg);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(body?.error ?? "Não foi possível adicionar o editor. Tente novamente.");
         return;
       }
 
-      toast.success("Convite enviado para " + email.trim());
+      toast.success(`${name.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`);
       setOpen(false);
       setEmail("");
       setName("");
+      setPassword("");
     } catch {
-      toast.error("Não foi possível enviar o convite. Tente novamente.");
+      toast.error("Não foi possível adicionar o editor. Tente novamente.");
     } finally {
       setSending(false);
     }
@@ -75,7 +72,7 @@ export function InviteEditorDialog() {
         <DialogHeader>
           <DialogTitle>Convidar Editor</DialogTitle>
           <DialogDescription>
-            O editor recebe um email para definir a senha e acessar o painel.
+            O editor entra com este e-mail e senha e vê só a aba Vídeo.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleInvite} className="space-y-4">
@@ -103,6 +100,20 @@ export function InviteEditorDialog() {
             <p className="text-xs text-muted-foreground">
               Nome de exibição do editor. Se já tiver edições no banco, escreva
               exatamente igual (ex.: "Lucas", "Damião").
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="invite-password">Senha inicial</Label>
+            <Input
+              id="invite-password"
+              type="text"
+              autoComplete="off"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+            />
+            <p className="text-xs text-muted-foreground">
+              Você repassa a senha; o editor troca depois em Minha conta.
             </p>
           </div>
           <DialogFooter>

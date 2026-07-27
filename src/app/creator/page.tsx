@@ -32,7 +32,7 @@ export default async function CreatorPage() {
 
   return (
     <div className="min-h-svh bg-background md:pl-28">
-      <AppHeader activeItem="creator" fullName={profile.full_name} panels={acesso?.panels ?? []} />
+      <AppHeader activeItem="creator" fullName={profile.full_name} panels={acesso?.panels ?? []} isAdmin={acesso?.isAdmin ?? false} avatarUrl={acesso?.avatarUrl} />
       <ProductionWorkspace initialCapacity={[]} initialDeliveries={deliveries} role={profile.role} fullName={profile.full_name} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
       <MetricsSection role={profile.role} activeTimers={timersVisiveis} gamification={gamification} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
     </div>

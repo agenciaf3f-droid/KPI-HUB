@@ -165,7 +165,7 @@ function EditorIndex({ initialEdits }: { initialEdits?: Tables<"video_edits">[] 
         ) : (
           <>
             <EditForm />
-            <ActiveEdits edits={activeEdits} />
+            <ActiveEdits edits={activeEdits} controlEditor={currentEditor} />
             <AwaitingLink edits={awaitingEdits} />
             <DateRangeFilter
               from={from}

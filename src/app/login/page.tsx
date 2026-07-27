@@ -1,7 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Layers, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -94,17 +93,10 @@ export default function LoginPage() {
         <div className="absolute -left-24 top-24 size-80 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-28 right-0 size-96 rounded-full bg-accent/15 blur-3xl" />
 
-        <div className="relative flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-2xl bg-accent text-accent-foreground">
-            <Layers className="size-5" />
-          </span>
-          <span className="font-semibold tracking-[-0.02em]">Produção Criativa</span>
-        </div>
-
         <div className="relative my-auto max-w-md">
           <p className="text-xs font-semibold tracking-[0.16em] text-accent uppercase">Agência F3F</p>
           <h1 className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.05em]">
-            Toda a operação criativa, em um só fluxo.
+            Toda a operação, em um só fluxo.
           </h1>
           <p className="mt-6 max-w-sm text-base leading-relaxed text-sidebar-foreground/65">
             Organize a produção, acompanhe o esforço da equipe e mantenha cada entrega no ritmo certo.
@@ -125,11 +117,6 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-md">
-          <Link href="/" className="mb-10 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden">
-            <span className="grid size-9 place-items-center rounded-xl bg-accent text-accent-foreground"><Layers className="size-4" /></span>
-            Produção Criativa
-          </Link>
-
           <div className="mb-8">
             <span className="mb-5 grid size-11 place-items-center rounded-2xl bg-primary/15 text-primary">
               <LockKeyhole className="size-5" />

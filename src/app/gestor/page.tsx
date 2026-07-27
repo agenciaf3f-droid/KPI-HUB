@@ -22,7 +22,7 @@ export default async function GestorPage() {
 
   return (
     <div className="min-h-svh bg-background md:pl-28">
-      <AppHeader activeItem="gestor" fullName={acesso.gestorName ?? acesso.email} panels={acesso.panels} />
+      <AppHeader activeItem="gestor" fullName={acesso.fullName ?? acesso.gestorName ?? acesso.email} panels={acesso.panels} isAdmin={acesso.isAdmin} avatarUrl={acesso.avatarUrl} />
       <GestorApp />
     </div>
   );

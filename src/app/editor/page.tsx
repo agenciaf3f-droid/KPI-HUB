@@ -25,7 +25,7 @@ export default async function EditorPage() {
 
   return (
     <div className="min-h-svh bg-background md:pl-28">
-      <AppHeader activeItem="editor" fullName={acesso.editorName ?? acesso.email} panels={acesso.panels} />
+      <AppHeader activeItem="editor" fullName={acesso.fullName ?? acesso.editorName ?? acesso.email} panels={acesso.panels} isAdmin={acesso.isAdmin} avatarUrl={acesso.avatarUrl} />
       <EditorWorkspace currentEditor={acesso.editorName ?? "Admin"} isAdmin={acesso.isAdmin} initialEdits={initialEdits ?? []} />
     </div>
   );
