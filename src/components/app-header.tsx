@@ -8,7 +8,7 @@ type NavigationItem = "fila" | Panel;
 export function AppHeader({ activeItem = "fila", fullName, accountHref = "/seguranca", panels = [] }: { activeItem?: NavigationItem; fullName?: string; accountHref?: string | null; panels?: Panel[] }) {
   const links = (
     <>
-      {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Gestor" fullReload><MessagesSquare /></NavButton> : null}
+      {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Gestor"><MessagesSquare /></NavButton> : null}
       {panels.includes("editor") ? <NavButton active={activeItem === "editor"} href="/editor" label="Vídeo"><Scissors /></NavButton> : null}
       {panels.includes("creator") || activeItem === "fila" || activeItem === "creator" ? (
         <NavButton active={activeItem === "creator" || activeItem === "fila"} href="/creator" label="Creator"><Grid2X2 /></NavButton>
@@ -37,7 +37,7 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/segur
   );
 }
 
-function NavButton({ active = false, href, label, children, fullReload = false }: { active?: boolean; href?: string; label: string; children: React.ReactNode; fullReload?: boolean }) {
+function NavButton({ active = false, href, label, children }: { active?: boolean; href?: string; label: string; children: React.ReactNode }) {
   const className = active
     ? "flex h-12 min-w-12 flex-col items-center justify-center gap-0.5 rounded-2xl bg-card px-2 text-foreground transition-colors hover:bg-card md:h-14 md:w-[4.5rem]"
     : "flex h-12 min-w-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:h-14 md:w-[4.5rem]";
@@ -53,15 +53,6 @@ function NavButton({ active = false, href, label, children, fullReload = false }
     return <span aria-disabled="true" title={`${label} em breve`} className={`${className} cursor-not-allowed opacity-45`}>{inner}</span>;
   }
 
-  // fullReload: o dashboard do gestor injeta scripts globais que nao podem
-  // executar 2x no mesmo documento — a entrada la e sempre navegacao completa.
-  if (fullReload) {
-    return (
-      <a href={href} aria-label={label} title={label} className={className}>
-        {inner}
-      </a>
-    );
-  }
 
   return (
     <Link

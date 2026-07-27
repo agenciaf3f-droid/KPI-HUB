@@ -41,7 +41,7 @@ design-system/      MASTER.md do sistema de produção criativa
 .context/docs/      documentação e memória
 ```
 
-**Não existe neste repo** — não presumir: `src/modules/`, `src/shared/`, biblioteca de componentes padronizados (DataTable, ChartCard, filtros), TanStack Query, Recharts, React Hook Form.
+**Não existe neste repo** — não presumir: `src/modules/`, `src/shared/`, biblioteca de componentes padronizados (DataTable, ChartCard, filtros) nem React Hook Form. TanStack Query, Recharts e chart.js EXISTEM (painel do Editor e do Gestor).
 
 ## 3. Stack e restrições
 
