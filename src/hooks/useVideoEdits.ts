@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json, TablesInsert } from "@/integrations/supabase/types";
+import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 export type Pause = {
@@ -12,8 +12,11 @@ export type Pause = {
 
 const today = () => new Date().toISOString().split("T")[0];
 
-export function useVideoEdits() {
+export function useVideoEdits(initialData?: Tables<"video_edits">[]) {
   return useQuery({
+    // initialData: o RSC de /editor já traz as linhas — a tela abre pintada e o
+    // client só refaz a query quando uma mutation invalida ["video-edits"].
+    initialData,
     queryKey: ["video-edits"],
     queryFn: async () => {
       const { data, error } = await supabase

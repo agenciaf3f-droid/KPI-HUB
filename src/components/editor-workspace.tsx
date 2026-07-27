@@ -35,21 +35,22 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVideoEdits } from "@/hooks/useVideoEdits";
 import { EditorAuthProvider, useAuth } from "@/lib/editor-auth";
+import type { Tables } from "@/integrations/supabase/types";
 
 const queryClient = new QueryClient();
 
-export function EditorWorkspace({ currentEditor, isAdmin }: { currentEditor: string; isAdmin: boolean }) {
+export function EditorWorkspace({ currentEditor, isAdmin, initialEdits }: { currentEditor: string; isAdmin: boolean; initialEdits?: Tables<"video_edits">[] }) {
   return (
     <QueryClientProvider client={queryClient}>
       <EditorAuthProvider currentEditor={currentEditor} isAdmin={isAdmin}>
-        <EditorIndex />
+        <EditorIndex initialEdits={initialEdits} />
       </EditorAuthProvider>
     </QueryClientProvider>
   );
 }
 
-function EditorIndex() {
-  const { data: edits, isLoading } = useVideoEdits();
+function EditorIndex({ initialEdits }: { initialEdits?: Tables<"video_edits">[] }) {
+  const { data: edits, isLoading } = useVideoEdits(initialEdits);
   const { currentEditor, isAdmin, signOut, updatePassword } = useAuth();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");

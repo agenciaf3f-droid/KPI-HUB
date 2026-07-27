@@ -57,6 +57,9 @@ function NavButton({ active = false, href, label, children }: { active?: boolean
   return (
     <Link
       href={href}
+      // prefetch total (RSC completo) das abas: a troca vira instantânea;
+      // custo: 3 fetches em background por carga de página.
+      prefetch={true}
       aria-label={label}
       title={label}
       className={className}

@@ -38,6 +38,22 @@ export async function loadDeliveries(profile: AppProfile): Promise<Delivery[]> {
   return mapDeliveries((data ?? []) as DeliveryRow[]);
 }
 
+/** Deriva os timers de uma lista de deliveries já carregada — evita repetir a carga. */
+export function deliveriesToTimers(deliveries: Delivery[]): ActiveDeliveryTimer[] {
+  return deliveries
+    .filter((delivery) => delivery.activeSessionStartedAt)
+    .map((delivery) => ({
+      deliveryId: delivery.id,
+      startedAt: delivery.activeSessionStartedAt!,
+      baseSeconds: delivery.activeSecondsAccumulated,
+      clientName: delivery.clientName,
+      deliveryType: delivery.deliveryType,
+      title: delivery.title,
+      assigneeName: delivery.assigneeName,
+      designerColor: delivery.assigneeColor ?? "#8B5CF6",
+    }));
+}
+
 export async function loadActiveTimers(organizationId: string): Promise<ActiveDeliveryTimer[]> {
   const deliveries = await loadOrganizationDeliveries(organizationId);
   return deliveries

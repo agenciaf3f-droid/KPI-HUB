@@ -2,7 +2,7 @@ import { AppHeader } from "@/components/app-header";
 import { MetricsSection } from "@/components/metrics-dashboard";
 import { ProductionWorkspace } from "@/components/production-workspace";
 import { getCurrentProfile } from "@/lib/auth";
-import { loadActiveTimers, loadDeliveries } from "@/lib/deliveries";
+import { deliveriesToTimers, loadDeliveries } from "@/lib/deliveries";
 import { loadGamification } from "@/lib/gamification";
 import { getPanelAccess } from "@/lib/panels";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -16,12 +16,14 @@ export default async function CreatorPage() {
   if (!isSupabaseConfigured()) redirect("/primeiro-acesso");
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
-  const [deliveries, acesso, activeTimers, gamification] = await Promise.all([
+  const [deliveries, acesso, gamification] = await Promise.all([
     loadDeliveries(profile),
     getPanelAccess(),
-    loadActiveTimers(profile.organization_id),
     loadGamification(profile),
   ]);
+  // Timers derivados das deliveries já carregadas — antes era uma SEGUNDA carga
+  // completa da organização só para filtrar quem tem cronômetro ativo.
+  const activeTimers = deliveriesToTimers(deliveries);
 
   const timersVisiveis =
     profile.role === "admin"

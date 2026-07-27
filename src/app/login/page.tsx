@@ -44,8 +44,10 @@ export default function LoginPage() {
 
       const factor = factors.totp.find((item) => item.status === "verified");
       if (!factor) {
-        toast.info("Configure o Google Authenticator para concluir seu acesso.");
-        router.replace("/seguranca");
+        // Sem 2FA cadastrado: entra direto no app. O cadastro do Google
+        // Authenticator continua disponível em /seguranca (avatar da sidebar),
+        // mas deixou de ser etapa obrigatória do login — decisão do usuário.
+        router.replace("/");
         return;
       }
 
