@@ -603,3 +603,10 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 /* Aba /gestor: o botão Churn sai do seletor interno — Churn agora é aba
    própria da sidebar (só admin). O markup fica intacto; só some da vista. */
 .gestor-app .tab-nav button[onclick*="tab3"] { display: none; }
+
+/* Respiro na tabela de Grupos (pedido do usuário: "muito coladinho").
+   Sobrescreve os valores herdados do dashboard original só dentro do gestor. */
+.gestor-app tbody td { padding: 18px 20px; }
+.gestor-app thead th { padding: 12px 20px; }
+.gestor-app .cell-sub { margin-top: 7px; }
+.gestor-app .cell-name { max-width: 260px; }
