@@ -1,11 +1,11 @@
-import { BarChart3, Grid2X2, Layers, MessagesSquare, Scissors } from "lucide-react";
+import { Grid2X2, Layers, MessagesSquare, Scissors } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Panel } from "@/lib/panels";
 
-type NavigationItem = "fila" | "metricas" | Panel;
+type NavigationItem = "fila" | Panel;
 
-export function AppHeader({ activeItem = "fila", fullName, queueHref = "/creator", metricsHref = "/metricas", accountHref = "/seguranca", showQueue = true, panels = [] }: { activeItem?: NavigationItem; fullName?: string; queueHref?: string; metricsHref?: string; accountHref?: string | null; showQueue?: boolean; panels?: Panel[] }) {
+export function AppHeader({ activeItem = "fila", fullName, accountHref = "/seguranca", panels = [] }: { activeItem?: NavigationItem; fullName?: string; accountHref?: string | null; panels?: Panel[] }) {
   const links = (
     <>
       {panels.includes("creator") || activeItem === "fila" || activeItem === "creator" ? (
@@ -13,7 +13,6 @@ export function AppHeader({ activeItem = "fila", fullName, queueHref = "/creator
       ) : null}
       {panels.includes("editor") ? <NavButton active={activeItem === "editor"} href="/editor" label="Editor"><Scissors /></NavButton> : null}
       {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Gestor"><MessagesSquare /></NavButton> : null}
-      <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
     </>
   );
 

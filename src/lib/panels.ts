@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -95,8 +97,12 @@ export function resolveIdentity(email: string, creatorProfileId?: string): Panel
   };
 }
 
-/** Resolve a sessão atual. Devolve `null` se não houver usuário logado. */
-export async function getPanelAccess(): Promise<PanelAccess | null> {
+/**
+ * Resolve a sessão atual. Devolve `null` se não houver usuário logado.
+ * `cache()`: no mesmo request, páginas que chamam getCurrentProfile E
+ * getPanelAccess pagam UMA ida ao Supabase, não duas de cada.
+ */
+export const getPanelAccess = cache(async (): Promise<PanelAccess | null> => {
   if (!isSupabaseConfigured()) return null;
 
   const supabase = await createClient();
@@ -110,4 +116,4 @@ export async function getPanelAccess(): Promise<PanelAccess | null> {
     .maybeSingle();
 
   return resolveIdentity(user.email, profile?.id);
-}
+});

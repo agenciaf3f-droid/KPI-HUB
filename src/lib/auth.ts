@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -11,7 +13,9 @@ export type AppProfile = {
   designer_color: string;
 };
 
-export async function getCurrentProfile(): Promise<AppProfile | null> {
+// cache() do React: dentro do MESMO request, chamadas repetidas reusam o
+// resultado — o middleware ja validou a sessao; aqui nao repetimos rede.
+export const getCurrentProfile = cache(async (): Promise<AppProfile | null> => {
   if (!isSupabaseConfigured()) return null;
 
   const supabase = await createClient();
@@ -30,4 +34,4 @@ export async function getCurrentProfile(): Promise<AppProfile | null> {
     role: data.role === "admin" ? "admin" : "designer",
     designer_color: data.designer_color ?? "#8B5CF6",
   };
-}
+})

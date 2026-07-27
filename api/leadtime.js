@@ -15,7 +15,7 @@ import { validateSession, sendJson } from "./_lib.js";
 // Só estes params são repassados. Impede que um chamador autenticado invente
 // filtros ou aponte para outra coisa; a tabela é fixa no servidor.
 const ALLOWED = new Set(["select", "id", "order", "limit", "offset"]);
-const MAX_LIMIT = 1000;
+const MAX_LIMIT = 10000;
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return sendJson(res, 405, { error: "method not allowed" });
