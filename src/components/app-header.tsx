@@ -1,28 +1,32 @@
-import { BarChart3, Grid2X2, Layers } from "lucide-react";
+import { BarChart3, Grid2X2, Layers, MessagesSquare, Scissors } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import type { Panel } from "@/lib/panels";
 
-type NavigationItem = "fila" | "metricas";
+type NavigationItem = "fila" | "metricas" | Panel;
 
-export function AppHeader({ activeItem = "fila", fullName, queueHref = "/", metricsHref = "/metricas", accountHref = "/seguranca", showQueue = true }: { activeItem?: NavigationItem; fullName?: string; queueHref?: string; metricsHref?: string; accountHref?: string | null; showQueue?: boolean }) {
+export function AppHeader({ activeItem = "fila", fullName, queueHref = "/", metricsHref = "/metricas", accountHref = "/seguranca", showQueue = true, panels = [] }: { activeItem?: NavigationItem; fullName?: string; queueHref?: string; metricsHref?: string; accountHref?: string | null; showQueue?: boolean; panels?: Panel[] }) {
+  const links = (
+    <>
+      {showQueue ? <NavButton active={activeItem === "fila"} href={queueHref} label="Fila"><Grid2X2 /></NavButton> : null}
+      {panels.includes("editor") ? <NavButton active={activeItem === "editor"} href="/editor" label="Edição"><Scissors /></NavButton> : null}
+      {panels.includes("gestor") ? <NavButton active={activeItem === "gestor"} href="/gestor" label="Atendimento"><MessagesSquare /></NavButton> : null}
+      <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
+    </>
+  );
+
   return (
     <aside className="sticky top-0 z-20 flex h-16 w-full items-center justify-between bg-sidebar px-4 text-sidebar-foreground md:fixed md:inset-y-0 md:left-0 md:h-svh md:w-28 md:flex-col md:px-0 md:py-5">
       <div className="flex items-center gap-3 md:flex-col">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
           <Layers className="size-5" />
         </div>
-        <span className="text-sm font-semibold md:hidden">Produção Criativa</span>
+        <span className="text-sm font-semibold md:hidden">KPI F3F</span>
       </div>
 
-      <nav className="flex items-center gap-1 md:hidden" aria-label="Navegação principal">
-        {showQueue ? <NavButton active={activeItem === "fila"} href={queueHref} label="Fila"><Grid2X2 /></NavButton> : null}
-        <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
-      </nav>
+      <nav className="flex items-center gap-1 md:hidden" aria-label="Navegação principal">{links}</nav>
 
-      <nav className="hidden flex-col items-center gap-3 md:flex" aria-label="Navegação principal">
-        {showQueue ? <NavButton active={activeItem === "fila"} href={queueHref} label="Fila"><Grid2X2 /></NavButton> : null}
-        <NavButton active={activeItem === "metricas"} href={metricsHref} label="Indicadores"><BarChart3 /></NavButton>
-      </nav>
+      <nav className="hidden flex-col items-center gap-3 md:flex" aria-label="Navegação principal">{links}</nav>
 
       <div className="flex items-center gap-2 md:flex-col">
         <ThemeToggle />
