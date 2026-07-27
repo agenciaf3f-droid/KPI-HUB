@@ -1,8 +1,12 @@
+import { CalendarDays, MessageSquare, Reply, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/components/app-header";
-import { BarraComparativa, EstadoVazio, PainelHeader, PainelSecao, StatCard } from "@/components/painel-shell";
-import { SETOR_POR_GESTOR, loadGestorMetrics } from "@/lib/gestor";
+import { GestorCharts } from "@/components/gestor-charts";
+import { PainelHeader } from "@/components/painel-shell";
+import { StatsCards } from "@/components/stats-cards";
+import { CHART_COLORS } from "@/lib/chart-theme";
+import { loadGestorMetrics } from "@/lib/gestor";
 import { getPanelAccess } from "@/lib/panels";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -23,7 +27,6 @@ export default async function GestorPage() {
   const grupos = resumo.reduce((s, r) => s + r.grupos, 0);
   const respostas = resumo.reduce((s, r) => s + r.respostas, 0);
 
-  // Últimos 30 dias, somando todos os gestores da visão atual.
   const porDia = new Map<string, number>();
   for (const d of diario) porDia.set(d.dia, (porDia.get(d.dia) ?? 0) + d.mensagens);
   const ultimos30 = [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-30);
@@ -44,41 +47,18 @@ export default async function GestorPage() {
           }
         />
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard rotulo="Mensagens" valor={fmt(mensagens)} destaque />
-          <StatCard rotulo="Grupos atendidos" valor={fmt(grupos)} />
-          <StatCard rotulo="Respostas" valor={fmt(respostas)} detalhe="Mensagens que citam outra" />
-          <StatCard rotulo="Média por dia" valor={fmt(mediaDiaria)} detalhe="Últimos 30 dias com registro" />
+        <div className="mt-6">
+          <StatsCards
+            stats={[
+              { label: "Mensagens", value: fmt(mensagens), icon: MessageSquare, accent: CHART_COLORS[0] },
+              { label: "Grupos atendidos", value: fmt(grupos), icon: Users, accent: CHART_COLORS[1] },
+              { label: "Respostas", value: fmt(respostas), icon: Reply, accent: CHART_COLORS[2] },
+              { label: "Média por dia", value: fmt(mediaDiaria), icon: CalendarDays, accent: CHART_COLORS[3] },
+            ]}
+          />
         </div>
 
-        {acesso.isAdmin ? (
-          <PainelSecao titulo="Por gestor" descricao="Volume de mensagens no período completo.">
-            {resumo.length ? (
-              <BarraComparativa
-                itens={resumo.map((r) => ({
-                  rotulo: SETOR_POR_GESTOR[r.gestor] ? `${r.gestor} · ${SETOR_POR_GESTOR[r.gestor]}` : r.gestor,
-                  valor: r.mensagens,
-                  nota: `${fmt(r.grupos)} grupos`,
-                }))}
-              />
-            ) : (
-              <EstadoVazio>Nenhum atendimento registrado.</EstadoVazio>
-            )}
-          </PainelSecao>
-        ) : null}
-
-        <PainelSecao titulo="Últimos 30 dias" descricao="Mensagens por dia.">
-          {ultimos30.length ? (
-            <BarraComparativa
-              itens={ultimos30.map(([dia, valor]) => ({
-                rotulo: new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
-                valor,
-              }))}
-            />
-          ) : (
-            <EstadoVazio>Sem registro nos últimos 90 dias.</EstadoVazio>
-          )}
-        </PainelSecao>
+        <GestorCharts resumo={resumo} diario={diario} isAdmin={acesso.isAdmin} />
 
         <p className="mt-6 text-xs text-muted-foreground">
           Este painel mostra <strong className="font-medium text-foreground">volume de atendimento</strong>. O lead time

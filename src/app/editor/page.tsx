@@ -1,8 +1,12 @@
+import { Calendar, Clapperboard, Film, Timer } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/components/app-header";
-import { BarraComparativa, EstadoVazio, PainelHeader, PainelSecao, StatCard } from "@/components/painel-shell";
-import { loadEditorMetrics } from "@/lib/editor";
+import { EditorCharts } from "@/components/editor-charts";
+import { PainelHeader } from "@/components/painel-shell";
+import { StatsCards } from "@/components/stats-cards";
+import { loadEditorMetrics, loadEditorRows } from "@/lib/editor";
+import { CHART_COLORS } from "@/lib/chart-theme";
 import { getPanelAccess } from "@/lib/panels";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -23,13 +27,13 @@ export default async function EditorPage() {
   if (!acesso.panels.includes("editor")) redirect("/");
 
   // Admin vê todos os editores; editor vê só as próprias edições.
-  const metricas = await loadEditorMetrics(acesso.isAdmin ? undefined : acesso.editorName);
+  const escopo = acesso.isAdmin ? undefined : acesso.editorName;
+  const [metricas, rows] = await Promise.all([loadEditorMetrics(escopo), loadEditorRows(escopo)]);
 
   const totalVideos = metricas.reduce((s, m) => s + m.totalVideos, 0);
   const totalSegundos = metricas.reduce((s, m) => s + m.segundosTrabalhados, 0);
   const emAndamento = metricas.reduce((s, m) => s + m.emAndamento, 0);
-  const formatos = new Map<string, number>();
-  for (const m of metricas) for (const f of m.porFormato) formatos.set(f.formato, (formatos.get(f.formato) ?? 0) + f.videos);
+  const mediaPorEditor = metricas.length ? Math.round(totalVideos / metricas.length) : 0;
 
   return (
     <div className="min-h-svh bg-background md:pl-28">
@@ -44,44 +48,20 @@ export default async function EditorPage() {
           }
         />
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard rotulo="Vídeos entregues" valor={totalVideos.toLocaleString("pt-BR")} destaque />
-          <StatCard rotulo="Tempo cronometrado" valor={horas(totalSegundos)} detalhe="Soma dos cronômetros dos lotes" />
-          <StatCard
-            rotulo="Média por vídeo"
-            valor={totalVideos && totalSegundos ? horas(Math.round(totalSegundos / totalVideos)) : "—"}
-            detalhe="Só conta lote com cronômetro"
+        <div className="mt-6">
+          <StatsCards
+            stats={[
+              { label: "Vídeos entregues", value: totalVideos.toLocaleString("pt-BR"), icon: Film, accent: CHART_COLORS[0] },
+              acesso.isAdmin
+                ? { label: "Média por editor", value: mediaPorEditor.toLocaleString("pt-BR"), icon: Clapperboard, accent: CHART_COLORS[1] }
+                : { label: "Lotes", value: String(metricas[0]?.totalLotes ?? 0), icon: Clapperboard, accent: CHART_COLORS[1] },
+              { label: "Tempo cronometrado", value: horas(totalSegundos), icon: Timer, accent: CHART_COLORS[2] },
+              { label: "Em andamento", value: String(emAndamento), icon: Calendar, accent: CHART_COLORS[3] },
+            ]}
           />
-          <StatCard rotulo="Em andamento" valor={String(emAndamento)} detalhe="Lotes ainda não concluídos" />
         </div>
 
-        {acesso.isAdmin ? (
-          <PainelSecao titulo="Por editor" descricao="Vídeos entregues, somando a quantidade de cada lote.">
-            {metricas.length ? (
-              <BarraComparativa
-                itens={metricas.map((m) => ({
-                  rotulo: m.editorName,
-                  valor: m.totalVideos,
-                  nota: m.segundosTrabalhados ? horas(m.segundosTrabalhados) : undefined,
-                }))}
-              />
-            ) : (
-              <EstadoVazio>Nenhuma edição registrada ainda.</EstadoVazio>
-            )}
-          </PainelSecao>
-        ) : null}
-
-        <PainelSecao titulo="Por formato" descricao="Distribuição das entregas entre os tipos de vídeo.">
-          {formatos.size ? (
-            <BarraComparativa
-              itens={[...formatos.entries()]
-                .map(([formato, videos]) => ({ rotulo: formato, valor: videos }))
-                .sort((a, b) => b.valor - a.valor)}
-            />
-          ) : (
-            <EstadoVazio>Nenhum formato registrado ainda.</EstadoVazio>
-          )}
-        </PainelSecao>
+        <EditorCharts edits={rows} isAdmin={acesso.isAdmin} />
       </main>
     </div>
   );

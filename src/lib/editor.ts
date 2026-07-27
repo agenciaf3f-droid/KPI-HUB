@@ -34,6 +34,32 @@ type EditRow = {
   edit_date: string;
 };
 
+/**
+ * Linhas cruas para os gráficos. O `EditorCharts` agrega no cliente, igual ao
+ * Dash-Editores original. São ~960 linhas com 4 colunas — cabe tranquilo, e é o
+ * que permite alternar dia/semana/mês sem ida ao servidor.
+ */
+export async function loadEditorRows(editorName?: string) {
+  const admin = createAdminClient();
+  let query = admin
+    .schema("controle_edicao")
+    .from("video_edits")
+    .select("editor_name, quantity, video_format, edit_date")
+    .order("edit_date", { ascending: false });
+
+  if (editorName) query = query.eq("editor_name", editorName);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((r) => ({
+    editor_name: r.editor_name as string,
+    quantity: (r.quantity as number | null) ?? 1,
+    video_format: (r.video_format as string | null) ?? "sem formato",
+    edit_date: r.edit_date as string,
+  }));
+}
+
 /** Somatório por editor. `editorName` nulo = visão de admin (todos). */
 export async function loadEditorMetrics(editorName?: string): Promise<EditorMetrics[]> {
   const admin = createAdminClient();
