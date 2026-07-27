@@ -53,10 +53,19 @@ type PanelIdentity = {
  * "pessoa" separada por causa de um `\n` no fim.
  */
 const IDENTITY_BY_EMAIL: Record<string, PanelIdentity> = {
-  "agenciaf3f@gmail.com": { isAdmin: true, editorName: "Admin" },
-  "iriacridesdamiaopinhas@gmail.com": { editorName: "Damião" },
-  "lucasmaiasct2187@gmail.com": { editorName: "Lucas" },
-  "diegobrandotheworld472@gmail.com": { gestorName: "Denzel" },
+  // Um membro = uma entrada. Emails alternativos da mesma pessoa (arthurepda@,
+  // iloveyouuuudnz@, denzelmmnt.psd@, denzel.martins69@) ficam de fora de
+  // propósito — logam, mas sem painel, até decidirmos consolidar as contas.
+  "agenciaf3f@gmail.com": { isAdmin: true, editorName: "Admin" },          // Arthur — admin dos 3 painéis
+  "iriacridesdamiaopinhas@gmail.com": { editorName: "Damião" },            // editor (560 edições)
+  "lucasmaiasct2187@gmail.com": { editorName: "Lucas" },                   // editor (400 edições)
+  "diegobrandotheworld472@gmail.com": { gestorName: "Denzel" },            // designer do creator + gestor
+  // Gestores do ROSTER ainda SEM login no Supabase — quando criarem conta,
+  // preencher o email aqui (o gestorName tem que bater com a coluna "Gestor"):
+  // "?": { gestorName: "Raphael" },   "?": { gestorName: "Rafhael" },
+  // "?": { gestorName: "Diogo" },     "?": { gestorName: "Gabriel" },
+  // "?": { gestorName: "Guilherme" }, "?": { gestorName: "Yuri" },
+  // "?": { gestorName: "Paulo" },     (Paulo/Arthur: sem linhas na tabela ainda)
 };
 
 /**

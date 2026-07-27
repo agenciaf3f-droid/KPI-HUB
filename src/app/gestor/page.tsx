@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/components/app-header";
+import { GestorNativo } from "@/components/gestor-nativo";
 import { getPanelAccess } from "@/lib/panels";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -8,8 +9,8 @@ export const metadata = { title: "Dashboard F3F · KPI F3F" };
 
 /**
  * Painel do Gestor — o `dashboard.html` ORIGINAL do Dash-Gestores (5.697 linhas
- * de vanilla + Chart.js), servido de `public/` e montado dentro do shell do hub
- * via iframe same-origin. Ele fala com /api/leadtime e /api/config desta mesma
+ * de vanilla + Chart.js), servido de `public/` injetado direto na pagina da aba
+ * (sem iframe). Ele fala com /api/leadtime e /api/config desta mesma
  * origem, então funciona idêntico ao app antigo.
  *
  * A cópia em public/ foi retintada: Inter → Poppins e o azul #0866ff → violeta
@@ -28,12 +29,7 @@ export default async function GestorPage() {
   return (
     <div className="flex min-h-svh flex-col bg-background md:pl-28">
       <AppHeader activeItem="gestor" fullName={acesso.gestorName ?? acesso.email} panels={acesso.panels} />
-      <iframe
-        src="/dashboard.html"
-        title="Dashboard F3F — Atendimento"
-        className="min-h-0 w-full flex-1 border-0"
-        style={{ minHeight: "calc(100svh - 4rem)" }}
-      />
+      <GestorNativo />
     </div>
   );
 }

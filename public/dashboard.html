@@ -626,7 +626,7 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 const AUTH_SUPA_URL = 'https://ulikfkemdawinetjyhok.supabase.co';
 const AUTH_SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaWtma2VtZGF3aW5ldGp5aG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTU3MjcsImV4cCI6MjA4NzE3MTcyN30.IL_-kYLbJJj7AxLm25CygHmLBps74GX8pvsFZ1ieqIY';
 const authClient = window.supabase.createClient(AUTH_SUPA_URL, AUTH_SUPA_KEY, {
-  auth: { storage: localStorage, persistSession: true, autoRefreshToken: true }
+  auth: { persistSession: false, autoRefreshToken: false }
 });
 window.__authClient = authClient;
 
@@ -676,8 +676,8 @@ async function checkLogin(){
 }
 
 async function logout(){
-  try { await authClient.auth.signOut(); } catch(e){}
-  showLogin();
+  // Sessão pertence ao hub — sair aqui volta pro hub, sem revogar o token global.
+  window.location.href = '/login';
 }
 window.logout = logout;
 
