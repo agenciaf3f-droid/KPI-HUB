@@ -6,7 +6,7 @@
 <title>F3F Agency — Dashboard Operacional</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 /* ============================================================
@@ -15,8 +15,8 @@
 :root {
   --bg:          #f0f2f5;
   --surface:     #ffffff;
-  --primary:     #0866ff;
-  --primary-end: #2589ff;
+  --primary:     #8b5cf6;
+  --primary-end: #a78bfa;
   --primary-glow:rgba(8,102,255,0.18);
   --text:        #111827;
   --text-2:      #6b7280;
@@ -26,7 +26,7 @@
   --shadow-md:   0 4px 16px rgba(0,0,0,.09);
   --shadow-lg:   0 8px 32px rgba(0,0,0,.12);
   --transition:  0.18s cubic-bezier(.4,0,.2,1);
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
@@ -1028,7 +1028,7 @@ authClient.auth.onAuthStateChange((_event, session) => {
     <div class="nps-card"><div class="nps-card-title">📉 Churn Rate</div><div style="font-size:1.9rem;font-weight:700;color:var(--primary);margin-top:8px;" id="churn-kpi-rate">—</div><div class="nps-card-sub">no período</div></div>
     <div class="nps-card"><div class="nps-card-title">⏱️ Permanência Média</div><div style="font-size:1.9rem;font-weight:700;color:var(--text);margin-top:8px;" id="churn-kpi-tempo">—</div><div class="nps-card-sub">dias até cancelar</div></div>
     <div class="nps-card"><div class="nps-card-title">💰 LTV Médio</div><div style="font-size:1.9rem;font-weight:700;color:var(--text);margin-top:8px;" id="churn-kpi-ltv">—</div><div class="nps-card-sub">dos cancelados</div></div>
-    <div class="nps-card"><div class="nps-card-title">🔄 Taxa de Retorno</div><div style="font-size:1.9rem;font-weight:700;color:#0866ff;margin-top:8px;" id="churn-kpi-retorno">—</div><div class="nps-card-sub" id="churn-kpi-retorno-sub">voltaram após churn</div></div>
+    <div class="nps-card"><div class="nps-card-title">🔄 Taxa de Retorno</div><div style="font-size:1.9rem;font-weight:700;color:#8b5cf6;margin-top:8px;" id="churn-kpi-retorno">—</div><div class="nps-card-sub" id="churn-kpi-retorno-sub">voltaram após churn</div></div>
   </div>
 
   <div class="section-title">Cancelamentos por Mês</div>
@@ -2821,7 +2821,7 @@ const rotuloBarras = {
   afterDatasetsDraw(chart){
     const ctx = chart.ctx;
     ctx.save();
-    ctx.font = "600 10px 'Inter',sans-serif";
+    ctx.font = "600 10px 'Poppins',sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     chart.data.datasets.forEach((ds, i) => {
@@ -2978,7 +2978,7 @@ function renderCharts(){
         openDrillLT(gname, casos);
       },
       plugins:{
-        legend:{ position:'bottom', labels:{ color:'#9ca3af', font:{size:11,family:"'Inter',sans-serif"}, boxWidth:10, padding:16 } },
+        legend:{ position:'bottom', labels:{ color:'#9ca3af', font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
         tooltip:{ callbacks:{
           label: function(c){
             const idx = c.dataIndex;
@@ -2992,9 +2992,9 @@ function renderCharts(){
         }}
       },
       scales:{
-        y:{ position:'left', title:{display:true,text:'Comercial (min úteis)',color:'rgba(8,102,255,0.75)',font:{size:10,weight:'600',family:"'Inter',sans-serif"}}, grid:{color:'#f3f4f6'}, ticks:{color:'rgba(8,102,255,0.75)',font:{size:11,family:"'Inter',sans-serif"}}, border:{display:false} },
-        y1:{ position:'right', title:{display:true,text:'Fora do horário (min corridos)',color:'rgba(22,163,74,0.75)',font:{size:10,weight:'600',family:"'Inter',sans-serif"}}, grid:{drawOnChartArea:false}, ticks:{color:'rgba(22,163,74,0.75)',font:{size:11,family:"'Inter',sans-serif"}}, border:{display:false} },
-        x:{ grid:{display:false}, ticks:{color:'#9ca3af',font:{size:10,family:"'Inter',sans-serif"},maxRotation:25}, border:{display:false} }
+        y:{ position:'left', title:{display:true,text:'Comercial (min úteis)',color:'rgba(8,102,255,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{color:'#f3f4f6'}, ticks:{color:'rgba(8,102,255,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
+        y1:{ position:'right', title:{display:true,text:'Fora do horário (min corridos)',color:'rgba(22,163,74,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{drawOnChartArea:false}, ticks:{color:'rgba(22,163,74,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
+        x:{ grid:{display:false}, ticks:{color:'#9ca3af',font:{size:10,family:"'Poppins',sans-serif"},maxRotation:25}, border:{display:false} }
       }
     }
   });
@@ -3066,12 +3066,12 @@ function renderCharts(){
         else            openDrillWeekNeeded(lbl, missing, drill.sent);
       },
       plugins:{
-        legend:{ position:'bottom', labels:{ color:'#9ca3af', font:{size:11,family:"'Inter',sans-serif"}, boxWidth:10, padding:16 } },
+        legend:{ position:'bottom', labels:{ color:'#9ca3af', font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
         tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${c.raw} · clique para detalhes` } }
       },
       scales:{
-        y:{ stacked:true, grid:{color:'#f3f4f6'}, ticks:{color:'#9ca3af',font:{size:11,family:"'Inter',sans-serif"}}, border:{display:false} },
-        x:{ stacked:true, grid:{display:false},   ticks:{color:'#9ca3af',font:{size:10,family:"'Inter',sans-serif"}}, border:{display:false} }
+        y:{ stacked:true, grid:{color:'#f3f4f6'}, ticks:{color:'#9ca3af',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
+        x:{ stacked:true, grid:{display:false},   ticks:{color:'#9ca3af',font:{size:10,family:"'Poppins',sans-serif"}}, border:{display:false} }
       }
     }
   });
@@ -4354,7 +4354,7 @@ const churnBarValuePlugin = {
     const formatFn = (typeof opts.format === 'function') ? opts.format : null;
     ctx.save();
     ctx.fillStyle = opts.color || '#dc2626';
-    ctx.font = `${opts.weight||700} ${opts.size||12}px Inter, system-ui, sans-serif`;
+    ctx.font = `${opts.weight||700} ${opts.size||12}px Poppins, system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     meta.data.forEach((bar, i) => {
@@ -4803,12 +4803,12 @@ function churnRender(){
           type:'line',
           label:'% Churn',
           data: monthPctValues,
-          borderColor:'#0866ff',
+          borderColor:'#8b5cf6',
           backgroundColor:'rgba(8,102,255,.15)',
           borderWidth:2.5,
           tension:.35,
           pointBackgroundColor:'#fff',
-          pointBorderColor:'#0866ff',
+          pointBorderColor:'#8b5cf6',
           pointBorderWidth:2,
           pointRadius:4,
           pointHoverRadius:6,
@@ -4891,7 +4891,7 @@ function churnRender(){
   const ctxP = document.getElementById('chart-churn-plan').getContext('2d');
   _churnCharts.plan = new Chart(ctxP, {
     type:'doughnut',
-    data:{ labels: planEntries.map(e=>e[0]), datasets:[{ data: planEntries.map(e=>e[1].length), backgroundColor:['#0866ff','#dc2626','#f59e0b','#10b981','#8b5cf6','#06b6d4','#ec4899','#64748b'] }] },
+    data:{ labels: planEntries.map(e=>e[0]), datasets:[{ data: planEntries.map(e=>e[1].length), backgroundColor:['#8b5cf6','#dc2626','#f59e0b','#10b981','#8b5cf6','#06b6d4','#ec4899','#64748b'] }] },
     options:{
       responsive:true, maintainAspectRatio:false,
       onClick: (evt, els) => {
@@ -4974,7 +4974,7 @@ function renderChurnRiskChart(planFilter){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.save();
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '13px Inter, system-ui, sans-serif';
+    ctx.font = '13px Poppins, system-ui, sans-serif';
     ctx.textAlign = 'center';
     let msg;
     if(noActives && _activeClientsData && _activeClientsData.error){
@@ -5047,7 +5047,7 @@ function renderChurnRiskChart(planFilter){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.save();
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '13px Inter, system-ui, sans-serif';
+    ctx.font = '13px Poppins, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Nenhum cliente ativo encontrado para esta visualização.', canvas.width/2, canvas.height/2);
     ctx.restore();
@@ -5210,8 +5210,8 @@ function renderChurnByGestorChart(churnsPeriodo){
           type:'line',
           label:'% Churn (histórico)',
           data: dataPct,
-          borderColor:'#0866ff',
-          backgroundColor:'#0866ff',
+          borderColor:'#8b5cf6',
+          backgroundColor:'#8b5cf6',
           tension:0.35,
           pointRadius:4,
           pointHoverRadius:6,
