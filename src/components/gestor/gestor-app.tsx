@@ -12,7 +12,24 @@ import "./gestor.css";
  * O import do engine é dinâmico e roda DEPOIS do mount: o módulo referencia
  * `document` e o init() precisa do markup já no DOM.
  */
-export function GestorApp({ churnOnly = false }: { churnOnly?: boolean } = {}) {
+/** Recorte de quem está vendo o painel. Vem do RSC — nunca do cliente. */
+export type EscopoGestor = { nome: string; admin: boolean; gestor: boolean; editor: boolean };
+
+// Props primitivas de propósito: um objeto seria recriado a cada render e
+// reiniciaria o motor inteiro no efeito.
+export function GestorApp({
+  churnOnly = false,
+  nome = "",
+  admin = false,
+  gestor = false,
+  editor = false,
+}: {
+  churnOnly?: boolean;
+  nome?: string;
+  admin?: boolean;
+  gestor?: boolean;
+  editor?: boolean;
+} = {}) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,6 +41,9 @@ export function GestorApp({ churnOnly = false }: { churnOnly?: boolean } = {}) {
     void (async () => {
       const mod = await import("./engine");
       if (cancelled || !hostRef.current) return;
+      // Antes do init: o motor lê o escopo já na primeira renderização dos dados.
+      (window as unknown as { __F3F_ESCOPO?: EscopoGestor }).__F3F_ESCOPO = { nome, admin, gestor, editor };
+      if (!admin) hostRef.current.classList.add("escopo-usuario");
       mod.initGestor(hostRef.current);
       destroy = mod.destroyGestor;
       if (churnOnly) {
@@ -52,7 +72,7 @@ export function GestorApp({ churnOnly = false }: { churnOnly?: boolean } = {}) {
       observer?.disconnect();
       destroy?.();
     };
-  }, [churnOnly]);
+  }, [churnOnly, nome, admin, gestor, editor]);
 
   return <div ref={hostRef} className="gestor-app min-h-svh" />;
 }

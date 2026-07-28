@@ -29,7 +29,13 @@ export default async function ChurnPage() {
         isAdmin={acesso.isAdmin}
         avatarUrl={acesso.avatarUrl}
       />
-      <GestorApp churnOnly />
+      <GestorApp
+        churnOnly
+        nome={acesso.gestorName ?? acesso.fullName ?? ""}
+        admin={acesso.isAdmin}
+        gestor={acesso.panels.includes("gestor")}
+        editor={acesso.panels.includes("editor")}
+      />
     </div>
   );
 }

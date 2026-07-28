@@ -100,7 +100,9 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
         <option value="">Todos os planos</option>
       </select>
     </div>
-    <div style="display:flex;align-items:center;gap:6px;">
+    <!-- So o admin escolhe o gestor; para os demais o filtro e a propria
+         pessoa (ver nomeDeEscopo no engine) e este bloco fica escondido. -->
+    <div class="filtro-gestor" style="display:flex;align-items:center;gap:6px;">
       <span class="filter-label">Gestor:</span>
       <select id="filter-gestor" class="filter-select" onchange="applyFilter()">
         <option value="">Todos os gestores</option>

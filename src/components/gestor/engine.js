@@ -20,6 +20,29 @@ import { GESTOR_MARKUP } from "./markup";
 
 const hub = createClient();
 
+/* ================================================================
+   ESCOPO POR USUARIO
+   O dashboard original era um so painel para a agencia inteira: quem
+   abrisse via o lead time de todo mundo lado a lado. No hub, cada
+   pessoa ve so o proprio recorte; o admin continua vendo tudo.
+   O escopo vem do servidor (gestor-app.tsx) — nunca do cliente.
+   ================================================================ */
+function escopo(){
+  return (typeof window !== 'undefined' && window.__F3F_ESCOPO) || null;
+}
+
+/** Nome do gestor a filtrar. '' = sem filtro (admin ve todos). */
+function nomeDeEscopo(){
+  const e = escopo();
+  if(!e || e.admin) return '';
+  // Editor primeiro, de proposito: na planilha o lead time dele e creditado ao
+  // balde da edicao ("Vídeos"/"Edição" — nomeDoGestor converte para o nome do
+  // roster), nunca ao nome pessoal. Se o admin marcar Video + Gestor para um
+  // editor, filtrar pelo nome dele devolveria painel vazio.
+  if(e.editor) return nomeDoGestor('Edição');
+  return e.nome || '';
+}
+
 // Tema dos graficos. O dashboard original so tinha modo claro e passava a cor
 // literal para o Chart.js; aqui lemos a classe .dark que o hub poe no <html>
 // no momento em que cada grafico e montado (renderCharts roda de novo quando
@@ -724,8 +747,9 @@ function extractPlan(name){
 
 function applyFilter(){
   const planFilter   = document.getElementById('filter-plan')?.value   || '';
-  const gestorFilter = document.getElementById('filter-gestor')?.value || '';
   const statusFilter = document.getElementById('filter-status')?.value || '';
+  // Fora do admin o seletor de gestor nao vale: o filtro e a propria pessoa.
+  const gestorFilter = nomeDeEscopo() || document.getElementById('filter-gestor')?.value || '';
 
   const filtered = rawRows.filter(row => {
     const d = parseDate(row);
@@ -3139,6 +3163,12 @@ function sanitize(str){
 }
 
 function npsRender(data){
+  // Mesmo corte da aba de relatorios: cada gestor ve so as respostas dele.
+  const meuNome = nomeDeEscopo();
+  if(meuNome){
+    data = data.filter(d => (NPS_UTM_NAMES[d.utm] || '') === meuNome);
+  }
+
   // Overall NPS Gestor
   const gestorStats = npsCalc(data.map(d=>d.notaGestor));
   const agenciaStats = npsCalc(data.map(d=>d.notaAgencia));

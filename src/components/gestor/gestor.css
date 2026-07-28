@@ -689,3 +689,7 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
   border-color: rgba(239,68,68,.35) !important;
   color: #fca5a5 !important;
 }
+
+/* Escopo por usuário: quem não é admin vê só o próprio recorte, então o
+   seletor de gestor não faz sentido (o filtro é a própria pessoa). */
+.gestor-app.escopo-usuario .filtro-gestor { display: none; }
