@@ -42,6 +42,8 @@ export type PanelAccess = {
   /** `hub_members.nome` — nome de exibição. */
   fullName?: string;
   avatarUrl?: string;
+  /** Ainda está com a senha do convite: o hub exige trocar antes de liberar. */
+  senhaProvisoria?: boolean;
 };
 
 /** Linha de `public.hub_members` — a fonte de verdade de acesso desde a 0009. */
@@ -52,6 +54,7 @@ export type HubMemberRow = {
   areas: string[];
   is_admin: boolean;
   avatar_url: string | null;
+  senha_provisoria?: boolean;
 };
 
 type PanelIdentity = {
@@ -127,6 +130,7 @@ export function memberToAccess(member: HubMemberRow): PanelAccess {
     memberId: member.id,
     fullName: member.nome,
     avatarUrl: member.avatar_url ?? undefined,
+    senhaProvisoria: member.senha_provisoria === true,
   };
 }
 
@@ -167,7 +171,7 @@ export const getPanelAccess = cache(async (): Promise<PanelAccess | null> => {
   if (isSupabaseAdminConfigured()) {
     const { data: member } = await createAdminClient()
       .from("hub_members")
-      .select("id, email, nome, areas, is_admin, avatar_url")
+      .select("id, email, nome, areas, is_admin, avatar_url, senha_provisoria")
       .eq("email", user.email.trim().toLowerCase())
       .maybeSingle();
     if (member) return memberToAccess(member as HubMemberRow);

@@ -63,8 +63,11 @@ export default function DefinirSenhaPage() {
     try {
       const { error } = await createClient().auth.updateUser({ password: senha });
       if (error) throw error;
+      // Tira a marca de senha provisória — é o que destrava os painéis.
+      await fetch("/api/conta/senha-definida", { method: "POST" });
       toast.success("Senha criada. Bem-vindo(a)!");
       router.replace("/");
+      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível salvar a senha.");
     } finally {

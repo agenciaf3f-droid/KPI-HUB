@@ -15,6 +15,8 @@ export default async function SegurancaPage() {
 
   const acesso = await getPanelAccess();
   if (!acesso) redirect("/login");
+  // Convite ainda com a senha provisória: troca obrigatória antes de qualquer painel.
+  if (acesso.senhaProvisoria) redirect("/definir-senha");
 
   return (
     <div className="min-h-svh bg-background text-foreground md:pl-28">

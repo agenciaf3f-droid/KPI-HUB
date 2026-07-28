@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 
+import { emailConviteComSenha } from "@/lib/email";
 import { getPanelAccess } from "@/lib/panels";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const AREAS_VALIDAS = ["gestor", "editor", "creator"];
+
+/** Senha provisória legível: fácil de repassar, trocada no primeiro acesso. */
+function gerarSenha() {
+  const alfabeto = "abcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  return `f3f-${[...bytes].map((b) => alfabeto[b % alfabeto.length]).join("")}`;
+}
 
 /**
  * Gestão de membros do hub (aba Equipe, admin-only).
@@ -57,47 +65,26 @@ export async function POST(request: Request) {
     let user = lista.users.find((u) => (u.email ?? "").toLowerCase() === email) ?? null;
     let contaNova = false;
     let conviteEnviado = false;
-    let linkConvite: string | null = null;
+
+    // Senha provisória: a do admin, ou uma gerada quando ele deixa em branco.
+    // A pessoa é obrigada a trocar no primeiro acesso (senha_provisoria).
+    const senhaProvisoria = senha || gerarSenha();
 
     if (!user) {
-      if (senha) {
-        const { data: created, error: createError } = await admin.auth.admin.createUser({
-          email,
-          password: senha,
-          email_confirm: true,
-          user_metadata: { full_name: nome },
-        });
-        if (createError || !created.user) throw createError ?? new Error("Não foi possível criar a conta.");
-        user = created.user;
-      } else {
-        // Sem senha: convite por e-mail (SMTP Resend configurado no Auth).
-        // Se o envio falhar, cai para o link de convite — o admin manda por
-        // WhatsApp e o destino é o mesmo /definir-senha.
-        const redirectTo = `${new URL(request.url).origin}/definir-senha`;
-        const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-          data: { full_name: nome },
-          redirectTo,
-        });
-        if (!inviteError && invited.user) {
-          user = invited.user;
-          conviteEnviado = true;
-        } else {
-          const { data: gerado, error: linkError } = await admin.auth.admin.generateLink({
-            type: "invite",
-            email,
-            options: { data: { full_name: nome }, redirectTo },
-          });
-          if (linkError || !gerado.user) throw linkError ?? inviteError ?? new Error("Não foi possível gerar o convite.");
-          user = gerado.user;
-          linkConvite = gerado.properties?.action_link ?? null;
-        }
-      }
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
+        email,
+        password: senhaProvisoria,
+        email_confirm: true,
+        user_metadata: { full_name: nome },
+      });
+      if (createError || !created.user) throw createError ?? new Error("Não foi possível criar a conta.");
+      user = created.user;
       contaNova = true;
     }
 
     const { error: memberError } = await admin
       .from("hub_members")
-      .insert({ user_id: user.id, email, nome, areas, is_admin: isAdmin });
+      .insert({ user_id: user.id, email, nome, areas, is_admin: isAdmin, senha_provisoria: contaNova });
     if (memberError) {
       if (contaNova) await admin.auth.admin.deleteUser(user.id);
       throw memberError;
@@ -138,7 +125,13 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, contaNova, conviteEnviado, linkConvite });
+    // O e-mail é o aviso do convite — sai sempre, inclusive quando o admin
+    // digitou a senha (antes só saía com o campo vazio, e ninguém era avisado).
+    if (contaNova) {
+      conviteEnviado = await emailConviteComSenha(email, nome, senhaProvisoria);
+    }
+
+    return NextResponse.json({ ok: true, contaNova, conviteEnviado, senhaProvisoria: contaNova ? senhaProvisoria : null });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Não foi possível adicionar o membro." },

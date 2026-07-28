@@ -23,6 +23,9 @@ export default async function CreatorPage() {
   ]);
   // Timers derivados das deliveries já carregadas — antes era uma SEGUNDA carga
   // completa da organização só para filtrar quem tem cronômetro ativo.
+  // Convite ainda com a senha provisória: troca obrigatória antes de qualquer painel.
+  if (acesso?.senhaProvisoria) redirect("/definir-senha");
+
   const activeTimers = deliveriesToTimers(deliveries);
 
   const timersVisiveis =

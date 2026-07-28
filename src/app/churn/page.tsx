@@ -18,6 +18,8 @@ export default async function ChurnPage() {
 
   const acesso = await getPanelAccess();
   if (!acesso) redirect("/login");
+  // Convite ainda com a senha provisória: troca obrigatória antes de qualquer painel.
+  if (acesso.senhaProvisoria) redirect("/definir-senha");
   if (!acesso.isAdmin) redirect("/");
 
   return (

@@ -13,6 +13,8 @@ export default async function EditorPage() {
 
   const acesso = await getPanelAccess();
   if (!acesso) redirect("/login");
+  // Convite ainda com a senha provisória: troca obrigatória antes de qualquer painel.
+  if (acesso.senhaProvisoria) redirect("/definir-senha");
   if (!acesso.panels.includes("editor")) redirect("/");
 
   // Mesma query do useVideoEdits, só que no servidor: a tela abre pintada e o

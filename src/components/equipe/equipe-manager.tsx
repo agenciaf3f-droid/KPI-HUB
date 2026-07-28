@@ -156,7 +156,7 @@ function AdicionarMembroDialog() {
       return;
     }
     if (senha && senha.length < 6) {
-      toast.error("A senha inicial precisa de ao menos 6 caracteres (ou deixe em branco para convidar por e-mail).");
+      toast.error("A senha provisória precisa de ao menos 6 caracteres (ou deixe em branco para gerarmos uma).");
       return;
     }
     setSaving(true);
@@ -168,17 +168,15 @@ function AdicionarMembroDialog() {
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) throw new Error(body?.error ?? "Não foi possível adicionar o membro.");
-      if (body?.linkConvite) {
-        // Dialog fica aberto mostrando o link — o admin copia e manda por WhatsApp.
-        setLinkGerado(body.linkConvite);
-        toast.success(`${nome.trim()} adicionado. Envie o link de convite.`);
+      if (body?.contaNova && !body?.conviteEnviado) {
+        // E-mail falhou: mostra a senha na tela para o admin repassar à mão.
+        setLinkGerado(`E-mail: ${email.trim()}\nSenha provisória: ${body.senhaProvisoria}`);
+        toast.warning("Membro criado, mas o e-mail não saiu. Repasse os dados abaixo.");
       } else {
         toast.success(
           body?.conviteEnviado
             ? `Convite enviado por e-mail para ${email.trim()}.`
-            : body?.contaNova
-              ? `${nome.trim()} adicionado. Compartilhe a senha inicial com a pessoa.`
-              : `${nome.trim()} adicionado. A conta já existia — a senha antiga continua valendo.`,
+            : `${nome.trim()} adicionado. A conta já existia — a senha atual continua valendo.`,
         );
         setOpen(false);
       }
@@ -212,26 +210,26 @@ function AdicionarMembroDialog() {
       />
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{linkGerado ? "Convite pronto" : "Adicionar membro"}</DialogTitle>
+          <DialogTitle>{linkGerado ? "Repasse estes dados" : "Adicionar membro"}</DialogTitle>
           <DialogDescription>
             {linkGerado
-              ? "Mande este link para a pessoa (WhatsApp etc.). Ele abre a criação de senha e entra direto no hub."
-              : "A pessoa entra com este e-mail e senha em kpis.agenciaf3f.com.br e vê só as abas da área dela."}
+              ? "O e-mail não pôde ser enviado. Mande estes dados para a pessoa — ela troca a senha no primeiro acesso."
+              : "A pessoa recebe um e-mail com a senha provisória e é obrigada a trocá-la ao entrar."}
           </DialogDescription>
         </DialogHeader>
         {linkGerado ? (
           <div className="space-y-3">
-            <p className="break-all rounded-xl bg-muted p-3 text-xs text-muted-foreground">{linkGerado}</p>
+            <p className="whitespace-pre-line break-all rounded-xl bg-muted p-3 text-xs text-muted-foreground">{linkGerado}</p>
             <Button
               className="w-full"
               onClick={() => {
                 void navigator.clipboard
                   .writeText(linkGerado)
-                  .then(() => toast.success("Link copiado."))
+                  .then(() => toast.success("Dados copiados."))
                   .catch(() => toast.error("Não deu para copiar — selecione o texto acima."));
               }}
             >
-              Copiar link de convite
+              Copiar dados de acesso
             </Button>
           </div>
         ) : (
@@ -248,10 +246,10 @@ function AdicionarMembroDialog() {
             <Input id="membro-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@gmail.com" autoComplete="off" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="membro-senha">Senha inicial (opcional)</Label>
-            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → convite por e-mail" autoComplete="off" />
+            <Label htmlFor="membro-senha">Senha provisória (opcional)</Label>
+            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → geramos uma" autoComplete="off" />
             <p className="text-xs text-muted-foreground">
-              Em branco, a pessoa recebe um e-mail de convite e cria a própria senha. Preenchida, você repassa e ela troca em Minha conta.
+              Vai no e-mail de boas-vindas. A pessoa é obrigada a trocá-la ao entrar pela primeira vez.
             </p>
           </div>
           <fieldset className="space-y-2">
