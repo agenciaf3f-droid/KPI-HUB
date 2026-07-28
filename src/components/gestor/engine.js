@@ -2111,7 +2111,7 @@ function renderCharts(){
               <tr>
                 <td class="open-pessoa">${esc(r.nome)}</td>
                 <td>
-                  <div style="display:flex;height:7px;border-radius:99px;overflow:hidden;background:#f1f5f9;min-width:110px;">
+                  <div style="display:flex;height:7px;border-radius:99px;overflow:hidden;background:var(--m-line);min-width:110px;">
                     ${seg(r.texto,COR.texto)}${seg(r.audio,COR.audio)}${seg(r.midia,COR.midia)}
                   </div>
                 </td>
@@ -2522,7 +2522,7 @@ function openDrillWeekNeeded(wkLabel, groups, enviados){
       <td class="num" style="color:${r.faltam ? '#b91c1c' : 'var(--text-2)'};font-weight:600;">${r.faltam}</td>
       <td class="num">
         <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
-          <div style="flex:0 0 72px;height:6px;border-radius:99px;background:#f1f5f9;overflow:hidden;">
+          <div style="flex:0 0 72px;height:6px;border-radius:99px;background:var(--m-line);overflow:hidden;">
             <div style="width:${r.pct}%;height:100%;background:${corPct(r.pct)};border-radius:99px;"></div>
           </div>
           <strong style="color:${corPct(r.pct)};min-width:36px;">${r.pct}%</strong>
@@ -3892,7 +3892,7 @@ function churnRender(){
   } else {
     const fmt = d => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '—';
     tbody.innerHTML = sorted.map(d => `
-      <tr style="border-bottom:1px solid #f1f5f9;">
+      <tr style="border-bottom:1px solid var(--m-line);">
         <td style="padding:10px 16px;font-weight:500;">${d.nome}</td>
         <td style="padding:10px 16px;color:var(--text-2);">${d.gestor||'—'}</td>
         <td style="padding:10px 16px;color:var(--text-2);">${d.plano}</td>
@@ -3923,7 +3923,7 @@ function renderChurnRiskChart(planFilter){
     if(_churnCharts.risk){ _churnCharts.risk.destroy(); _churnCharts.risk = null; }
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.save();
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = CT().tick;
     ctx.font = '13px Poppins, system-ui, sans-serif';
     ctx.textAlign = 'center';
     let msg;
@@ -3996,7 +3996,7 @@ function renderChurnRiskChart(planFilter){
     if(_churnCharts.risk){ _churnCharts.risk.destroy(); _churnCharts.risk = null; }
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.save();
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = CT().tick;
     ctx.font = '13px Poppins, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Nenhum cliente ativo encontrado para esta visualização.', canvas.width/2, canvas.height/2);
@@ -4040,7 +4040,7 @@ function renderChurnRiskChart(planFilter){
           enabled:true,
           datasetIndex:0,
           values,
-          color:'#0f172a',
+          color:CT().tick,
           size:13,
           weight:700
         },
@@ -4232,6 +4232,9 @@ function openRiskDrilldown(bucket){
   if(!modal){
     modal = document.createElement('div');
     modal.id = 'churn-drill-modal';
+    // classe so para as variaveis de tema: o modal e filho do <body>, fora do
+    // escopo .gestor-app, entao as cores dele vem de .gestor-modal (gestor.css).
+    modal.className = 'gestor-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);';
     modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
     document.body.appendChild(modal);
@@ -4239,36 +4242,36 @@ function openRiskDrilldown(bucket){
   const fmt = d => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '—';
   const list = bucket.list;
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:16px;max-width:880px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+    <div style="background:var(--m-surface);border-radius:16px;max-width:880px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
       <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
         <div>
-          <div style="font-size:1.05rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:10px;">
+          <div style="font-size:1.05rem;font-weight:700;color:var(--m-text);display:flex;align-items:center;gap:10px;">
             <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${bucket.color};"></span>
             Área de Risco · ${bucket.label}
           </div>
-          <div style="font-size:.78rem;color:#64748b;margin-top:4px;">${list.length} cliente${list.length===1?'':'s'} ativo${list.length===1?'':'s'} nesta faixa</div>
+          <div style="font-size:.78rem;color:var(--m-text-2);margin-top:4px;">${list.length} cliente${list.length===1?'':'s'} ativo${list.length===1?'':'s'} nesta faixa</div>
         </div>
-        <button onclick="document.getElementById('churn-drill-modal').remove()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;font-size:1.1rem;cursor:pointer;color:#475569;">×</button>
+        <button onclick="document.getElementById('churn-drill-modal').remove()" style="background:var(--m-line);border:none;border-radius:8px;width:32px;height:32px;font-size:1.1rem;cursor:pointer;color:var(--m-text-strong);">×</button>
       </div>
       <div style="overflow:auto;flex:1;">
-        ${list.length===0 ? '<div style="padding:40px;text-align:center;color:#94a3b8;">Sem clientes nesta faixa</div>' : `
+        ${list.length===0 ? '<div style="padding:40px;text-align:center;color:var(--m-text-3);">Sem clientes nesta faixa</div>' : `
         <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
-          <thead style="position:sticky;top:0;background:#f9fafb;">
+          <thead style="position:sticky;top:0;background:var(--m-head);">
             <tr style="border-bottom:1px solid var(--border);">
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Cliente</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Gestor</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Plano</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Última msg do cliente</th>
-              <th style="text-align:right;padding:10px 16px;color:#64748b;font-weight:600;">Dias</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Cliente</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Gestor</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Plano</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Última msg do cliente</th>
+              <th style="text-align:right;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Dias</th>
             </tr>
           </thead>
           <tbody>
             ${list.map(c => `
-              <tr style="border-bottom:1px solid #f1f5f9;">
+              <tr style="border-bottom:1px solid var(--m-line);">
                 <td style="padding:10px 16px;font-weight:500;">${c.nome}</td>
-                <td style="padding:10px 16px;color:#64748b;">${c.gestor||'—'}</td>
-                <td style="padding:10px 16px;color:#64748b;">${c.plano||'—'}</td>
-                <td style="padding:10px 16px;color:#64748b;">${fmt(c.lastMsg)}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${c.gestor||'—'}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${c.plano||'—'}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${fmt(c.lastMsg)}</td>
                 <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:${c.days!=null && c.days>30?'#dc2626':'#0f172a'};">${c.days!=null?c.days:'—'}</td>
               </tr>
             `).join('')}
@@ -4284,6 +4287,9 @@ function churnOpenDrilldown(title, subtitle, list){
   if(!modal){
     modal = document.createElement('div');
     modal.id = 'churn-drill-modal';
+    // classe so para as variaveis de tema: o modal e filho do <body>, fora do
+    // escopo .gestor-app, entao as cores dele vem de .gestor-modal (gestor.css).
+    modal.className = 'gestor-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);';
     modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
     document.body.appendChild(modal);
@@ -4291,36 +4297,36 @@ function churnOpenDrilldown(title, subtitle, list){
   const fmt = d => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '—';
   const sorted = [...list].sort((a,b)=> (b.saida||0) - (a.saida||0));
   modal.innerHTML = `
-    <div style="background:#fff;border-radius:16px;max-width:920px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+    <div style="background:var(--m-surface);border-radius:16px;max-width:920px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
       <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
         <div>
-          <div style="font-size:1.05rem;font-weight:700;color:#0f172a;">${title}</div>
-          <div style="font-size:.78rem;color:#64748b;margin-top:4px;">${subtitle}</div>
+          <div style="font-size:1.05rem;font-weight:700;color:var(--m-text);">${title}</div>
+          <div style="font-size:.78rem;color:var(--m-text-2);margin-top:4px;">${subtitle}</div>
         </div>
-        <button onclick="document.getElementById('churn-drill-modal').remove()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;font-size:1.1rem;cursor:pointer;color:#475569;">×</button>
+        <button onclick="document.getElementById('churn-drill-modal').remove()" style="background:var(--m-line);border:none;border-radius:8px;width:32px;height:32px;font-size:1.1rem;cursor:pointer;color:var(--m-text-strong);">×</button>
       </div>
       <div style="overflow:auto;flex:1;">
-        ${sorted.length===0 ? '<div style="padding:40px;text-align:center;color:#94a3b8;">Sem registros</div>' : `
+        ${sorted.length===0 ? '<div style="padding:40px;text-align:center;color:var(--m-text-3);">Sem registros</div>' : `
         <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
-          <thead style="position:sticky;top:0;background:#f9fafb;">
+          <thead style="position:sticky;top:0;background:var(--m-head);">
             <tr style="border-bottom:1px solid var(--border);">
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Cliente</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Gestor</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Plano</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Entrada</th>
-              <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Saída</th>
-              <th style="text-align:right;padding:10px 16px;color:#64748b;font-weight:600;">Dias</th>
-              <th style="text-align:right;padding:10px 16px;color:#64748b;font-weight:600;">LTV</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Cliente</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Gestor</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Plano</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Entrada</th>
+              <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Saída</th>
+              <th style="text-align:right;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Dias</th>
+              <th style="text-align:right;padding:10px 16px;color:var(--m-text-2);font-weight:600;">LTV</th>
             </tr>
           </thead>
           <tbody>
             ${sorted.map(d => `
-              <tr style="border-bottom:1px solid #f1f5f9;">
+              <tr style="border-bottom:1px solid var(--m-line);">
                 <td style="padding:10px 16px;font-weight:500;">${d.nome}</td>
-                <td style="padding:10px 16px;color:#64748b;">${d.gestor||'—'}</td>
-                <td style="padding:10px 16px;color:#64748b;">${d.plano||'—'}</td>
-                <td style="padding:10px 16px;color:#64748b;">${fmt(d.entrada)}</td>
-                <td style="padding:10px 16px;color:#64748b;">${fmt(d.saida)}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${d.gestor||'—'}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${d.plano||'—'}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${fmt(d.entrada)}</td>
+                <td style="padding:10px 16px;color:var(--m-text-2);">${fmt(d.saida)}</td>
                 <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;">${d.dias!=null?d.dias:'—'}</td>
                 <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;">R$ ${(d.ltv||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
               </tr>

@@ -671,3 +671,25 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .dark .gestor-app .dp-day.other,
 .dark .gestor-app .dp-day.disabled { color:#5b4d5f; }
 .dark .gestor-app .dp-day.in-range { background:rgba(167,139,250,.16); }
+
+/* Paleta usada pelo HTML gerado no engine (tabelas de churn/NPS e os dois
+   modais de drill). Os modais são filhos do <body>, fora de .gestor-app —
+   por isso a classe `gestor-modal` carrega as mesmas variáveis. */
+.gestor-app, .gestor-modal {
+  --m-surface:     #ffffff;
+  --m-head:        #f9fafb;
+  --m-line:        #f1f5f9;
+  --m-text:        #0f172a;
+  --m-text-strong: #475569;
+  --m-text-2:      #64748b;
+  --m-text-3:      #94a3b8;
+}
+.dark .gestor-app, .dark .gestor-modal {
+  --m-surface:     #211923;
+  --m-head:        #2a202e;
+  --m-line:        #382d3b;
+  --m-text:        #f5f7fb;
+  --m-text-strong: #d6cdd8;
+  --m-text-2:      #b4a9b7;
+  --m-text-3:      #8d8090;
+}
