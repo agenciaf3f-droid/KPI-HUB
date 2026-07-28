@@ -116,7 +116,7 @@ export default function LoginPage() {
         <div className="relative my-auto max-w-md">
           <p className="text-xs font-semibold tracking-[0.16em] text-accent uppercase">Agência F3F</p>
           <h1 className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.05em]">
-            Toda a operação, em um só fluxo.
+            Toda a operação em um só fluxo.
           </h1>
           <p className="mt-6 max-w-sm text-base leading-relaxed text-sidebar-foreground/65">
             Organize a produção, acompanhe o esforço da equipe e mantenha cada entrega no ritmo certo.
