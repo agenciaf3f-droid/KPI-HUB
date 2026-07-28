@@ -79,14 +79,14 @@ export function EditForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
-          <div className="space-y-2 sm:min-w-[180px] sm:flex-1">
+          <div className="space-y-2 sm:min-w-[220px] sm:flex-[2]">
             <Label>Cliente</Label>
             <ClientCombobox value={clientName} onChange={setClientName} />
           </div>
           <div className="space-y-2 sm:min-w-[150px] sm:flex-1">
             <Label>Tipo de Vídeo</Label>
             <Select value={videoFormat} onValueChange={(v) => setVideoFormat(v as VideoFormat)}>
-              <SelectTrigger className="min-w-0">
+              <SelectTrigger className="w-full min-w-0">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
@@ -98,10 +98,10 @@ export function EditForm() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2 sm:min-w-[110px]">
+          <div className="space-y-2 sm:min-w-[110px] sm:flex-1">
             <Label>Quantidade</Label>
             <Select value={String(quantity)} onValueChange={(v) => setQuantity(Number(v))}>
-              <SelectTrigger className="min-w-0" aria-label="Quantidade">
+              <SelectTrigger className="w-full min-w-0" aria-label="Quantidade">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -116,7 +116,8 @@ export function EditForm() {
 
           {/* Um par "Nome + Link Bruto" por vídeo do lote (nome obrigatório, link opcional). */}
           <div className="w-full">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* auto-fit: 1 vídeo ocupa a linha inteira; mais vídeos dividem em colunas */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
               {rawLinks.slice(0, quantity).map((link, i) => (
                 <div
                   key={i}

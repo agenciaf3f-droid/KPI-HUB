@@ -1,5 +1,6 @@
 import { Grid2X2, MessagesSquare, Scissors, TrendingDown, Users } from "lucide-react";
 import Link from "next/link";
+import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Panel } from "@/lib/panels";
 
@@ -33,6 +34,7 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/conta
 
       <div className="flex items-center gap-2 md:flex-col">
         <ThemeToggle />
+        <LogoutButton />
         {accountHref ? (
           <Link href={accountHref} className="grid size-9 place-items-center overflow-hidden rounded-full bg-card text-xs font-semibold text-foreground transition-colors hover:bg-accent md:size-10" aria-label="Abrir minha conta">
             {avatarUrl ? (

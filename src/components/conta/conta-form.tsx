@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import { Camera, Loader2, LogOut, ShieldCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -264,6 +264,20 @@ function ContaCard({ cargo }: { cargo: string }) {
           <dd className="font-medium">Agência F3F</dd>
         </div>
       </dl>
+      <div className="mt-5 border-t border-border pt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full text-destructive"
+          onClick={() => {
+            void createClient()
+              .auth.signOut()
+              .finally(() => window.location.assign("/login"));
+          }}
+        >
+          <LogOut className="size-4" /> Sair da conta
+        </Button>
+      </div>
     </Card>
   );
 }
