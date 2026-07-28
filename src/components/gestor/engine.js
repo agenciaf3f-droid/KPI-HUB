@@ -2825,6 +2825,10 @@ function openDatePicker(){
   dpSelecting=false;
   dpView={year:dpStart.getFullYear(),month:dpStart.getMonth()};
   renderDP();
+  // Rotulo do rodape sai de dpTmp, a mesma fonte que pinta os dias — o
+  // #dp-range-label tambem e escrito por updateDateLabel (intervalo ja
+  // aplicado), e os dois podiam divergir com o calendario aberto.
+  updateDpLabel();
   document.getElementById('dp-overlay').classList.add('open');
 }
 
@@ -4431,7 +4435,11 @@ function startAutoRefresh(){
 // Handlers inline do markup resolvem em window.
 const WINDOW_FNS = { switchTab, applyFilter, sortBy, toggleDatePicker, reloadData,
   applyDatePicker, closeDatePicker, setShortcut, closeDrill, drillOverlayClick,
-  handleOverlayClick, churnLoad, churnRender, npsLoadMonth };
+  handleOverlayClick, churnLoad, churnRender, npsLoadMonth,
+  // Estas o proprio engine escreve em runtime, dentro de template strings. No
+  // dashboard original tudo era escopo global e o onclick inline resolvia; como
+  // modulo ES, sem passar por window elas ficam invisiveis para o HTML.
+  dpClick, openDrillLT, openDrillLTGroupByIdx, openDrillLog, logToggleAuto };
 
 export function initGestor(rootEl){
   rootEl.innerHTML = GESTOR_MARKUP;
