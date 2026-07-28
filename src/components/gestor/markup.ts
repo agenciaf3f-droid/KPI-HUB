@@ -123,7 +123,9 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
       <div class="kpi-value" id="kpi-active"><span class="sk" style="width:48px;height:30px;"></span></div>
       <div class="kpi-label">Grupos ativos</div>
     </div>
-    <div class="kpi-card">
+    <!-- "Gestores" e a quebra por setor sao panorama da agencia: no escopo de
+         uma pessoa so mostrariam numeros dos outros. Somem via CSS. -->
+    <div class="kpi-card so-admin">
       <div class="kpi-icon" style="background:#faf5ff;">👤</div>
       <div class="kpi-value" id="kpi-gestores"><span class="sk" style="width:40px;height:30px;"></span></div>
       <div class="kpi-label">Gestores</div>
@@ -131,7 +133,7 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
     <div class="kpi-card">
       <div class="kpi-icon" style="background:#fff7ed;">⚡</div>
       <div class="kpi-value" id="kpi-leadtime"><span class="sk" style="width:56px;height:30px;"></span></div>
-      <div class="kpi-label">Lead Time médio da equipe</div>
+      <div class="kpi-label"><span class="rotulo-equipe">Lead Time médio da equipe</span><span class="rotulo-eu">Seu Lead Time médio</span></div>
     </div>
   </div>
 

@@ -111,6 +111,11 @@ let EXCLUDED_GESTOR = '';
 function isExcludedGestor(name){
   if(!name) return false;
   const n = String(name).toLowerCase();
+  // Excecao de escopo: quem esta na lista de exclusao continua fora das contas
+  // da agencia (a media do time nao muda), mas ve a PROPRIA carteira quando
+  // abre o painel. Sem isto o painel dele viria vazio.
+  const eu = nomeDeEscopo();
+  if(eu && n === String(eu).toLowerCase()) return false;
   return EXCLUDED_GESTORS.some(g => n.includes(g));
 }
 
@@ -2098,7 +2103,10 @@ function renderCharts(){
     const pTexto = pct(t.texto), pAudio = pct(t.audio);
     return { nome, total, texto:t.texto, audio:t.audio, midia:t.imagem,
              pTexto, pAudio, pMidia: total ? Math.max(0, 100 - pTexto - pAudio) : 0 };
-  }).filter(r => r.total > 0).sort((a,b) => b.total - a.total);
+  }).filter(r => r.total > 0)
+    // Escopo: fora do admin, a pessoa ve so a propria linha.
+    .filter(r => { const eu = nomeDeEscopo(); return !eu || r.nome === eu; })
+    .sort((a,b) => b.total - a.total);
 
   const alvoResp = document.getElementById('respostas-table');
   if(alvoResp){
@@ -2182,7 +2190,10 @@ function renderCharts(){
   const linhas = Object.values(porGrupo).map(g => {
     const maior = Math.max(...g.esperas.map(t => t.leadMins));
     return { ...g, qtd:g.esperas.length, maior, conta: donoDoGrupo(g.grpId) };
-  }).sort((a,b) => b.maior - a.maior);
+  })
+    // Escopo: fora do admin, so os grupos da propria carteira.
+    .filter(l => { const eu = nomeDeEscopo(); return !eu || l.conta === eu; })
+    .sort((a,b) => b.maior - a.maior);
 
   const alvo = document.getElementById('open-tickets-table');
   if(alvo){

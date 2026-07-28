@@ -693,3 +693,16 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 /* Escopo por usuário: quem não é admin vê só o próprio recorte, então o
    seletor de gestor não faz sentido (o filtro é a própria pessoa). */
 .gestor-app.escopo-usuario .filtro-gestor { display: none; }
+
+/* No escopo de uma pessoa: some o que é panorama da agência (seletor de
+   gestor, contagem de gestores, quebra por setor — todos números dos
+   outros) e o rótulo do lead time passa a falar dela.
+   `!important` no seletor porque o markup traz display inline. */
+.gestor-app.escopo-usuario .filtro-gestor,
+.gestor-app.escopo-usuario .so-admin,
+.gestor-app.escopo-usuario #kpi-grid-lt { display: none !important; }
+.gestor-app.escopo-usuario #kpi-grid { grid-template-columns: repeat(3, 1fr); }
+
+.rotulo-eu { display: none; }
+.gestor-app.escopo-usuario .rotulo-equipe { display: none; }
+.gestor-app.escopo-usuario .rotulo-eu { display: inline; }
