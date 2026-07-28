@@ -178,7 +178,6 @@ function AdicionarMembroDialog() {
       }
       setNome("");
       setEmail("");
-      setSenha("");
       setAreas([]);
       setIsAdmin(false);
       router.refresh();
