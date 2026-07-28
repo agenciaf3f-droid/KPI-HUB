@@ -56,7 +56,7 @@ export async function loadOrganizationGamification(organizationId: string, onlyU
   if (eventsError) throw eventsError;
   const scores = new Map(ids.map((id) => [id, 0]));
   for (const event of events ?? []) scores.set(event.user_id, (scores.get(event.user_id) ?? 0) + event.points);
-  const leaderboard = profileRows.map((profile) => ({ id: profile.id, name: profile.full_name, color: profile.designer_color ?? "#8B5CF6", xp: scores.get(profile.id) ?? 0 })).sort((a, b) => b.xp - a.xp);
+  const leaderboard = profileRows.map((profile) => ({ id: profile.id, name: profile.full_name, color: profile.designer_color ?? "#6E37C4", xp: scores.get(profile.id) ?? 0 })).sort((a, b) => b.xp - a.xp);
   const selectedId = onlyUserId ?? leaderboard[0]?.id;
   const totalXp = selectedId ? scores.get(selectedId) ?? 0 : 0;
   const { data: achievements } = selectedId ? await admin

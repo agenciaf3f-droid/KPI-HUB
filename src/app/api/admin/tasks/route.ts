@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { hasAdminLinkAccess } from "@/lib/admin-access";
+import { getCurrentProfile } from "@/lib/auth";
 import { getMonitoringOrganizationId } from "@/lib/deliveries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+/**
+ * No Creator de origem só o link administrativo chegava aqui. No hub o admin
+ * está logado, então a sessão também vale — é assim que o botão "Nova tarefa"
+ * da aba Creator funciona sem token na URL.
+ */
+async function ehAdmin(request: Request) {
+  if (hasAdminLinkAccess(request.headers.get("x-admin-access-token"))) return true;
+  return (await getCurrentProfile())?.role === "admin";
+}
+
 export async function GET(request: Request) {
   try {
-    if (!hasAdminLinkAccess(request.headers.get("x-admin-access-token"))) return NextResponse.json({ error: "Acesso administrativo inválido." }, { status: 403 });
+    if (!(await ehAdmin(request))) return NextResponse.json({ error: "Acesso administrativo inválido." }, { status: 403 });
     const organizationId = await getMonitoringOrganizationId();
     if (!organizationId) return NextResponse.json({ designers: [] });
     const admin = createAdminClient();
@@ -19,11 +30,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    if (!hasAdminLinkAccess(request.headers.get("x-admin-access-token"))) return NextResponse.json({ error: "Acesso administrativo inválido." }, { status: 403 });
-    const { clientName, deliveryType, title, quantity, assigneeId } = await request.json();
+    if (!(await ehAdmin(request))) return NextResponse.json({ error: "Acesso administrativo inválido." }, { status: 403 });
+    const { clientName, deliveryType, title, quantity, dueDate, assigneeId } = await request.json();
     const client = String(clientName ?? "").trim();
     const type = String(deliveryType ?? "").trim();
     const taskTitle = String(title ?? "").trim();
+    const dueDateValue = String(dueDate ?? "").trim();
+    if (dueDateValue && !/^\d{4}-\d{2}-\d{2}$/.test(dueDateValue)) return NextResponse.json({ error: "Informe uma data de prazo válida." }, { status: 400 });
+    const dueAt = dueDateValue ? new Date(`${dueDateValue}T23:59:59-03:00`) : null;
+    if (dueAt && Number.isNaN(dueAt.getTime())) return NextResponse.json({ error: "Informe uma data de prazo válida." }, { status: 400 });
     if (!client || !type || !taskTitle || !assigneeId) return NextResponse.json({ error: "Preencha cliente, tipo, título e Designer." }, { status: 400 });
     const organizationId = await getMonitoringOrganizationId();
     if (!organizationId) return NextResponse.json({ error: "Organização não encontrada." }, { status: 404 });
@@ -43,6 +58,7 @@ export async function POST(request: Request) {
       assignee_id: designer.id,
       created_by: creator?.id ?? designer.id,
       status: "criada",
+      due_at: dueAt?.toISOString() ?? null,
     });
     if (error) throw error;
     return NextResponse.json({ ok: true });

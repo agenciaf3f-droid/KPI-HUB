@@ -3,6 +3,7 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AdminCreateTaskButton } from "@/components/admin-create-task-button";
 import { CapacityWidget } from "@/components/capacity-widget";
 import { DeliveryCard } from "@/components/delivery-card";
 import { NewDeliveryBar } from "@/components/new-delivery-bar";
@@ -30,8 +31,21 @@ function ProductionWorkspaceContent({ initialCapacity, initialDeliveries, role, 
   useEffect(() => {
     if (!realtimeTopic || !isSupabaseConfigured()) return;
     const supabase = createClient();
-    const channel = supabase.channel(realtimeTopic, { config: { private: false } }).on("broadcast", { event: "refresh" }, () => router.refresh()).subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    // Rajada de eventos vira um refresh só: sem isto, várias mutações em
+    // sequência recarregavam a fila uma vez por evento.
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        router.refresh();
+      }, 180);
+    };
+    const channel = supabase.channel(realtimeTopic, { config: { private: false } }).on("broadcast", { event: "refresh" }, scheduleRefresh).subscribe();
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
   }, [realtimeTopic, router]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
@@ -92,6 +106,11 @@ function ProductionWorkspaceContent({ initialCapacity, initialDeliveries, role, 
           A busca desceu para a barra de filtros da fila; convidar designer vive
           na aba Equipe. */}
       <section className="rounded-[2rem] bg-card p-4 sm:p-6">
+        {role === "admin" ? (
+          <div className="mb-4 flex justify-end">
+            <AdminCreateTaskButton />
+          </div>
+        ) : null}
         <NewDeliveryBar onCreate={createDelivery} ownerName={fullName} />
       </section>
 

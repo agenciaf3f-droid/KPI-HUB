@@ -11,20 +11,24 @@ import { ActiveTimersPanel } from "@/components/active-timers-panel";
 import { GamificationPanel } from "@/components/gamification-panel";
 import type { ActiveDeliveryTimer } from "@/lib/types";
 
-const DAILY_EDITIONS = Array.from({ length: 30 }, () => 0);
+export type MetricsData = {
+  total: number;
+  thisMonth: number;
+  daily: number[];
+  formats: Array<{ label: string; value: number; color: string }>;
+};
 
-const FORMATS = [
-  { label: "Posts estáticos", value: 0, color: "#8b5cf6" },
-  { label: "Carrosséis", value: 0, color: "#c4b5fd" },
-  { label: "Reels", value: 0, color: "#7b56db" },
-  { label: "Vídeos", value: 0, color: "#f6c952" },
-  { label: "Outros", value: 0, color: "#e980a7" },
-];
+export function emptyMetrics(): MetricsData {
+  return { total: 0, thisMonth: 0, daily: Array.from({ length: 30 }, () => 0), formats: [] };
+}
 
 // KPI do Creator — embutido na aba Creator, abaixo da fila de producao
 // (mesma logica do painel do Editor: primeira dobra opera, o resto mede).
-export function MetricsSection({ role, activeTimers = [], gamification, realtimeTopic }: { role: "admin" | "designer"; activeTimers?: ActiveDeliveryTimer[]; gamification?: GamificationData; realtimeTopic?: string }) {
+// Os números vêm de `loadMetrics` (src/lib/metrics.ts); antes eram fixos em 0
+// e a lista de formatos era um chute com "Outros" genérico.
+export function MetricsSection({ role, metrics, activeTimers = [], gamification, realtimeTopic }: { role: "admin" | "designer"; metrics?: MetricsData; activeTimers?: ActiveDeliveryTimer[]; gamification?: GamificationData; realtimeTopic?: string }) {
   const isAdmin = role === "admin";
+  const data = metrics ?? emptyMetrics();
 
   return (
     <section className="mx-auto w-full max-w-[1480px] p-4 sm:p-6 lg:p-8">
@@ -33,25 +37,25 @@ export function MetricsSection({ role, activeTimers = [], gamification, realtime
             icon={<Film />}
             iconClassName="bg-primary/15 text-primary shadow-[0_0_24px_color-mix(in_oklab,var(--primary)_28%,transparent)]"
             label={isAdmin ? "Total de entregas" : "Minhas entregas"}
-            value="0"
+            value={String(data.total)}
           />
           <MetricCard
             icon={<UsersRound />}
-            iconClassName="bg-[#7b56db]/15 text-[#8e6bea] shadow-[0_0_24px_rgba(123,86,219,0.24)]"
+            iconClassName="bg-[#6E37C4]/15 text-[#6E37C4] shadow-[0_0_24px_rgba(110,55,196,0.24)]"
             label={isAdmin ? "Média por designer" : "Meu tempo ativo"}
-            value={isAdmin ? "0" : "0h"}
+            value={isAdmin ? String(data.total) : "0h"}
           />
           <MetricCard
             icon={<TrendingUp />}
             iconClassName="bg-[#f6c952]/15 text-[#d49808] shadow-[0_0_24px_rgba(246,201,82,0.22)]"
             label={isAdmin ? "Designers ativos" : "Meus clientes"}
-            value="0"
+            value={String(data.formats.filter((format) => format.value > 0).length)}
           />
           <MetricCard
             icon={<CalendarDays />}
             iconClassName="bg-[#e980a7]/15 text-[#e15388] shadow-[0_0_24px_rgba(233,128,167,0.22)]"
             label="Este mês"
-            value="0"
+            value={String(data.thisMonth)}
           />
         </section>
 
@@ -69,11 +73,10 @@ export function MetricsSection({ role, activeTimers = [], gamification, realtime
               </div>
             </header>
 
-            <EditionsChart />
+            <EditionsChart values={data.daily} />
 
             <footer className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-primary" />0 entregas concluídas</span>
-              <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-accent" />Os dados aparecem ao iniciar a operação</span>
+              <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-primary" />{data.total} entregas concluídas</span>
             </footer>
           </article>
 
@@ -92,14 +95,14 @@ export function MetricsSection({ role, activeTimers = [], gamification, realtime
               <div
                 className="grid size-52 place-items-center rounded-full p-6"
                 role="img"
-                aria-label="0 entregas distribuídas por formato"
+                aria-label={`${data.formats.reduce((sum, format) => sum + format.value, 0)} entregas distribuídas por formato`}
                 style={{
                   background: "conic-gradient(var(--muted) 0 100%)",
                 }}
               >
                 <div className="grid size-full place-items-center rounded-full bg-card text-center">
                   <div>
-                    <p className="text-4xl font-semibold tracking-[-0.05em]">0</p>
+                    <p className="text-4xl font-semibold tracking-[-0.05em]">{data.formats.reduce((sum, format) => sum + format.value, 0)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">entregas</p>
                   </div>
                 </div>
@@ -107,13 +110,13 @@ export function MetricsSection({ role, activeTimers = [], gamification, realtime
             </div>
 
             <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-5 text-xs">
-              {FORMATS.map((format) => (
+              {data.formats.length ? data.formats.map((format) => (
                 <div key={format.label} className="flex min-w-0 items-center gap-2">
                   <i className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: format.color }} />
                   <span className="truncate text-muted-foreground">{format.label}</span>
                   <strong className="ml-auto font-semibold text-foreground">{format.value}</strong>
                 </div>
-              ))}
+              )) : <p className="col-span-2 text-muted-foreground">Nenhuma entrega concluída no período.</p>}
             </div>
           </article>
         </section>
@@ -160,8 +163,8 @@ function MetricCard({ icon, iconClassName, label, value }: { icon: React.ReactNo
   );
 }
 
-function EditionsChart() {
-  const maxValue = Math.max(...DAILY_EDITIONS, 1);
+function EditionsChart({ values }: { values: number[] }) {
+  const maxValue = Math.max(...values, 1);
 
   return (
     <div className="mt-7 grid grid-cols-[2rem_minmax(0,1fr)] gap-2" role="img" aria-label="Gráfico de entregas por dia nos últimos 30 dias">
@@ -170,7 +173,7 @@ function EditionsChart() {
       </div>
       <div>
         <div className="relative flex h-56 items-end gap-px overflow-hidden border-b border-l border-border px-2 pb-px pt-2 [background-image:linear-gradient(to_bottom,transparent_24%,var(--border)_25%,transparent_26%,transparent_49%,var(--border)_50%,transparent_51%,transparent_74%,var(--border)_75%,transparent_76%)]">
-          {DAILY_EDITIONS.map((value, index) => (
+          {values.map((value, index) => (
             <div key={index} className="group flex h-full flex-1 items-end">
               <span
                 className="w-full rounded-t-full bg-primary/55 transition-colors group-hover:bg-primary"

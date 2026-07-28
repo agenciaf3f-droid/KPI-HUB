@@ -12,11 +12,22 @@ export function ActiveTimersPanel({ activeTimers, realtimeTopic }: { activeTimer
   useEffect(() => {
     if (!realtimeTopic || !isSupabaseConfigured()) return;
     const supabase = createClient();
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        router.refresh();
+      }, 180);
+    };
     const channel = supabase
       .channel(realtimeTopic, { config: { private: false } })
-      .on("broadcast", { event: "refresh" }, () => router.refresh())
+      .on("broadcast", { event: "refresh" }, scheduleRefresh)
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
   }, [realtimeTopic, router]);
 
   return (

@@ -4,6 +4,7 @@ import { Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ClientPicker } from "@/components/client-picker";
 import type { CreateDeliveryInput } from "@/lib/types";
 import { useState } from "react";
 import {
@@ -35,16 +36,16 @@ const DELIVERY_TYPES = [
 
 export function NewDeliveryBar({ onCreate, ownerName }: { onCreate: (delivery: CreateDeliveryInput) => Promise<void>; ownerName: string }) {
   const [deliveryType, setDeliveryType] = useState("");
+  const [clientName, setClientName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const clientName = String(formData.get("client") ?? "").trim();
     const quantity = Number(formData.get("quantity") ?? 1);
 
-    if (!deliveryType) {
-      toast.error("Selecione o tipo de entrega.");
+    if (!clientName || !deliveryType) {
+      toast.error("Selecione o cliente e o tipo de entrega.");
       return;
     }
 
@@ -56,6 +57,7 @@ export function NewDeliveryBar({ onCreate, ownerName }: { onCreate: (delivery: C
       quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
       });
       event.currentTarget.reset();
+      setClientName("");
       setDeliveryType("");
       toast.success("Entrega iniciada e timer ativado.");
     } finally {
@@ -79,7 +81,7 @@ export function NewDeliveryBar({ onCreate, ownerName }: { onCreate: (delivery: C
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="delivery-client" className="text-xs font-medium text-muted-foreground">Cliente</label>
-          <Input id="delivery-client" name="client" autoComplete="organization" placeholder="Nome do cliente" required />
+          <ClientPicker id="delivery-client" value={clientName} onValueChange={setClientName} />
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">Tipo de entrega</span>

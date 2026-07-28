@@ -4,6 +4,7 @@ import { ProductionWorkspace } from "@/components/production-workspace";
 import { getCurrentProfile } from "@/lib/auth";
 import { deliveriesToTimers, loadDeliveries } from "@/lib/deliveries";
 import { loadGamification } from "@/lib/gamification";
+import { loadMetrics } from "@/lib/metrics";
 import { getPanelAccess } from "@/lib/panels";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { redirect } from "next/navigation";
@@ -16,10 +17,11 @@ export default async function CreatorPage() {
   if (!isSupabaseConfigured()) redirect("/primeiro-acesso");
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
-  const [deliveries, acesso, gamification] = await Promise.all([
+  const [deliveries, acesso, gamification, metrics] = await Promise.all([
     loadDeliveries(profile),
     getPanelAccess(),
     loadGamification(profile),
+    loadMetrics(profile.organization_id, profile.role === "designer" ? profile.id : undefined),
   ]);
   // Timers derivados das deliveries já carregadas — antes era uma SEGUNDA carga
   // completa da organização só para filtrar quem tem cronômetro ativo.
@@ -37,7 +39,7 @@ export default async function CreatorPage() {
     <div className="min-h-svh bg-background md:pl-28">
       <AppHeader activeItem="creator" fullName={profile.full_name} panels={acesso?.panels ?? []} isAdmin={acesso?.isAdmin ?? false} avatarUrl={acesso?.avatarUrl} />
       <ProductionWorkspace initialCapacity={[]} initialDeliveries={deliveries} role={profile.role} fullName={profile.full_name} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
-      <MetricsSection role={profile.role} activeTimers={timersVisiveis} gamification={gamification} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
+      <MetricsSection role={profile.role} metrics={metrics} activeTimers={timersVisiveis} gamification={gamification} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
     </div>
   );
 }

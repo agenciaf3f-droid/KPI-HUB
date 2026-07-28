@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const DESIGNER_COLORS = ["#8B5CF6", "#EC4899", "#F97316", "#EAB308", "#22C55E", "#14B8A6", "#3B82F6", "#64748B"];
+export const DESIGNER_COLORS = ["#6E37C4", "#EC4899", "#F97316", "#EAB308", "#22C55E", "#14B8A6", "#3B82F6", "#64748B"];
 
 export async function PATCH(request: Request) {
   try {
