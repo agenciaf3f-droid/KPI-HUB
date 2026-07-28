@@ -19,5 +19,7 @@ export default async function Home() {
   if (acesso.panels.includes("gestor")) redirect("/gestor");
   if (acesso.panels.includes("editor")) redirect("/editor");
   if (acesso.panels.includes("creator")) redirect("/creator");
-  redirect("/login");
+  // Sessão válida sem área nenhuma (removido da equipe, ou ainda sem área).
+  // Mandar para /login criava um vai-e-volta: o login devolvia para cá.
+  redirect("/sem-acesso");
 }

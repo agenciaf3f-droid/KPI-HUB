@@ -140,7 +140,6 @@ function AdicionarMembroDialog() {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
   const [areas, setAreas] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -155,16 +154,13 @@ function AdicionarMembroDialog() {
       toast.error("Preencha nome, e-mail e ao menos uma área (ou marque Admin).");
       return;
     }
-    if (senha && senha.length < 6) {
-      toast.error("A senha provisória precisa de ao menos 6 caracteres (ou deixe em branco para gerarmos uma).");
-      return;
-    }
     setSaving(true);
     try {
+      // Sem senha no corpo: o servidor gera a provisória e manda por e-mail.
       const res = await fetch("/api/equipe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: nome.trim(), email: email.trim(), senha, areas, isAdmin }),
+        body: JSON.stringify({ nome: nome.trim(), email: email.trim(), areas, isAdmin }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) throw new Error(body?.error ?? "Não foi possível adicionar o membro.");
@@ -244,13 +240,6 @@ function AdicionarMembroDialog() {
           <div className="space-y-2">
             <Label htmlFor="membro-email">E-mail</Label>
             <Input id="membro-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@gmail.com" autoComplete="off" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="membro-senha">Senha provisória (opcional)</Label>
-            <Input id="membro-senha" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco → geramos uma" autoComplete="off" />
-            <p className="text-xs text-muted-foreground">
-              Vai no e-mail de boas-vindas. A pessoa é obrigada a trocá-la ao entrar pela primeira vez.
-            </p>
           </div>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Área</legend>
