@@ -37,29 +37,10 @@
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
 ::-webkit-scrollbar-thumb:hover { background:#d1d5db; }
 
-/* ── TOPBAR ── */
-#topbar {
-  position:sticky; top:0; z-index:200;
-  background: rgba(255,255,255,.85);
-  backdrop-filter: blur(20px) saturate(1.8);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  border-bottom: 1px solid var(--border);
-  height: 62px;
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 0 32px;
-}
-.topbar-brand { display:flex; align-items:center; gap:12px; }
-.topbar-logo {
-  width:36px; height:36px; border-radius:10px;
-  background: linear-gradient(135deg,var(--primary),var(--primary-end));
-  display:flex; align-items:center; justify-content:center;
-  box-shadow: 0 2px 10px var(--primary-glow);
-  flex-shrink:0;
-}
-.topbar-logo svg { width:18px; height:18px; }
-.topbar-title { font-size:.9rem; font-weight:700; letter-spacing:-.01em; }
-.topbar-sub   { font-size:.7rem; color:var(--text-2); font-weight:500; margin-top:1px; }
-.topbar-right { display:flex; align-items:center; gap:10px; }
+/* ── CONTROLES DO TOPO ──
+   A barra de marca do dashboard original saiu; o que era `.topbar-right`
+   (status, período, recarregar) agora mora na própria linha das abas. */
+.topbar-right { display:flex; align-items:center; gap:10px; padding:10px 0; }
 
 /* ── STATUS PILL ── */
 .status-pill {
@@ -507,9 +488,13 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 
 /* ── TAB NAVIGATION ── */
 .tab-nav {
-  display:flex; gap:0; border-bottom:2px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  border-bottom:2px solid var(--border);
   padding:0 32px; background:var(--surface);
+  position:sticky; top:0; z-index:200;
 }
+/* os botões de aba à esquerda; #topbar-right (período/recarregar) à direita */
+.tab-btns { display:flex; gap:0; }
 .tab-btn {
   padding:12px 24px; font-size:.82rem; font-weight:600;
   color:var(--text-2); background:none; border:none;
@@ -596,13 +581,14 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .btn-expand:hover { background:#f3f4f6; color:var(--text); }
 
 
-/* Aba /churn: o app do gestor aberto direto na seção Churn — o seletor interno
-   de abas sai de cena (a sidebar do hub é quem navega). */
-.gestor-app.churn-only .tab-nav { display: none; }
+/* Aba /churn: o app do gestor aberto direto na seção Churn — os botões de aba
+   saem de cena (a sidebar do hub é quem navega), mas a linha fica: período e
+   recarregar continuam valendo no churn. */
+.gestor-app.churn-only .tab-btns { display: none; }
 
 /* Aba /gestor: o botão Churn sai do seletor interno — Churn agora é aba
    própria da sidebar (só admin). O markup fica intacto; só some da vista. */
-.gestor-app .tab-nav button[onclick*="tab3"] { display: none; }
+.gestor-app .tab-btns button[onclick*="tab3"] { display: none; }
 
 /* Respiro na tabela de Grupos (pedido do usuário: "muito coladinho").
    Sobrescreve os valores herdados do dashboard original só dentro do gestor. */
@@ -632,7 +618,7 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 }
 
 /* superfícies e divisórias que estavam com hex claro fixo */
-.dark .gestor-app #topbar { background: rgba(33,25,35,.85); }
+.dark .gestor-app .tab-nav { background: var(--surface); }
 .dark .gestor-app ::-webkit-scrollbar-thumb:hover { background:#4a3c4e; }
 .dark .gestor-app .status-pill .dot { background:#4a3c4e; }
 .dark .gestor-app thead th,

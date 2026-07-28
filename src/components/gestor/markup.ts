@@ -1,11 +1,15 @@
 // Markup do Dash-Gestores (dashboard.html linhas 693-1098) como constante.
 // SEM o #login-overlay (609-622): login agora e so o do hub.
 // Handlers inline (onclick=...) resolvem em window - o engine os pendura la.
-export const GESTOR_MARKUP = String.raw`<!-- ════════════ TOPBAR ════════════ -->
-<header id="topbar">
-  <!-- Marca removida: a sidebar do hub ja identifica a aba. O <div> vazio
-       mantem o justify-between empurrando os controles para a direita. -->
-  <div class="topbar-brand"></div>
+export const GESTOR_MARKUP = String.raw`<!-- ════════════ TAB NAVIGATION + CONTROLES ════════════ -->
+<!-- Sem a barra de marca: o seletor de abas e os controles de periodo dividem
+     a mesma linha, para nao sobrar faixa vazia no topo. -->
+<nav class="tab-nav">
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="switchTab('tab1')">📊 Relatórios dos Clientes</button>
+    <button class="tab-btn" onclick="switchTab('tab2')">⭐ NPS dos Clientes</button>
+    <button class="tab-btn" onclick="switchTab('tab3')">📉 Churn</button>
+  </div>
   <div class="topbar-right">
     <div class="status-pill loading" id="status-pill">
       <div class="dot"></div>
@@ -24,13 +28,6 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
       </svg>
     </button>
   </div>
-</header>
-
-<!-- ════════════ TAB NAVIGATION ════════════ -->
-<nav class="tab-nav">
-  <button class="tab-btn active" onclick="switchTab('tab1')">📊 Relatórios dos Clientes</button>
-  <button class="tab-btn" onclick="switchTab('tab2')">⭐ NPS dos Clientes</button>
-  <button class="tab-btn" onclick="switchTab('tab3')">📉 Churn</button>
 </nav>
 
 <!-- ════════════ ABA 1 — RELATÓRIOS ════════════ -->
