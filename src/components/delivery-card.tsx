@@ -23,7 +23,7 @@ const statusDot: Record<Delivery["status"], string> = {
   cancelada: "bg-muted-foreground",
 };
 
-export type DeliveryAction = "start" | "pause" | "review" | "complete";
+export type DeliveryAction = "start" | "pause" | "review" | "complete" | "link";
 
 export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: Delivery; onTransition: (id: string, action: DeliveryAction, driveUrl?: string) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
   const due = formatDueLabel(delivery.dueAt);
@@ -32,6 +32,8 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
   const [finishOpen, setFinishOpen] = useState(false);
   const [driveUrl, setDriveUrl] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const ehLandingPage = delivery.deliveryType.toLocaleLowerCase("pt-BR") === "landing page";
 
   async function act(label: string, action: DeliveryAction, url?: string) {
     setIsSubmitting(true);
@@ -133,6 +135,12 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
 
         <div className="flex items-center gap-2 pt-1">
           <DeliveryActions status={delivery.status} onAction={act} onComplete={() => setFinishOpen(true)} disabled={isSubmitting} />
+          {/* Landing page publica depois: o link entra sem mexer no timer nem no XP. */}
+          {ehLandingPage && delivery.status === "entregue" ? (
+            <Button size="sm" variant="outline" className="rounded-full" disabled={isSubmitting} onClick={() => { setDriveUrl(delivery.deliveryUrl ?? ""); setLinkOpen(true); }}>
+              <LinkIcon /> {delivery.deliveryUrl ? "Atualizar link" : "Adicionar link"}
+            </Button>
+          ) : null}
           <Button type="button" size="icon" variant="ghost" className="ml-auto size-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Excluir ${delivery.title}`} onClick={() => setDeleteOpen(true)} disabled={isSubmitting}><Trash2 className="size-4" /></Button>
         </div>
       </CardContent>
@@ -140,11 +148,27 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
         <DialogContent className="rounded-[1.5rem] p-6 sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Concluir entrega</DialogTitle>
-            <DialogDescription>Para registrar a conclusão, cole o link da pasta ou do arquivo final no Google Drive.</DialogDescription>
+            <DialogDescription>
+              {ehLandingPage
+                ? "A URL publicada é opcional aqui — você pode concluir agora e adicionar o link quando a página estiver no ar."
+                : "Para registrar a conclusão, cole o link da pasta ou do arquivo final no Google Drive."}
+            </DialogDescription>
           </DialogHeader>
-          <Input value={driveUrl} onChange={(event) => setDriveUrl(event.target.value)} placeholder="https://drive.google.com/..." inputMode="url" />
+          <Input value={driveUrl} onChange={(event) => setDriveUrl(event.target.value)} placeholder={ehLandingPage ? "https://... (opcional)" : "https://drive.google.com/..."} inputMode="url" />
           <DialogFooter>
-            <Button type="button" className="rounded-full" disabled={isSubmitting || !driveUrl.trim()} onClick={() => act("Entrega concluída", "complete", driveUrl)}><Check /> {isSubmitting ? "Salvando..." : "Concluir entrega"}</Button>
+            <Button type="button" className="rounded-full" disabled={isSubmitting || (!ehLandingPage && !driveUrl.trim())} onClick={() => act("Entrega concluída", "complete", driveUrl)}><Check /> {isSubmitting ? "Salvando..." : "Concluir entrega"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="rounded-[1.5rem] p-6 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{delivery.deliveryUrl ? "Atualizar link" : "Adicionar link"}</DialogTitle>
+            <DialogDescription>Cole a URL pública da landing page. A demanda continua concluída — nada de timer ou XP muda.</DialogDescription>
+          </DialogHeader>
+          <Input value={driveUrl} onChange={(event) => setDriveUrl(event.target.value)} placeholder="https://..." inputMode="url" />
+          <DialogFooter>
+            <Button type="button" className="rounded-full" disabled={isSubmitting || !driveUrl.trim()} onClick={async () => { await act("Link salvo", "link", driveUrl); setLinkOpen(false); }}><LinkIcon /> {isSubmitting ? "Salvando..." : "Salvar link"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -207,6 +231,25 @@ function DeliveryActions({
         <Button size="sm" className="rounded-full" disabled={disabled} onClick={() => onAction("Retomar produção", "start")}>
           <Play /> Retomar
         </Button>
+      );
+    // Em revisão a demanda ficava sem botão nenhum — entrava e não saía mais.
+    // O tempo é a soma das sessões, então retomar continua de onde parou.
+    case "aguardando_revisao":
+      return (
+        <>
+          <Button size="sm" className="rounded-full" disabled={disabled} onClick={() => onAction("Retomada para produção", "start")}>
+            <Play /> Retomar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+            disabled={disabled}
+            onClick={onComplete}
+          >
+            <Check /> Feito
+          </Button>
+        </>
       );
     case "em_ajuste":
       return (

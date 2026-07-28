@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminCreateTaskButton } from "@/components/admin-create-task-button";
 import { CapacityWidget } from "@/components/capacity-widget";
-import { DeliveryCard } from "@/components/delivery-card";
+import { DeliveryCard, type DeliveryAction } from "@/components/delivery-card";
 import { NewDeliveryBar } from "@/components/new-delivery-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,7 @@ function ProductionWorkspaceContent({ initialCapacity, initialDeliveries, role, 
     setQuery("");
   }
 
-  async function transitionDelivery(id: string, action: "start" | "pause" | "review" | "complete", driveUrl?: string) {
+  async function transitionDelivery(id: string, action: DeliveryAction, driveUrl?: string) {
     const response = await fetch(`/api/deliveries/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },

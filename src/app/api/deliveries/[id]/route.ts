@@ -4,7 +4,14 @@ import { loadDeliveries } from "@/lib/deliveries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { awardCompletionXp } from "@/lib/gamification";
 
-type Action = "start" | "pause" | "review" | "complete";
+type Action = "start" | "pause" | "review" | "complete" | "link";
+
+/**
+ * Landing page é publicada depois da entrega: cobrar a URL na conclusão
+ * travava o designer numa demanda já pronta. Para esse tipo o link é
+ * opcional e entra depois pela ação "link".
+ */
+const TIPOS_SEM_LINK_OBRIGATORIO = ["landing page"];
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,12 +19,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!profile) return NextResponse.json({ error: "Faça login para atualizar uma entrega." }, { status: 401 });
     const { id } = await params;
     const { action, driveUrl } = await request.json() as { action?: Action; driveUrl?: string };
-    if (!action || !["start", "pause", "review", "complete"].includes(action)) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
+    if (!action || !["start", "pause", "review", "complete", "link"].includes(action)) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 
     const admin = createAdminClient();
     const { data: delivery, error: deliveryError } = await admin
       .from("creator_deliveries")
-      .select("id, organization_id, assignee_id, due_at")
+      .select("id, organization_id, assignee_id, due_at, delivery_type_id")
       .eq("id", id)
       .maybeSingle();
     if (deliveryError) throw deliveryError;
@@ -25,8 +32,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Você não tem permissão para alterar esta entrega." }, { status: 403 });
     }
 
-    if (action === "complete" && !isDriveUrl(driveUrl)) {
+    const { data: tipo } = await admin
+      .from("creator_delivery_types")
+      .select("name")
+      .eq("id", delivery.delivery_type_id)
+      .maybeSingle();
+    const linkOpcional = TIPOS_SEM_LINK_OBRIGATORIO.includes((tipo?.name ?? "").toLocaleLowerCase("pt-BR"));
+
+    if (action === "complete" && !linkOpcional && !isDriveUrl(driveUrl)) {
       return NextResponse.json({ error: "Informe um link válido da pasta ou entrega no Google Drive para concluir." }, { status: 400 });
+    }
+    if (action === "complete" && linkOpcional && driveUrl && !isHttpsUrl(driveUrl)) {
+      return NextResponse.json({ error: "O link informado não é válido." }, { status: 400 });
+    }
+
+    // Só grava a URL: não mexe em status, não abre nem fecha sessão de tempo e
+    // não passa por awardCompletionXp — daí não duplicar XP nem reiniciar nada.
+    if (action === "link") {
+      const valido = linkOpcional ? isHttpsUrl(driveUrl) : isDriveUrl(driveUrl);
+      if (!valido) return NextResponse.json({ error: "Informe um link válido (https)." }, { status: 400 });
+      const { error } = await admin.from("creator_deliveries").update({ delivery_url: driveUrl }).eq("id", id);
+      if (error) throw error;
+      const deliveriesAtualizadas = await loadDeliveries(profile);
+      return NextResponse.json({ delivery: deliveriesAtualizadas.find((item) => item.id === id) });
     }
 
     if (action === "start") {
@@ -43,7 +71,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ? { status: "pausada" }
         : action === "review"
           ? { status: "aguardando_revisao" }
-          : { status: "entregue", delivered_at: new Date().toISOString(), delivery_url: driveUrl };
+          : { status: "entregue", delivered_at: new Date().toISOString(), delivery_url: driveUrl || null };
       const { error } = await admin.from("creator_deliveries").update(update).eq("id", id);
       if (error) throw error;
       if (action === "complete") {
@@ -88,6 +116,16 @@ function isDriveUrl(value: unknown) {
   try {
     const url = new URL(value);
     return url.protocol === "https:" && (url.hostname === "drive.google.com" || url.hostname === "docs.google.com");
+  } catch {
+    return false;
+  }
+}
+
+/** Landing page publicada mora no domínio do cliente, não no Drive. */
+function isHttpsUrl(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    return new URL(value).protocol === "https:";
   } catch {
     return false;
   }
