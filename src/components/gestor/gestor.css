@@ -610,3 +610,64 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .gestor-app thead th { padding: 12px 20px; }
 .gestor-app .cell-sub { margin-top: 7px; }
 .gestor-app .cell-name { max-width: 260px; }
+
+/* ============================================================
+   MODO ESCURO — mesmo esquema do Creator/Editor (globals.css).
+   O dashboard original só tinha tema claro; aqui as variáveis e as
+   cores que estavam fixas no CSS transplantado são reescritas quando
+   o hub liga o `.dark`. Nada muda no modo claro.
+   ============================================================ */
+.dark .gestor-app {
+  --bg:          #171018;
+  --surface:     #211923;
+  --primary:     #a78bfa;
+  --primary-end: #c4b5fd;
+  --primary-glow:rgba(167,139,250,.22);
+  --text:        #f5f7fb;
+  --text-2:      #b4a9b7;
+  --border:      #382d3b;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:   0 4px 16px rgba(0,0,0,.55);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,.6);
+}
+
+/* superfícies e divisórias que estavam com hex claro fixo */
+.dark .gestor-app #topbar { background: rgba(33,25,35,.85); }
+.dark .gestor-app ::-webkit-scrollbar-thumb:hover { background:#4a3c4e; }
+.dark .gestor-app .status-pill .dot { background:#4a3c4e; }
+.dark .gestor-app thead th,
+.dark .gestor-app .drill-table thead th,
+.dark .gestor-app .log-table thead th,
+.dark .gestor-app .open-table thead th { background:#2a202e; }
+.dark .gestor-app thead th:hover { background:#332738; }
+.dark .gestor-app tbody tr,
+.dark .gestor-app .drill-table tbody tr,
+.dark .gestor-app .log-table tbody tr,
+.dark .gestor-app .open-table tbody tr { border-bottom-color:#2f2533; }
+.dark .gestor-app tbody tr:hover,
+.dark .gestor-app .drill-table tbody tr:hover { background:#261d2a; }
+.dark .gestor-app .drill-table .clickable-row:hover { background:#2e2340 !important; }
+.dark .gestor-app .open-table tbody tr:hover { background:#332a1f; }
+.dark .gestor-app .nps-feedback-item { background:#2a202e; }
+.dark .gestor-app .btn-ghost:hover,
+.dark .gestor-app .btn-expand:hover,
+.dark .gestor-app .drill-close-btn:hover,
+.dark .gestor-app .dp-short:hover,
+.dark .gestor-app .dp-nav-btn:hover { background:#332738; }
+
+/* badges: fundo translúcido + texto claro (o par claro era chapado) */
+.dark .gestor-app .badge-green { background:rgba(34,197,94,.18);  color:#86efac; }
+.dark .gestor-app .badge-red   { background:rgba(239,68,68,.18);  color:#fca5a5; }
+.dark .gestor-app .badge-amber { background:rgba(245,158,11,.18); color:#fcd34d; }
+.dark .gestor-app .badge-gray  { background:#332738;              color:#b4a9b7; }
+.dark .gestor-app .badge-blue  { background:rgba(167,139,250,.18);color:#c4b5fd; }
+
+/* destaques de pendência/resposta nas tabelas de drill */
+.dark .gestor-app .hl-open   { background:rgba(234,179,8,.22) !important;  color:#fde68a !important; }
+.dark .gestor-app .hl-closed { background:rgba(34,197,94,.22) !important;  color:#bbf7d0 !important; }
+
+/* date picker */
+.dark .gestor-app .dp-short.active { background:rgba(167,139,250,.18); }
+.dark .gestor-app .dp-day.other,
+.dark .gestor-app .dp-day.disabled { color:#5b4d5f; }
+.dark .gestor-app .dp-day.in-range { background:rgba(167,139,250,.16); }

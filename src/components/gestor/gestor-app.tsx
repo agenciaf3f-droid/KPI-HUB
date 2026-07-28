@@ -19,6 +19,8 @@ export function GestorApp({ churnOnly = false }: { churnOnly?: boolean } = {}) {
     let destroy: (() => void) | undefined;
     let cancelled = false;
 
+    let observer: MutationObserver | undefined;
+
     void (async () => {
       const mod = await import("./engine");
       if (cancelled || !hostRef.current) return;
@@ -30,10 +32,24 @@ export function GestorApp({ churnOnly = false }: { churnOnly?: boolean } = {}) {
         hostRef.current.classList.add("churn-only");
         (window as unknown as { switchTab?: (t: string) => void }).switchTab?.("tab3");
       }
+
+      // O CSS acompanha o tema sozinho, mas o Chart.js recebe cor literal na
+      // criação: ao trocar claro/escuro é preciso redesenhar os gráficos.
+      observer = new MutationObserver(() => {
+        const w = window as unknown as { applyFilter?: () => void; churnRender?: () => void };
+        try {
+          w.applyFilter?.();
+          w.churnRender?.();
+        } catch {
+          /* gráfico ainda não montado — o próximo refresh pega o tema novo */
+        }
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     })();
 
     return () => {
       cancelled = true;
+      observer?.disconnect();
       destroy?.();
     };
   }, [churnOnly]);

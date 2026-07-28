@@ -20,6 +20,16 @@ import { GESTOR_MARKUP } from "./markup";
 
 const hub = createClient();
 
+// Tema dos graficos. O dashboard original so tinha modo claro e passava a cor
+// literal para o Chart.js; aqui lemos a classe .dark que o hub poe no <html>
+// no momento em que cada grafico e montado (renderCharts roda de novo quando
+// o tema muda — ver gestor-app.tsx).
+function CT(){
+  return document.documentElement.classList.contains('dark')
+    ? { tick:'#b4a9b7', grid:'#2f2533' }
+    : { tick:'#9ca3af', grid:'#f3f4f6' };
+}
+
 // Do 2o script inline do original: as FUNCOES de la eram mortas
 // (calculaLeadTimeRepasse sem chamador), mas esta declaracao e viva —
 // applyRoster preenche e o motor le (setor por telefone).
@@ -1918,7 +1928,7 @@ function renderCharts(){
         openDrillLT(gname, casos);
       },
       plugins:{
-        legend:{ position:'bottom', labels:{ color:'#9ca3af', font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
+        legend:{ position:'bottom', labels:{ color:CT().tick, font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
         tooltip:{ callbacks:{
           label: function(c){
             const idx = c.dataIndex;
@@ -1932,9 +1942,9 @@ function renderCharts(){
         }}
       },
       scales:{
-        y:{ position:'left', title:{display:true,text:'Comercial (min úteis)',color:'rgba(8,102,255,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{color:'#f3f4f6'}, ticks:{color:'rgba(8,102,255,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
+        y:{ position:'left', title:{display:true,text:'Comercial (min úteis)',color:'rgba(8,102,255,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{color:CT().grid}, ticks:{color:'rgba(8,102,255,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
         y1:{ position:'right', title:{display:true,text:'Fora do horário (min corridos)',color:'rgba(22,163,74,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{drawOnChartArea:false}, ticks:{color:'rgba(22,163,74,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
-        x:{ grid:{display:false}, ticks:{color:'#9ca3af',font:{size:10,family:"'Poppins',sans-serif"},maxRotation:25}, border:{display:false} }
+        x:{ grid:{display:false}, ticks:{color:CT().tick,font:{size:10,family:"'Poppins',sans-serif"},maxRotation:25}, border:{display:false} }
       }
     }
   });
@@ -2006,12 +2016,12 @@ function renderCharts(){
         else            openDrillWeekNeeded(lbl, missing, drill.sent);
       },
       plugins:{
-        legend:{ position:'bottom', labels:{ color:'#9ca3af', font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
+        legend:{ position:'bottom', labels:{ color:CT().tick, font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
         tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${c.raw} · clique para detalhes` } }
       },
       scales:{
-        y:{ stacked:true, grid:{color:'#f3f4f6'}, ticks:{color:'#9ca3af',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
-        x:{ stacked:true, grid:{display:false},   ticks:{color:'#9ca3af',font:{size:10,family:"'Poppins',sans-serif"}}, border:{display:false} }
+        y:{ stacked:true, grid:{color:CT().grid}, ticks:{color:CT().tick,font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
+        x:{ stacked:true, grid:{display:false},   ticks:{color:CT().tick,font:{size:10,family:"'Poppins',sans-serif"}}, border:{display:false} }
       }
     }
   });
@@ -3804,18 +3814,18 @@ function churnRender(){
         y:{
           beginAtZero:true,
           position:'left',
-          title:{ display:true, text:'Cancelamentos', color:'#6b7280', font:{size:11} },
-          ticks:{ color:'#6b7280', precision:0, stepSize:1 },
-          grid:{color:'#f1f5f9'}
+          title:{ display:true, text:'Cancelamentos', color:CT().tick, font:{size:11} },
+          ticks:{ color:CT().tick, precision:0, stepSize:1 },
+          grid:{color:CT().grid}
         },
         y1:{
           beginAtZero:true,
           position:'right',
-          title:{ display:true, text:'% Churn', color:'#6b7280', font:{size:11} },
-          ticks:{ color:'#6b7280', callback:v=>v+'%' },
+          title:{ display:true, text:'% Churn', color:CT().tick, font:{size:11} },
+          ticks:{ color:CT().tick, callback:v=>v+'%' },
           grid:{ display:false }
         },
-        x:{ ticks:{color:'#6b7280'}, grid:{display:false} }
+        x:{ ticks:{color:CT().tick}, grid:{display:false} }
       }
     }
   });
@@ -3867,7 +3877,7 @@ function churnRender(){
         churnOpenDrilldown(`Cancelamentos: ${b.label}`, `${b.list.length} clientes`, b.list);
       },
       plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#111827' } },
-      scales:{ x:{ beginAtZero:true, ticks:{stepSize:1, color:'#6b7280'}, grid:{color:'#f1f5f9'} }, y:{ ticks:{color:'#6b7280'}, grid:{display:false} } }
+      scales:{ x:{ beginAtZero:true, ticks:{stepSize:1, color:CT().tick}, grid:{color:CT().grid} }, y:{ ticks:{color:CT().tick}, grid:{display:false} } }
     }
   });
 
@@ -4051,7 +4061,7 @@ function renderChurnRiskChart(planFilter){
         }
       },
       scales:{
-        y:{ beginAtZero:true, ticks:{ color:'#6b7280', precision:0, stepSize:1 }, grid:{ color:'#f1f5f9' }, title:{ display:true, text:'Dias sem mensagem', color:'#6b7280', font:{size:11} } },
+        y:{ beginAtZero:true, ticks:{ color:CT().tick, precision:0, stepSize:1 }, grid:{ color:CT().grid }, title:{ display:true, text:'Dias sem mensagem', color:CT().tick, font:{size:11} } },
         x:{ ticks:{ color:'#374151', font:{size:11, weight:'600'} }, grid:{ display:false } }
       }
     }
@@ -4119,7 +4129,7 @@ function renderChurnByGestorChart(churnsPeriodo){
   if(_churnCharts.gestor) _churnCharts.gestor.destroy();
   if(linhas.length===0){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#9ca3af'; ctx.font = '13px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle = CT().tick; ctx.font = '13px system-ui'; ctx.textAlign='center';
     ctx.fillText('Sem dados de gestor disponíveis', canvas.width/2, canvas.height/2);
     return;
   }
@@ -4199,15 +4209,15 @@ function renderChurnByGestorChart(churnsPeriodo){
         y:{
           beginAtZero:true,
           position:'left',
-          title:{ display:true, text:'Cancelamentos', color:'#6b7280', font:{size:11} },
-          ticks:{ color:'#6b7280', precision:0, stepSize:1 },
-          grid:{ color:'#f1f5f9' }
+          title:{ display:true, text:'Cancelamentos', color:CT().tick, font:{size:11} },
+          ticks:{ color:CT().tick, precision:0, stepSize:1 },
+          grid:{ color:CT().grid }
         },
         y1:{
           beginAtZero:true,
           position:'right',
-          title:{ display:true, text:'% Churn', color:'#6b7280', font:{size:11} },
-          ticks:{ color:'#6b7280', callback:v=>v+'%' },
+          title:{ display:true, text:'% Churn', color:CT().tick, font:{size:11} },
+          ticks:{ color:CT().tick, callback:v=>v+'%' },
           grid:{ display:false }
         },
         x:{ ticks:{ color:'#374151', font:{size:11, weight:'600'} }, grid:{ display:false } }
@@ -4230,7 +4240,7 @@ function openRiskDrilldown(bucket){
   const list = bucket.list;
   modal.innerHTML = `
     <div style="background:#fff;border-radius:16px;max-width:880px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
-      <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
         <div>
           <div style="font-size:1.05rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:10px;">
             <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${bucket.color};"></span>
@@ -4244,7 +4254,7 @@ function openRiskDrilldown(bucket){
         ${list.length===0 ? '<div style="padding:40px;text-align:center;color:#94a3b8;">Sem clientes nesta faixa</div>' : `
         <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
           <thead style="position:sticky;top:0;background:#f9fafb;">
-            <tr style="border-bottom:1px solid #e5e7eb;">
+            <tr style="border-bottom:1px solid var(--border);">
               <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Cliente</th>
               <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Gestor</th>
               <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Plano</th>
@@ -4282,7 +4292,7 @@ function churnOpenDrilldown(title, subtitle, list){
   const sorted = [...list].sort((a,b)=> (b.saida||0) - (a.saida||0));
   modal.innerHTML = `
     <div style="background:#fff;border-radius:16px;max-width:920px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
-      <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
         <div>
           <div style="font-size:1.05rem;font-weight:700;color:#0f172a;">${title}</div>
           <div style="font-size:.78rem;color:#64748b;margin-top:4px;">${subtitle}</div>
@@ -4293,7 +4303,7 @@ function churnOpenDrilldown(title, subtitle, list){
         ${sorted.length===0 ? '<div style="padding:40px;text-align:center;color:#94a3b8;">Sem registros</div>' : `
         <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
           <thead style="position:sticky;top:0;background:#f9fafb;">
-            <tr style="border-bottom:1px solid #e5e7eb;">
+            <tr style="border-bottom:1px solid var(--border);">
               <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Cliente</th>
               <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Gestor</th>
               <th style="text-align:left;padding:10px 16px;color:#64748b;font-weight:600;">Plano</th>
