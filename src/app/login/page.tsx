@@ -108,7 +108,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,1.05fr)_minmax(30rem,0.95fr)]">
+    <main className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,3fr)_minmax(28rem,7fr)]">
       <section className="relative hidden overflow-hidden bg-sidebar p-10 text-sidebar-foreground lg:flex lg:flex-col">
         <div className="absolute -left-24 top-24 size-80 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-28 right-0 size-96 rounded-full bg-accent/15 blur-3xl" />
