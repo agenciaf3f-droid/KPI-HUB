@@ -693,3 +693,13 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
   --m-text-2:      #b4a9b7;
   --m-text-3:      #8d8090;
 }
+
+/* Os quadradinhos de emoji dos KPIs e o banner de erro do NPS têm a cor no
+   style inline (vêm do markup original). No escuro, um véu inset escurece a
+   pastilha sem apagar o emoji — que é desenhado acima do box-shadow. */
+.dark .gestor-app .kpi-icon { box-shadow: inset 0 0 0 999px rgba(23,16,24,.8); }
+.dark .gestor-app #nps-error-banner {
+  background: rgba(239,68,68,.14) !important;
+  border-color: rgba(239,68,68,.35) !important;
+  color: #fca5a5 !important;
+}

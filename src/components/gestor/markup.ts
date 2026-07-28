@@ -388,7 +388,7 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
   <div class="nps-card" style="padding:0;overflow:hidden;">
     <div style="max-height:520px;overflow:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
-        <thead style="position:sticky;top:0;background:#f9fafb;z-index:1;">
+        <thead style="position:sticky;top:0;background:var(--m-head);z-index:1;">
           <tr style="border-bottom:1px solid var(--border);">
             <th style="text-align:left;padding:12px 16px;font-weight:600;color:var(--text-2);">Cliente</th>
             <th style="text-align:left;padding:12px 16px;font-weight:600;color:var(--text-2);">Gestor</th>
