@@ -3,17 +3,9 @@
 // Handlers inline (onclick=...) resolvem em window - o engine os pendura la.
 export const GESTOR_MARKUP = String.raw`<!-- ════════════ TOPBAR ════════════ -->
 <header id="topbar">
-  <div class="topbar-brand">
-    <div class="topbar-logo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
-    </div>
-    <div>
-      <div class="topbar-title">F3F Agency</div>
-      <div class="topbar-sub">Dashboard Operacional · Grupos</div>
-    </div>
-  </div>
+  <!-- Marca removida: a sidebar do hub ja identifica a aba. O <div> vazio
+       mantem o justify-between empurrando os controles para a direita. -->
+  <div class="topbar-brand"></div>
   <div class="topbar-right">
     <div class="status-pill loading" id="status-pill">
       <div class="dot"></div>
