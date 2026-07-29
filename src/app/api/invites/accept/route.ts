@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { registerF3fLogin } from "@/lib/f3f-logins";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -54,6 +55,9 @@ export async function POST(request: Request) {
       await admin.auth.admin.deleteUser(userData.user.id);
       throw memberError;
     }
+
+    // Registra no login central F3F (f3f_logins, este mesmo banco).
+    await registerF3fLogin(admin, { userId: userData.user.id, email });
 
     const { data: claimed, error: claimError } = await admin
       .from("creator_team_invites")

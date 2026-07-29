@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { registerF3fLogin } from "@/lib/f3f-logins";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 function validPassword(password: string) {
@@ -65,6 +66,9 @@ export async function POST(request: Request) {
       await admin.auth.admin.deleteUser(user.id);
       throw profileError;
     }
+
+    // Registra no login central F3F (f3f_logins, este mesmo banco).
+    await registerF3fLogin(admin, { userId: user.id, email });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { removerFoto, salvarPerfil, trocarFoto } from "@/app/conta/actions";
+import { syncPasswordMirror } from "@/lib/f3f-central";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -178,6 +179,8 @@ function SenhaCard({ email }: { email: string }) {
       }
       const { error } = await supabase.auth.updateUser({ password: nova });
       if (error) throw error;
+      // Propaga pro espelho do Console.Ads (senha única F3F). Best-effort.
+      await syncPasswordMirror(nova);
       toast.success("Senha alterada.");
       setAtual("");
       setNova("");
