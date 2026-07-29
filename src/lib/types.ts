@@ -49,6 +49,17 @@ export interface Delivery {
   adjustmentCount: number;
   activeSessionStartedAt?: string; // ISO — presente quando cronômetro está rodando
   activeSecondsAccumulated: number; // segundos já acumulados em sessões anteriores
+  originalSeconds?: number;
+  adjustmentSeconds?: number;
+  adjustments?: DeliveryAdjustment[];
+}
+
+export interface DeliveryAdjustment {
+  id: string;
+  description: string;
+  createdAt: string;
+  completedAt?: string;
+  seconds: number;
 }
 
 export interface ActiveDeliveryTimer {

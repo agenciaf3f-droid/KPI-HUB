@@ -4,7 +4,7 @@ import { loadDeliveries } from "@/lib/deliveries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { awardCompletionXp } from "@/lib/gamification";
 
-type Action = "start" | "pause" | "review" | "complete" | "link";
+type Action = "start" | "pause" | "review" | "complete" | "link" | "request_adjustment";
 
 /**
  * Landing page é publicada depois da entrega: cobrar a URL na conclusão
@@ -18,8 +18,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const profile = await getCurrentProfile();
     if (!profile) return NextResponse.json({ error: "Faça login para atualizar uma entrega." }, { status: 401 });
     const { id } = await params;
-    const { action, driveUrl } = await request.json() as { action?: Action; driveUrl?: string };
-    if (!action || !["start", "pause", "review", "complete", "link"].includes(action)) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
+    const { action, driveUrl, adjustmentDescription } = await request.json() as { action?: Action; driveUrl?: string; adjustmentDescription?: string };
+    if (!action || !["start", "pause", "review", "complete", "link", "request_adjustment"].includes(action)) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 
     const admin = createAdminClient();
     const { data: delivery, error: deliveryError } = await admin
@@ -38,6 +38,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .eq("id", delivery.delivery_type_id)
       .maybeSingle();
     const linkOpcional = TIPOS_SEM_LINK_OBRIGATORIO.includes((tipo?.name ?? "").toLocaleLowerCase("pt-BR"));
+
+    if (action === "request_adjustment") {
+      if (delivery.assignee_id !== profile.id) return NextResponse.json({ error: "Apenas o designer responsável pode iniciar um ajuste." }, { status: 403 });
+      if (!adjustmentDescription?.trim()) return NextResponse.json({ error: "Descreva o ajuste necessário." }, { status: 400 });
+      const { data: adjustment, error } = await admin.from("creator_delivery_adjustments").insert({ delivery_id: id, created_by: profile.id, description: adjustmentDescription.trim() }).select("id").single();
+      if (error || !adjustment) throw error ?? new Error("Não foi possível criar o ajuste.");
+      await admin.from("creator_deliveries").update({ status: "em_ajuste", adjustment_count: (await admin.from("creator_delivery_adjustments").select("id", { count: "exact", head: true }).eq("delivery_id", id)).count ?? 1 }).eq("id", id);
+      const deliveries = await loadDeliveries(profile);
+      return NextResponse.json({ delivery: deliveries.find((item) => item.id === id) });
+    }
 
     if (action === "complete" && !linkOpcional && !isDriveUrl(driveUrl)) {
       return NextResponse.json({ error: "Informe um link válido da pasta ou entrega no Google Drive para concluir." }, { status: 400 });
@@ -60,7 +70,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (action === "start") {
       const { data: active } = await admin.from("creator_time_sessions").select("id").eq("user_id", profile.id).is("ended_at", null).maybeSingle();
       if (active) return NextResponse.json({ error: "Finalize ou pause o timer atual antes de iniciar outro." }, { status: 409 });
-      const { error: sessionError } = await admin.from("creator_time_sessions").insert({ delivery_id: id, user_id: profile.id });
+      const { data: adjustment } = await admin.from("creator_delivery_adjustments").select("id").eq("delivery_id", id).is("completed_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { error: sessionError } = await admin.from("creator_time_sessions").insert({ delivery_id: id, user_id: profile.id, adjustment_id: adjustment?.id ?? null });
       if (sessionError) throw sessionError;
       const { error } = await admin.from("creator_deliveries").update({ status: "em_producao" }).eq("id", id);
       if (error) throw error;
@@ -75,6 +86,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const { error } = await admin.from("creator_deliveries").update(update).eq("id", id);
       if (error) throw error;
       if (action === "complete") {
+        await admin.from("creator_delivery_adjustments").update({ completed_at: new Date().toISOString() }).eq("delivery_id", id).is("completed_at", null);
         await awardCompletionXp({ userId: delivery.assignee_id, organizationId: delivery.organization_id, deliveryId: id, dueAt: delivery.due_at });
       }
     }

@@ -17,11 +17,15 @@ export default async function CreatorPage() {
   if (!isSupabaseConfigured()) redirect("/primeiro-acesso");
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
-  const [deliveries, acesso, gamification, metrics] = await Promise.all([
-    loadDeliveries(profile),
-    getPanelAccess(),
-    loadGamification(profile),
-    loadMetrics(profile.organization_id, profile.role === "designer" ? profile.id : undefined),
+  const acesso = await getPanelAccess();
+  // A conta administrativa do Hub pode não coincidir com o papel legado em
+  // creator_profiles. Para monitoramento, ela sempre enxerga a organização toda.
+  const role = acesso?.isAdmin || profile.role === "admin" ? "admin" : "designer";
+  const monitorProfile = { ...profile, role };
+  const [deliveries, gamification, metrics] = await Promise.all([
+    loadDeliveries(monitorProfile),
+    loadGamification(monitorProfile),
+    loadMetrics(profile.organization_id, role === "designer" ? profile.id : undefined),
   ]);
   // Timers derivados das deliveries já carregadas — antes era uma SEGUNDA carga
   // completa da organização só para filtrar quem tem cronômetro ativo.
@@ -31,15 +35,15 @@ export default async function CreatorPage() {
   const activeTimers = deliveriesToTimers(deliveries);
 
   const timersVisiveis =
-    profile.role === "admin"
+    role === "admin"
       ? activeTimers
       : activeTimers.filter((timer) => timer.assigneeName === profile.full_name);
 
   return (
     <div className="min-h-svh bg-background md:pl-28">
       <AppHeader activeItem="creator" fullName={profile.full_name} panels={acesso?.panels ?? []} isAdmin={acesso?.isAdmin ?? false} avatarUrl={acesso?.avatarUrl} />
-      <ProductionWorkspace initialCapacity={[]} initialDeliveries={deliveries} role={profile.role} fullName={profile.full_name} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
-      <MetricsSection role={profile.role} metrics={metrics} activeTimers={timersVisiveis} gamification={gamification} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
+      <ProductionWorkspace initialCapacity={[]} initialDeliveries={deliveries} role={role} fullName={profile.full_name} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
+      <MetricsSection role={role} metrics={metrics} activeTimers={timersVisiveis} gamification={gamification} realtimeTopic={`creator-monitor:${profile.organization_id}`} />
     </div>
   );
 }

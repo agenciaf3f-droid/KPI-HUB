@@ -1,8 +1,7 @@
 "use client";
 
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { AdminCreateTaskButton } from "@/components/admin-create-task-button";
 import { CapacityWidget } from "@/components/capacity-widget";
 import { DeliveryCard, type DeliveryAction } from "@/components/delivery-card";
@@ -12,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { STATUS_LABEL, type CreateDeliveryInput, type Delivery, type DeliveryStatus, type TeamMemberCapacity } from "@/lib/types";
 import { toast } from "sonner";
 import type { AppRole } from "@/lib/auth";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { CreatorRealtimeSync } from "@/components/creator-realtime-sync";
 
 const SECTION_ORDER: DeliveryStatus[] = ["em_producao", "aguardando_revisao", "em_ajuste", "bloqueada", "criada", "pausada", "entregue"];
 type StatusFilter = "todas" | DeliveryStatus;
@@ -26,27 +25,6 @@ function ProductionWorkspaceContent({ initialCapacity, initialDeliveries, role, 
   const [deliveries, setDeliveries] = useState(initialDeliveries);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todas");
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!realtimeTopic || !isSupabaseConfigured()) return;
-    const supabase = createClient();
-    // Rajada de eventos vira um refresh só: sem isto, várias mutações em
-    // sequência recarregavam a fila uma vez por evento.
-    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-    const scheduleRefresh = () => {
-      if (refreshTimer) return;
-      refreshTimer = setTimeout(() => {
-        refreshTimer = undefined;
-        router.refresh();
-      }, 180);
-    };
-    const channel = supabase.channel(realtimeTopic, { config: { private: false } }).on("broadcast", { event: "refresh" }, scheduleRefresh).subscribe();
-    return () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      void supabase.removeChannel(channel);
-    };
-  }, [realtimeTopic, router]);
 
   const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
   const filteredDeliveries = useMemo(() => deliveries.filter((delivery) => {
@@ -102,6 +80,7 @@ function ProductionWorkspaceContent({ initialCapacity, initialDeliveries, role, 
 
   return (
     <main className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 p-4 sm:p-6 lg:p-8">
+      <CreatorRealtimeSync topic={realtimeTopic} />
       {/* Sem cabeçalho de boas-vindas: quem identifica a aba é a sidebar do hub.
           A busca desceu para a barra de filtros da fila; convidar designer vive
           na aba Equipe. */}

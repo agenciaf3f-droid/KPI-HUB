@@ -1,12 +1,12 @@
 "use client";
 
-import { Play } from "lucide-react";
+import { Plus, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ClientPicker } from "@/components/client-picker";
 import type { CreateDeliveryInput } from "@/lib/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const DELIVERY_TYPES = [
+const DEFAULT_DELIVERY_TYPES = [
   "Post estático",
   "Carrossel",
   "Story ou pacote de stories",
@@ -35,9 +35,23 @@ const DELIVERY_TYPES = [
 ];
 
 export function NewDeliveryBar({ onCreate, ownerName }: { onCreate: (delivery: CreateDeliveryInput) => Promise<void>; ownerName: string }) {
+  const [deliveryTypes, setDeliveryTypes] = useState(DEFAULT_DELIVERY_TYPES);
   const [deliveryType, setDeliveryType] = useState("");
   const [clientName, setClientName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newTypeOpen, setNewTypeOpen] = useState(false);
+  const [newType, setNewType] = useState("");
+
+  useEffect(() => { fetch("/api/delivery-types").then((response) => response.json()).then((body) => { if (Array.isArray(body.types)) setDeliveryTypes((current) => [...new Set([...current, ...body.types.map((item: { name: string }) => item.name)])]); }); }, []);
+
+  async function addType() {
+    const name = newType.trim();
+    if (!name) return;
+    const response = await fetch("/api/delivery-types", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+    const body = await response.json();
+    if (!response.ok) { toast.error(body.error ?? "Não foi possível salvar o tipo."); return; }
+    setDeliveryTypes((current) => [...new Set([...current, body.type.name])]); setDeliveryType(body.type.name); setNewType(""); setNewTypeOpen(false); toast.success("Tipo salvo para as próximas entregas.");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,11 +106,12 @@ export function NewDeliveryBar({ onCreate, ownerName }: { onCreate: (delivery: C
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Tipo de entrega</SelectLabel>
-                {DELIVERY_TYPES.map((t) => (
+                {deliveryTypes.map((t) => (
                   <SelectItem key={t} value={t}>
                     {t}
                   </SelectItem>
                 ))}
+                <button type="button" className="flex w-full items-center gap-2 px-2 py-2 text-sm text-primary" onClick={() => setNewTypeOpen(true)}><Plus className="size-4" /> Cadastrar novo tipo</button>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -110,6 +125,8 @@ export function NewDeliveryBar({ onCreate, ownerName }: { onCreate: (delivery: C
           <Input id="delivery-owner" value={ownerName} readOnly aria-readonly="true" className="bg-card text-muted-foreground" />
         </div>
       </div>
+
+      {newTypeOpen ? <div className="flex max-w-md gap-2"><Input autoFocus value={newType} onChange={(event) => setNewType(event.target.value)} placeholder="Ex.: Motion para redes sociais" onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void addType(); } }} /><Button type="button" variant="outline" className="rounded-full" onClick={() => void addType()}>Salvar</Button></div> : null}
 
       <Button type="submit" className="w-fit rounded-full px-5" disabled={isSubmitting}>
         <Play /> {isSubmitting ? "Iniciando..." : "Iniciar entrega"}

@@ -1,35 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { LiveTimer } from "@/components/live-timer";
 import type { ActiveDeliveryTimer } from "@/lib/types";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
-export function ActiveTimersPanel({ activeTimers, realtimeTopic }: { activeTimers: ActiveDeliveryTimer[]; realtimeTopic?: string }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!realtimeTopic || !isSupabaseConfigured()) return;
-    const supabase = createClient();
-    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-    const scheduleRefresh = () => {
-      if (refreshTimer) return;
-      refreshTimer = setTimeout(() => {
-        refreshTimer = undefined;
-        router.refresh();
-      }, 180);
-    };
-    const channel = supabase
-      .channel(realtimeTopic, { config: { private: false } })
-      .on("broadcast", { event: "refresh" }, scheduleRefresh)
-      .subscribe();
-    return () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      void supabase.removeChannel(channel);
-    };
-  }, [realtimeTopic, router]);
-
+export function ActiveTimersPanel({ activeTimers }: { activeTimers: ActiveDeliveryTimer[]; realtimeTopic?: string }) {
   return (
     <section className="mt-4 rounded-[1.5rem] border border-border bg-card p-5 shadow-sm sm:p-6">
       <div className="flex items-start justify-between gap-4">

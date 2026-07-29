@@ -23,7 +23,8 @@ type DeliveryRow = {
   adjustment_count: number;
 };
 
-type SessionRow = { delivery_id: string; started_at: string; ended_at: string | null; duration_seconds: number | null };
+type SessionRow = { delivery_id: string; started_at: string; ended_at: string | null; duration_seconds: number | null; adjustment_id: string | null };
+type AdjustmentRow = { id: string; delivery_id: string; description: string; created_at: string; completed_at: string | null };
 
 export async function loadDeliveries(profile: AppProfile): Promise<Delivery[]> {
   const admin = createAdminClient();
@@ -111,13 +112,14 @@ async function mapDeliveries(rows: DeliveryRow[]): Promise<Delivery[]> {
   const clientIds = [...new Set(rows.map((row) => row.client_id))];
   const typeIds = [...new Set(rows.map((row) => row.delivery_type_id))];
   const assigneeIds = [...new Set(rows.map((row) => row.assignee_id))];
-  const [clients, types, profiles, sessions] = await Promise.all([
+  const [clients, types, profiles, sessions, adjustments] = await Promise.all([
     admin.from("creator_clients").select("id, name").in("id", clientIds),
     admin.from("creator_delivery_types").select("id, name").in("id", typeIds),
     admin.from("creator_profiles").select("id, full_name, designer_color").in("id", assigneeIds),
-    admin.from("creator_time_sessions").select("delivery_id, started_at, ended_at, duration_seconds").in("delivery_id", deliveryIds),
+    admin.from("creator_time_sessions").select("delivery_id, started_at, ended_at, duration_seconds, adjustment_id").in("delivery_id", deliveryIds),
+    admin.from("creator_delivery_adjustments").select("id, delivery_id, description, created_at, completed_at").in("delivery_id", deliveryIds).order("created_at"),
   ]);
-  for (const response of [clients, types, profiles, sessions]) if (response.error) throw response.error;
+  for (const response of [clients, types, profiles, sessions, adjustments]) if (response.error) throw response.error;
   const clientNames = new Map((clients.data ?? []).map((item) => [item.id, item.name]));
   const typeNames = new Map((types.data ?? []).map((item) => [item.id, item.name]));
   const assigneeProfiles = new Map((profiles.data ?? []).map((item) => [item.id, item]));
@@ -125,11 +127,15 @@ async function mapDeliveries(rows: DeliveryRow[]): Promise<Delivery[]> {
   for (const session of (sessions.data ?? []) as SessionRow[]) {
     sessionsByDelivery.set(session.delivery_id, [...(sessionsByDelivery.get(session.delivery_id) ?? []), session]);
   }
+  const adjustmentRows = (adjustments.data ?? []) as AdjustmentRow[];
+  const adjustmentById = new Map(adjustmentRows.map((item) => [item.id, item]));
 
   return rows.map((row) => {
     const rowSessions = sessionsByDelivery.get(row.id) ?? [];
     const active = rowSessions.find((session) => session.ended_at === null);
     const activeSecondsAccumulated = rowSessions.reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0);
+    const originalSeconds = rowSessions.filter((session) => !session.adjustment_id).reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0);
+    const adjustmentItems = adjustmentRows.filter((item) => item.delivery_id === row.id).map((item) => ({ id: item.id, description: item.description, createdAt: item.created_at, completedAt: item.completed_at ?? undefined, seconds: rowSessions.filter((session) => session.adjustment_id === item.id).reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0) }));
     return {
       id: row.id,
       clientName: clientNames.get(row.client_id) ?? "Cliente",
@@ -149,6 +155,9 @@ async function mapDeliveries(rows: DeliveryRow[]): Promise<Delivery[]> {
       adjustmentCount: row.adjustment_count,
       activeSessionStartedAt: active?.started_at,
       activeSecondsAccumulated,
+      originalSeconds,
+      adjustmentSeconds: Math.max(0, activeSecondsAccumulated - originalSeconds),
+      adjustments: adjustmentItems,
     };
   });
 }

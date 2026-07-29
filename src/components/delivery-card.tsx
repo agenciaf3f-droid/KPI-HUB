@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Pause, Check, Lock, Link as LinkIcon, ArrowRight, Trash2 } from "lucide-react";
+import { Play, Pause, Check, Lock, Link as LinkIcon, ArrowRight, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { STATUS_LABEL, type Delivery } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const statusDot: Record<Delivery["status"], string> = {
   criada: "bg-muted-foreground",
@@ -23,7 +24,7 @@ const statusDot: Record<Delivery["status"], string> = {
   cancelada: "bg-muted-foreground",
 };
 
-export type DeliveryAction = "start" | "pause" | "review" | "complete" | "link";
+export type DeliveryAction = "start" | "pause" | "review" | "complete" | "link" | "request_adjustment";
 
 export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: Delivery; onTransition: (id: string, action: DeliveryAction, driveUrl?: string) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
   const due = formatDueLabel(delivery.dueAt);
@@ -33,6 +34,9 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
   const [driveUrl, setDriveUrl] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [adjustmentDescription, setAdjustmentDescription] = useState("");
   const ehLandingPage = delivery.deliveryType.toLocaleLowerCase("pt-BR") === "landing page";
 
   async function act(label: string, action: DeliveryAction, url?: string) {
@@ -134,7 +138,8 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
         {delivery.deliveryUrl ? <a href={delivery.deliveryUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary hover:underline">Abrir entrega no Drive</a> : null}
 
         <div className="flex items-center gap-2 pt-1">
-          <DeliveryActions status={delivery.status} onAction={act} onComplete={() => setFinishOpen(true)} disabled={isSubmitting} />
+          <DeliveryActions status={delivery.status} onAction={act} onComplete={() => setFinishOpen(true)} onAdjustment={() => setAdjustmentOpen(true)} disabled={isSubmitting} />
+          {delivery.status === "entregue" && delivery.adjustments?.length ? <Button size="sm" variant="outline" className="rounded-full" onClick={() => setHistoryOpen(true)}><History /> Histórico</Button> : null}
           {/* Landing page publica depois: o link entra sem mexer no timer nem no XP. */}
           {ehLandingPage && delivery.status === "entregue" ? (
             <Button size="sm" variant="outline" className="rounded-full" disabled={isSubmitting} onClick={() => { setDriveUrl(delivery.deliveryUrl ?? ""); setLinkOpen(true); }}>
@@ -160,6 +165,8 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={adjustmentOpen} onOpenChange={setAdjustmentOpen}><DialogContent><DialogHeader><DialogTitle>Solicitar ajuste</DialogTitle><DialogDescription>Descreva o que precisa ser alterado.</DialogDescription></DialogHeader><Textarea value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} placeholder="Ex.: Trocar a chamada principal..." /><DialogFooter><Button className="rounded-full" disabled={isSubmitting || !adjustmentDescription.trim()} onClick={async () => { await onTransition(delivery.id, "request_adjustment", adjustmentDescription); setAdjustmentDescription(""); setAdjustmentOpen(false); }}>Iniciar ajuste</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent><DialogHeader><DialogTitle>Histórico de alterações</DialogTitle></DialogHeader><div className="space-y-3 text-sm"><p>Tempo original: {formatSeconds(delivery.originalSeconds ?? delivery.activeSecondsAccumulated)}</p>{(delivery.adjustments ?? []).map((item) => <div key={item.id} className="rounded-xl bg-muted p-3"><p className="font-medium">{item.description}</p><p className="text-muted-foreground">{formatSeconds(item.seconds)}</p></div>)}<p className="font-semibold">Tempo total: {formatSeconds(delivery.activeSecondsAccumulated)}</p></div></DialogContent></Dialog>
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent className="rounded-[1.5rem] p-6 sm:max-w-md">
           <DialogHeader>
@@ -192,11 +199,13 @@ function DeliveryActions({
   status,
   onAction,
   onComplete,
+  onAdjustment,
   disabled,
 }: {
   status: Delivery["status"];
   onAction: (label: string, action: DeliveryAction) => void;
   onComplete: () => void;
+  onAdjustment: () => void;
   disabled: boolean;
 }) {
   switch (status) {
@@ -263,7 +272,11 @@ function DeliveryActions({
           Desbloquear
         </Button>
       );
+    case "entregue":
+      return <Button size="sm" variant="outline" className="rounded-full" disabled={disabled} onClick={onAdjustment}>Solicitar ajuste</Button>;
     default:
       return null;
   }
 }
+
+function formatSeconds(seconds: number) { const minutes = Math.floor(seconds / 60); const hours = Math.floor(minutes / 60); return hours ? `${hours}h ${minutes % 60}min` : `${minutes}min`; }
