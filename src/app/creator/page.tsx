@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/app-header";
 import { MetricsSection } from "@/components/metrics-dashboard";
 import { ProductionWorkspace } from "@/components/production-workspace";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, type AppRole } from "@/lib/auth";
 import { deliveriesToTimers, loadDeliveries } from "@/lib/deliveries";
 import { loadGamification } from "@/lib/gamification";
 import { loadMetrics } from "@/lib/metrics";
@@ -20,7 +20,7 @@ export default async function CreatorPage() {
   const acesso = await getPanelAccess();
   // A conta administrativa do Hub pode não coincidir com o papel legado em
   // creator_profiles. Para monitoramento, ela sempre enxerga a organização toda.
-  const role = acesso?.isAdmin || profile.role === "admin" ? "admin" : "designer";
+  const role: AppRole = acesso?.isAdmin || profile.role === "admin" ? "admin" : "designer";
   const monitorProfile = { ...profile, role };
   const [deliveries, gamification, metrics] = await Promise.all([
     loadDeliveries(monitorProfile),
