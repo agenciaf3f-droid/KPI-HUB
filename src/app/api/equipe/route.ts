@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { emailConviteComSenha } from "@/lib/email";
+import { registerF3fLogin } from "@/lib/f3f-logins";
 import { getPanelAccess } from "@/lib/panels";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -90,6 +91,9 @@ export async function POST(request: Request) {
       throw memberError;
     }
 
+    // Registra no login central F3F (f3f_logins, este mesmo banco).
+    await registerF3fLogin(admin, { userId: user.id, email });
+
     // Área creator: o painel exige linha em creator_profiles (getCurrentProfile
     // redireciona sem ela). Mesmo padrão do /api/invites/accept.
     if (areas.includes("creator")) {
@@ -170,6 +174,15 @@ export async function DELETE(request: Request) {
 
     const { error: deleteError } = await admin.from("hub_members").delete().eq("id", id);
     if (deleteError) throw deleteError;
+
+    // Marca como inativo no login central F3F (a conta em auth.users fica —
+    // a pessoa pode ter acesso a outros sistemas; só o 'hub' desliga).
+    const { error: f3fError } = await admin
+      .from("f3f_logins")
+      .update({ active: false })
+      .eq("email", membro.email.toLowerCase())
+      .eq("system", "hub");
+    if (f3fError) console.error("[equipe] f3f_logins deactivate falhou:", f3fError.message);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -9,6 +9,7 @@
 import { createContext, useContext, useMemo } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { syncPasswordMirror } from "@/lib/f3f-central";
 
 type EditorAuthValue = {
   currentEditor: string;
@@ -42,6 +43,8 @@ export function EditorAuthProvider({
       updatePassword: async (newPassword: string) => {
         const { error } = await supabase.auth.updateUser({ password: newPassword });
         if (error) throw error;
+        // Propaga pro espelho do Console.Ads (senha única F3F). Best-effort.
+        await syncPasswordMirror(newPassword);
       },
     }),
     [currentEditor, isAdmin],

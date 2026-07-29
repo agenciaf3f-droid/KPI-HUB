@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { syncPasswordMirror } from "@/lib/f3f-central";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -63,6 +64,8 @@ export default function DefinirSenhaPage() {
     try {
       const { error } = await createClient().auth.updateUser({ password: senha });
       if (error) throw error;
+      // Propaga pro espelho do Console.Ads (senha única F3F). Best-effort.
+      await syncPasswordMirror(senha);
       // Tira a marca de senha provisória — é o que destrava os painéis.
       await fetch("/api/conta/senha-definida", { method: "POST" });
       toast.success("Senha criada. Bem-vindo(a)!");

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { checkHubAccess } from "@/lib/f3f-central";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -36,6 +37,13 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
+
+      // Login central F3F: desativado em f3f_logins = fora, mesmo com senha certa.
+      if ((await checkHubAccess()) === "desativado") {
+        await supabase.auth.signOut();
+        toast.error("Seu acesso foi desativado. Fale com um admin.");
+        return;
+      }
 
       const { data: factors, error: factorsError } =
         await supabase.auth.mfa.listFactors();
