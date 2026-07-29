@@ -91,9 +91,6 @@ export async function POST(request: Request) {
       throw memberError;
     }
 
-    // Registra no login central F3F (f3f_logins, este mesmo banco).
-    await registerF3fLogin(admin, { userId: user.id, email });
-
     // Área creator: o painel exige linha em creator_profiles (getCurrentProfile
     // redireciona sem ela). Mesmo padrão do /api/invites/accept.
     if (areas.includes("creator")) {
@@ -128,6 +125,11 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    // Registra no login central F3F (f3f_logins, este mesmo banco). Fica DEPOIS
+    // do bloco creator (que ainda pode desfazer o provisionamento) — mesmo
+    // posicionamento de invites/accept e setup: último passo antes do retorno.
+    await registerF3fLogin(admin, { userId: user.id, email });
 
     // O e-mail é o aviso do convite — sai sempre, inclusive quando o admin
     // digitou a senha (antes só saía com o campo vazio, e ninguém era avisado).

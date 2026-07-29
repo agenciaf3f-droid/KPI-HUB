@@ -27,4 +27,4 @@ Autorização é local: `hub_members` (áreas, `is_admin`), `creator_profiles` (
 - [ ] Membro novo por `/api/equipe` aparece em `f3f_logins` (`system='hub'`).
 - [ ] Revogar membro → `f3f_logins.active=false`; próximo login é barrado com "acesso desativado".
 - [ ] Troca de senha propaga (logs da edge `f3f-auth-set-password`: `mirror_console_ads_synced`).
-- [ ] `npx tsc --noEmit` limpo.
+- [ ] `npx tsc --noEmit` sem erros NOVOS (a main já carrega 2 erros pré-existentes em `src/app/creator/page.tsx` — fora do escopo de auth).
