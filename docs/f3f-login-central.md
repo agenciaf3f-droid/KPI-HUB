@@ -28,3 +28,5 @@ Autorização é local: `hub_members` (áreas, `is_admin`), `creator_profiles` (
 - [ ] Revogar membro → `f3f_logins.active=false`; próximo login é barrado com "acesso desativado".
 - [ ] Troca de senha propaga (logs da edge `f3f-auth-set-password`: `mirror_console_ads_synced`).
 - [ ] `npx tsc --noEmit` sem erros NOVOS (a main já carrega 2 erros pré-existentes em `src/app/creator/page.tsx` — fora do escopo de auth).
+
+> **Conceder acesso ≠ resetar senha (2026-07-30):** quem JÁ tem login F3F e ganha acesso a um sistema novo mantém a senha de sempre — o `f3f-auth-provision` copia o hash bcrypt pro espelho (rpc `f3f_get_password_hash`, service_role only) e manda email de notificação SEM senha. Senha provisória só existe pra quem nunca teve login F3F. Chamadas service-to-service autenticam com header `x-f3f-service-secret` (= `F3F_SERVICE_SECRET`, secret nos dois projetos).
