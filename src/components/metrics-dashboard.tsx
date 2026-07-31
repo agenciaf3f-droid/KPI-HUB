@@ -22,6 +22,19 @@ export function emptyMetrics(): MetricsData {
   return { total: 0, thisMonth: 0, daily: Array.from({ length: 30 }, () => 0), formats: [] };
 }
 
+function formatChartGradient(formats: MetricsData["formats"]) {
+  const total = formats.reduce((sum, format) => sum + format.value, 0);
+  if (!total) return "var(--muted) 0 100%";
+
+  let start = 0;
+  return formats.map((format) => {
+    const end = start + (format.value / total) * 100;
+    const segment = `${format.color} ${start}% ${end}%`;
+    start = end;
+    return segment;
+  }).join(", ");
+}
+
 // KPI do Creator — embutido na aba Creator, abaixo da fila de producao
 // (mesma logica do painel do Editor: primeira dobra opera, o resto mede).
 // Os números vêm de `loadMetrics` (src/lib/metrics.ts); antes eram fixos em 0
@@ -97,7 +110,7 @@ export function MetricsSection({ role, metrics, activeTimers = [], gamification,
                 role="img"
                 aria-label={`${data.formats.reduce((sum, format) => sum + format.value, 0)} entregas distribuídas por formato`}
                 style={{
-                  background: "conic-gradient(var(--muted) 0 100%)",
+                  background: `conic-gradient(${formatChartGradient(data.formats)})`,
                 }}
               >
                 <div className="grid size-full place-items-center rounded-full bg-card text-center">
