@@ -21,7 +21,9 @@ export function AppHeader({ activeItem = "fila", fullName, accountHref = "/conta
   );
 
   return (
-    <aside className="sticky top-0 z-20 flex h-16 w-full items-center justify-between bg-sidebar px-4 text-sidebar-foreground md:fixed md:inset-y-0 md:left-0 md:h-svh md:w-28 md:flex-col md:px-0 md:py-5">
+    // A faixa vertical (border-r) separa a sidebar do conteúdo: sem ela, no
+    // tema escuro os dois fundos quase se encostam e a divisão some.
+    <aside className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground md:fixed md:inset-y-0 md:left-0 md:h-svh md:w-28 md:flex-col md:border-b-0 md:border-r md:px-0 md:py-5">
       {/* Sem logo (pedido do usuário) — o div vazio segura o justify-between
           para a navegação continuar centrada no desktop. */}
       <div className="flex items-center gap-3 md:flex-col">
