@@ -17,20 +17,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const admin = createAdminClient();
     const { data: delivery, error: deliveryError } = await admin
       .from("creator_deliveries")
-      .select("id, organization_id, assignee_id, due_at, delivery_type_id, status")
+      .select("id, organization_id, assignee_id, due_at, status")
       .eq("id", id)
       .maybeSingle();
     if (deliveryError) throw deliveryError;
     if (!delivery || (profile.role === "designer" && delivery.assignee_id !== profile.id)) {
       return NextResponse.json({ error: "Você não tem permissão para alterar esta entrega." }, { status: 403 });
     }
-
-    const { data: tipo } = await admin
-      .from("creator_delivery_types")
-      .select("name")
-      .eq("id", delivery.delivery_type_id)
-      .maybeSingle();
-    const tipoLandingPage = (tipo?.name ?? "").toLocaleLowerCase("pt-BR") === "landing page";
 
     if (action === "request_adjustment") {
       if (delivery.assignee_id !== profile.id) return NextResponse.json({ error: "Apenas o designer responsável pode iniciar um ajuste." }, { status: 403 });
@@ -51,14 +44,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ delivery: deliveries.find((item) => item.id === id) });
     }
 
-    if (action === "complete" && driveUrl && (tipoLandingPage ? !isHttpsUrl(driveUrl) : !isDriveUrl(driveUrl))) {
+    if (action === "complete" && driveUrl && !isHttpsUrl(driveUrl)) {
       return NextResponse.json({ error: "O link informado não é válido." }, { status: 400 });
     }
 
     // Só grava a URL: não mexe em status, não abre nem fecha sessão de tempo e
     // não passa por awardCompletionXp — daí não duplicar XP nem reiniciar nada.
     if (action === "link") {
-      const valido = tipoLandingPage ? isHttpsUrl(driveUrl) : isDriveUrl(driveUrl);
+      const valido = isHttpsUrl(driveUrl);
       if (!valido) return NextResponse.json({ error: "Informe um link válido (https)." }, { status: 400 });
       const { error } = await admin.from("creator_deliveries").update({ delivery_url: driveUrl }).eq("id", id);
       if (error) throw error;
@@ -122,17 +115,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 }
 
-function isDriveUrl(value: unknown) {
-  if (typeof value !== "string" || !value.trim()) return false;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && (url.hostname === "drive.google.com" || url.hostname === "docs.google.com");
-  } catch {
-    return false;
-  }
-}
-
-/** Landing page publicada mora no domínio do cliente, não no Drive. */
 function isHttpsUrl(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return false;
   try {
