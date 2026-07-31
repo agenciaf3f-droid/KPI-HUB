@@ -61,3 +61,32 @@ describe("handlers inline do painel do Gestor", () => {
     expect(orfaos).toEqual([]);
   });
 });
+
+/**
+ * O CSS foi escopado trocando `body` por `.gestor-app`. A substituição entrou
+ * no meio de um nome (`.drill-modal-body` virou `.drill-modal-.gestor-app`) e
+ * a regra morreu calada — o corpo do drill ficou sem padding nem rolagem.
+ */
+describe("CSS escopado do painel do Gestor", () => {
+  const css = readFileSync(join(dir, "gestor.css"), "utf8");
+
+  it("não tem seletor colado no .gestor-app", () => {
+    const quebrados = css
+      .split("\n")
+      .map((linha, i) => ({ linha: linha.trim(), n: i + 1 }))
+      .filter(({ linha }) => /[-_a-zA-Z0-9]\.gestor-app|\.gestor-app[-_a-zA-Z0-9]/.test(linha))
+      .map(({ linha, n }) => `${n}: ${linha.slice(0, 80)}`);
+    expect(quebrados).toEqual([]);
+  });
+
+  it("as classes com 'body' do HTML têm regra no CSS", () => {
+    const usadas = new Set<string>();
+    for (const fonte of [markup, engine]) {
+      for (const m of fonte.matchAll(/class="([^"]*body[^"]*)"/g)) {
+        m[1].split(/\s+/).filter((c) => c.includes("body")).forEach((c) => usadas.add(c));
+      }
+    }
+    const semRegra = [...usadas].filter((classe) => !css.includes(`.${classe}`));
+    expect(semRegra).toEqual([]);
+  });
+});

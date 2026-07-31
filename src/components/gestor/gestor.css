@@ -386,7 +386,12 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 }
 .drill-modal-head h2 { font-size:.95rem; font-weight:700; color:var(--text); }
 .drill-modal-head .drill-sub { font-size:.72rem; color:var(--text-2); margin-top:3px; }
-.drill-modal-.gestor-app { overflow-y:auto; padding:20px 24px; flex:1; }
+/* Era `.drill-modal-body`: ao escopar o CSS trocando `body` por `.gestor-app`,
+   a substituicao entrou no meio do nome e matou a regra — o corpo do drill
+   ficou sem padding, sem rolagem e sem flex, cortando a ultima coluna. */
+.drill-modal-body { overflow:auto; padding:20px 24px; flex:1; }
+/* Tabela larga rola dentro do modal em vez de vazar por baixo da borda. */
+.drill-modal-body .drill-table { min-width:max-content; }
 
 .drill-close-btn {
   display:inline-flex; align-items:center; justify-content:center;
