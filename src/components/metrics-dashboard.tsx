@@ -16,10 +16,19 @@ export type MetricsData = {
   thisMonth: number;
   daily: number[];
   formats: Array<{ label: string; value: number; color: string }>;
+  timeSeconds: number;
 };
 
 export function emptyMetrics(): MetricsData {
-  return { total: 0, thisMonth: 0, daily: Array.from({ length: 30 }, () => 0), formats: [] };
+  return { total: 0, thisMonth: 0, daily: Array.from({ length: 30 }, () => 0), formats: [], timeSeconds: 0 };
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours) return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+  return `${minutes}min`;
 }
 
 function formatChartGradient(formats: MetricsData["formats"]) {
@@ -56,7 +65,7 @@ export function MetricsSection({ role, metrics, activeTimers = [], gamification,
             icon={<UsersRound />}
             iconClassName="bg-[#6E37C4]/15 text-[#6E37C4] shadow-[0_0_24px_rgba(110,55,196,0.24)]"
             label={isAdmin ? "Média por designer" : "Meu tempo ativo"}
-            value={isAdmin ? String(data.total) : "0h"}
+            value={isAdmin ? String(data.total) : formatDuration(data.timeSeconds)}
           />
           <MetricCard
             icon={<TrendingUp />}

@@ -19,7 +19,7 @@ export async function loadMetrics(organizationId: string, assigneeId?: string): 
 
   let query = admin
     .from("creator_deliveries")
-    .select("delivered_at, delivery_type_id, assignee_id, title, quantity")
+    .select("id, delivered_at, delivery_type_id, assignee_id, title, quantity")
     .eq("organization_id", organizationId)
     .eq("status", "entregue")
     .gte("delivered_at", since.toISOString());
@@ -28,6 +28,16 @@ export async function loadMetrics(organizationId: string, assigneeId?: string): 
   const { data: rows, error } = await query;
   if (error) throw error;
   const deliveryRows = rows ?? [];
+
+  const deliveryIds = deliveryRows.map((row) => row.id);
+  const { data: sessions, error: sessionsError } = await admin
+    .from("creator_time_sessions")
+    .select("delivery_id, user_id, duration_seconds")
+    .in("delivery_id", deliveryIds.length ? deliveryIds : ["00000000-0000-0000-0000-000000000000"]);
+  if (sessionsError) throw sessionsError;
+  const timeSeconds = (sessions ?? [])
+    .filter((session) => !assigneeId || session.user_id === assigneeId)
+    .reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0);
 
   const typeIds = [...new Set(deliveryRows.map((row) => row.delivery_type_id))];
   const { data: types, error: typesError } = await admin
@@ -61,5 +71,5 @@ export async function loadMetrics(organizationId: string, assigneeId?: string): 
     .sort(([, left], [, right]) => right - left)
     .map(([label, value], index) => ({ label, value, color: colors[index % colors.length] }));
 
-  return { total: deliveryRows.length, thisMonth, daily, formats };
+  return { total: deliveryRows.length, thisMonth, daily, formats, timeSeconds };
 }
