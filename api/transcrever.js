@@ -19,7 +19,10 @@ import crypto from "node:crypto";
 
 import { sendJson } from "./_lib.js";
 
-const LOTE_PADRAO = 6;          // cabe nos 60s de função do plano Hobby
+// 10 por chamada, a cada 2 min = 5/min. O pico de chegada medido é ~2/min, então
+// sobra folga de 2,5× — e ainda cabe nos 60s de função do plano Hobby (cada
+// transcrição leva ~1,5s mais o download).
+const LOTE_PADRAO = 10;
 const MAX_TENTATIVAS = 3;
 const MAX_BYTES = 20 * 1024 * 1024;  // a API aceita 25 MB; folga para o multipart
 const MODELO = "gpt-4o-mini-transcribe";  // mais barato: US$ 0,003/min
