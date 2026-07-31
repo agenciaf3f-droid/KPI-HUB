@@ -8,18 +8,22 @@ import {
 import { type GamificationData } from "@/lib/gamification";
 import { ActiveTimersPanel } from "@/components/active-timers-panel";
 import { GamificationPanel } from "@/components/gamification-panel";
+import { FormatDistributionCard } from "@/components/format-distribution-card";
 import type { ActiveDeliveryTimer } from "@/lib/types";
+
+export type FormatPeriod = "today" | "yesterday" | "7days" | "month";
 
 export type MetricsData = {
   total: number;
   thisMonth: number;
   daily: number[];
   formats: Array<{ label: string; value: number; color: string }>;
+  formatsByPeriod: Record<FormatPeriod, Array<{ label: string; value: number; color: string }>>;
   timeSeconds: number;
 };
 
 export function emptyMetrics(): MetricsData {
-  return { total: 0, thisMonth: 0, daily: Array.from({ length: 30 }, () => 0), formats: [], timeSeconds: 0 };
+  return { total: 0, thisMonth: 0, daily: Array.from({ length: 30 }, () => 0), formats: [], formatsByPeriod: { today: [], yesterday: [], "7days": [], month: [] }, timeSeconds: 0 };
 }
 
 function formatDuration(seconds: number) {
@@ -28,19 +32,6 @@ function formatDuration(seconds: number) {
   const remainingMinutes = minutes % 60;
   if (hours) return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
   return `${minutes}min`;
-}
-
-function formatChartGradient(formats: MetricsData["formats"]) {
-  const total = formats.reduce((sum, format) => sum + format.value, 0);
-  if (!total) return "var(--muted) 0 100%";
-
-  let start = 0;
-  return formats.map((format) => {
-    const end = start + (format.value / total) * 100;
-    const segment = `${format.color} ${start}% ${end}%`;
-    start = end;
-    return segment;
-  }).join(", ");
 }
 
 // KPI do Creator — embutido na aba Creator, abaixo da fila de producao
@@ -101,55 +92,7 @@ export function MetricsSection({ role, metrics, activeTimers = [], gamification,
             </footer>
           </article>
 
-          <article className="rounded-[1.5rem] border border-border bg-card p-5 shadow-sm sm:p-6">
-            <header className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-lg font-semibold tracking-[-0.02em]">Por formato</p>
-                <p className="mt-1 text-sm text-muted-foreground">Distribuição das entregas.</p>
-              </div>
-              <label className="relative shrink-0">
-                <span className="sr-only">Período do gráfico por formato</span>
-                <select
-                  defaultValue="month"
-                  className="appearance-none rounded-lg bg-muted py-1.5 pl-3 pr-7 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="today">Hoje</option>
-                  <option value="yesterday">Ontem</option>
-                  <option value="7days">Últimos 7 dias</option>
-                  <option value="month">Este mês</option>
-                </select>
-                <span aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px]">⌄</span>
-              </label>
-            </header>
-
-            <div className="mt-6 grid place-items-center">
-              <div
-                className="grid size-52 place-items-center rounded-full p-6"
-                role="img"
-                aria-label={`${data.formats.reduce((sum, format) => sum + format.value, 0)} entregas distribuídas por formato`}
-                style={{
-                  background: `conic-gradient(${formatChartGradient(data.formats)})`,
-                }}
-              >
-                <div className="grid size-full place-items-center rounded-full bg-card text-center">
-                  <div>
-                    <p className="text-4xl font-semibold tracking-[-0.05em]">{data.formats.reduce((sum, format) => sum + format.value, 0)}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">entregas</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-5 text-xs">
-              {data.formats.length ? data.formats.map((format) => (
-                <div key={format.label} className="flex min-w-0 items-center gap-2">
-                  <i className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: format.color }} />
-                  <span className="truncate text-muted-foreground">{format.label}</span>
-                  <strong className="ml-auto font-semibold text-foreground">{format.value}</strong>
-                </div>
-              )) : <p className="col-span-2 text-muted-foreground">Nenhuma entrega concluída no período.</p>}
-            </div>
-          </article>
+          <FormatDistributionCard formatsByPeriod={data.formatsByPeriod} />
         </section>
 
         <ActiveTimersPanel activeTimers={activeTimers} realtimeTopic={realtimeTopic} />

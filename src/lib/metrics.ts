@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { MetricsData } from "@/components/metrics-dashboard";
+import type { FormatPeriod, MetricsData } from "@/components/metrics-dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -71,5 +71,40 @@ export async function loadMetrics(organizationId: string, assigneeId?: string): 
     .sort(([, left], [, right]) => right - left)
     .map(([label, value], index) => ({ label, value, color: colors[index % colors.length] }));
 
-  return { total: deliveryRows.length, thisMonth, daily, formats, timeSeconds };
+  const dataAtual = new Date();
+  const inicioHoje = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), dataAtual.getDate());
+  const inicioOntem = new Date(inicioHoje);
+  inicioOntem.setDate(inicioOntem.getDate() - 1);
+  const inicioSeteDias = new Date(inicioHoje);
+  inicioSeteDias.setDate(inicioSeteDias.getDate() - 6);
+  const inicioMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1);
+  const fim = new Date(dataAtual);
+  const ranges: Record<FormatPeriod, [Date, Date]> = {
+    today: [inicioHoje, fim],
+    yesterday: [inicioOntem, inicioHoje],
+    "7days": [inicioSeteDias, fim],
+    month: [inicioMes, fim],
+  };
+  const formatsByPeriod = Object.fromEntries(
+    Object.entries(ranges).map(([period, [start, end]]) => [
+      period,
+      buildFormats(deliveryRows.filter((row) => {
+        const date = new Date(row.delivered_at!);
+        return date >= start && date <= end;
+      }), typeNames),
+    ]),
+  ) as MetricsData["formatsByPeriod"];
+
+  return { total: deliveryRows.length, thisMonth, daily, formats, formatsByPeriod, timeSeconds };
+}
+
+function buildFormats(rows: Array<{ delivered_at: string | null; delivery_type_id: string; title: string | null; quantity: number | null }>, typeNames: Map<string, string>) {
+  const values = new Map<string, number>();
+  const colors = ["#6E37C4", "#3B82F6", "#14B8A6", "#F97316", "#EAB308", "#EC4899", "#64748B"];
+  for (const row of rows) {
+    const typeName = typeNames.get(row.delivery_type_id) ?? "Formato não identificado";
+    const label = typeName.toLocaleLowerCase("pt-BR") === "outro" ? `Outro — ${String(row.title ?? "sem especificação").replace(/^outro\s+—\s*/i, "")}` : typeName;
+    values.set(label, (values.get(label) ?? 0) + (Number(row.quantity) || 1));
+  }
+  return [...values.entries()].sort(([, a], [, b]) => b - a).map(([label, value], index) => ({ label, value, color: colors[index % colors.length] }));
 }
