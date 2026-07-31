@@ -1,7 +1,6 @@
 import {
   ArrowUpRight,
   CalendarDays,
-  ChevronDown,
   Film,
   TrendingUp,
   UsersRound,
@@ -108,9 +107,19 @@ export function MetricsSection({ role, metrics, activeTimers = [], gamification,
                 <p className="text-lg font-semibold tracking-[-0.02em]">Por formato</p>
                 <p className="mt-1 text-sm text-muted-foreground">Distribuição das entregas.</p>
               </div>
-              <button type="button" className="flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
-                Este mês <ChevronDown className="size-3.5" />
-              </button>
+              <label className="relative shrink-0">
+                <span className="sr-only">Período do gráfico por formato</span>
+                <select
+                  defaultValue="month"
+                  className="appearance-none rounded-lg bg-muted py-1.5 pl-3 pr-7 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="today">Hoje</option>
+                  <option value="yesterday">Ontem</option>
+                  <option value="7days">Últimos 7 dias</option>
+                  <option value="month">Este mês</option>
+                </select>
+                <span aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px]">⌄</span>
+              </label>
             </header>
 
             <div className="mt-6 grid place-items-center">
