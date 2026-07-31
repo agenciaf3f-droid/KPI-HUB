@@ -108,7 +108,13 @@ export default async function handler(req, res) {
 
   const lote = Math.min(Number(new URL(req.url, "http://x").searchParams.get("lote")) || LOTE_PADRAO, 25);
   // "Só daqui pra frente": recuar esta data é o botão de backfill.
-  const desde = process.env.TRANSCRICAO_DESDE || new Date().toISOString();
+  //
+  // A coluna `Horário` é `timestamp without time zone` gravada em horário de
+  // Brasília, e a env vem em UTC. Comparar direto abriria uma janela cega de
+  // 3 horas — nada seria transcrito nesse intervalo. `sv-SE` devolve no
+  // formato "YYYY-MM-DD HH:mm:ss", que é o que o PostgREST espera.
+  const desdeUtc = process.env.TRANSCRICAO_DESDE || new Date().toISOString();
+  const desde = new Date(desdeUtc).toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
   // Fila: mídia sem texto (vazio ou só o 🔊 que a origem grava como placeholder).
   const alvo =
