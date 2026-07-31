@@ -6,13 +6,6 @@ import { awardCompletionXp } from "@/lib/gamification";
 
 type Action = "start" | "pause" | "review" | "complete" | "link" | "request_adjustment";
 
-/**
- * Landing page é publicada depois da entrega: cobrar a URL na conclusão
- * travava o designer numa demanda já pronta. Para esse tipo o link é
- * opcional e entra depois pela ação "link".
- */
-const TIPOS_SEM_LINK_OBRIGATORIO = ["landing page"];
-
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const profile = await getCurrentProfile();
@@ -24,7 +17,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const admin = createAdminClient();
     const { data: delivery, error: deliveryError } = await admin
       .from("creator_deliveries")
-      .select("id, organization_id, assignee_id, due_at, delivery_type_id")
+      .select("id, organization_id, assignee_id, due_at, delivery_type_id, status")
       .eq("id", id)
       .maybeSingle();
     if (deliveryError) throw deliveryError;
@@ -37,29 +30,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .select("name")
       .eq("id", delivery.delivery_type_id)
       .maybeSingle();
-    const linkOpcional = TIPOS_SEM_LINK_OBRIGATORIO.includes((tipo?.name ?? "").toLocaleLowerCase("pt-BR"));
+    const tipoLandingPage = (tipo?.name ?? "").toLocaleLowerCase("pt-BR") === "landing page";
 
     if (action === "request_adjustment") {
       if (delivery.assignee_id !== profile.id) return NextResponse.json({ error: "Apenas o designer responsável pode iniciar um ajuste." }, { status: 403 });
+      if (delivery.status !== "entregue") return NextResponse.json({ error: "A demanda precisa estar entregue antes de receber um ajuste." }, { status: 409 });
       if (!adjustmentDescription?.trim()) return NextResponse.json({ error: "Descreva o ajuste necessário." }, { status: 400 });
+      const { data: active, error: activeError } = await admin.from("creator_time_sessions").select("id").eq("user_id", profile.id).is("ended_at", null).maybeSingle();
+      if (activeError) throw activeError;
+      if (active) return NextResponse.json({ error: "Pause ou conclua o timer atual antes de iniciar um ajuste." }, { status: 409 });
       const { data: adjustment, error } = await admin.from("creator_delivery_adjustments").insert({ delivery_id: id, created_by: profile.id, description: adjustmentDescription.trim() }).select("id").single();
       if (error || !adjustment) throw error ?? new Error("Não foi possível criar o ajuste.");
-      await admin.from("creator_deliveries").update({ status: "em_ajuste", adjustment_count: (await admin.from("creator_delivery_adjustments").select("id", { count: "exact", head: true }).eq("delivery_id", id)).count ?? 1 }).eq("id", id);
+      const { error: sessionError } = await admin.from("creator_time_sessions").insert({ delivery_id: id, user_id: profile.id, adjustment_id: adjustment.id });
+      if (sessionError) throw sessionError;
+      const { count, error: countError } = await admin.from("creator_delivery_adjustments").select("id", { count: "exact", head: true }).eq("delivery_id", id);
+      if (countError) throw countError;
+      const { error: updateError } = await admin.from("creator_deliveries").update({ status: "em_ajuste", adjustment_count: count ?? 1 }).eq("id", id);
+      if (updateError) throw updateError;
       const deliveries = await loadDeliveries(profile);
       return NextResponse.json({ delivery: deliveries.find((item) => item.id === id) });
     }
 
-    if (action === "complete" && !linkOpcional && !isDriveUrl(driveUrl)) {
-      return NextResponse.json({ error: "Informe um link válido da pasta ou entrega no Google Drive para concluir." }, { status: 400 });
-    }
-    if (action === "complete" && linkOpcional && driveUrl && !isHttpsUrl(driveUrl)) {
+    if (action === "complete" && driveUrl && (tipoLandingPage ? !isHttpsUrl(driveUrl) : !isDriveUrl(driveUrl))) {
       return NextResponse.json({ error: "O link informado não é válido." }, { status: 400 });
     }
 
     // Só grava a URL: não mexe em status, não abre nem fecha sessão de tempo e
     // não passa por awardCompletionXp — daí não duplicar XP nem reiniciar nada.
     if (action === "link") {
-      const valido = linkOpcional ? isHttpsUrl(driveUrl) : isDriveUrl(driveUrl);
+      const valido = tipoLandingPage ? isHttpsUrl(driveUrl) : isDriveUrl(driveUrl);
       if (!valido) return NextResponse.json({ error: "Informe um link válido (https)." }, { status: 400 });
       const { error } = await admin.from("creator_deliveries").update({ delivery_url: driveUrl }).eq("id", id);
       if (error) throw error;
@@ -73,7 +72,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const { data: adjustment } = await admin.from("creator_delivery_adjustments").select("id").eq("delivery_id", id).is("completed_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
       const { error: sessionError } = await admin.from("creator_time_sessions").insert({ delivery_id: id, user_id: profile.id, adjustment_id: adjustment?.id ?? null });
       if (sessionError) throw sessionError;
-      const { error } = await admin.from("creator_deliveries").update({ status: "em_producao" }).eq("id", id);
+      const { error } = await admin.from("creator_deliveries").update({ status: adjustment ? "em_ajuste" : "em_producao" }).eq("id", id);
       if (error) throw error;
     } else {
       const { error: closeError } = await admin.from("creator_time_sessions").update({ ended_at: new Date().toISOString() }).eq("delivery_id", id).eq("user_id", profile.id).is("ended_at", null);

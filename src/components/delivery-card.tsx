@@ -45,6 +45,7 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
       await onTransition(delivery.id, action, url);
       toast.success(`${label}: "${delivery.title}"`);
       if (action === "complete") setFinishOpen(false);
+      if (action === "request_adjustment") { setAdjustmentDescription(""); setAdjustmentOpen(false); }
     } catch {
       // A mensagem de erro é apresentada pelo workspace.
     } finally {
@@ -106,7 +107,7 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
           ) : null}
           <span>Responsável: <strong className="font-medium text-foreground">{delivery.assigneeName}</strong></span>
           {delivery.adjustmentCount > 0 ? (
-            <span className="text-[#b7791f] dark:text-[#f6c952]">{delivery.adjustmentCount} {delivery.adjustmentCount === 1 ? "ajuste" : "ajustes"}</span>
+            <span className="text-[#b7791f] dark:text-[#f6c952]">{delivery.adjustmentCount} {delivery.adjustmentCount === 1 ? "alteração" : "alterações"}</span>
           ) : null}
           {due ? (
             <span className={due.late ? "font-medium text-destructive" : undefined}>{due.label}</span>
@@ -154,19 +155,17 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
           <DialogHeader>
             <DialogTitle>Concluir entrega</DialogTitle>
             <DialogDescription>
-              {ehLandingPage
-                ? "A URL publicada é opcional aqui — você pode concluir agora e adicionar o link quando a página estiver no ar."
-                : "Para registrar a conclusão, cole o link da pasta ou do arquivo final no Google Drive."}
+              "O link da entrega é opcional. Se ainda não estiver disponível, você pode adicionar depois."
             </DialogDescription>
           </DialogHeader>
-          <Input value={driveUrl} onChange={(event) => setDriveUrl(event.target.value)} placeholder={ehLandingPage ? "https://... (opcional)" : "https://drive.google.com/..."} inputMode="url" />
+          <Input value={driveUrl} onChange={(event) => setDriveUrl(event.target.value)} placeholder="https://... (opcional)" inputMode="url" />
           <DialogFooter>
-            <Button type="button" className="rounded-full" disabled={isSubmitting || (!ehLandingPage && !driveUrl.trim())} onClick={() => act("Entrega concluída", "complete", driveUrl)}><Check /> {isSubmitting ? "Salvando..." : "Concluir entrega"}</Button>
+            <Button type="button" className="rounded-full" disabled={isSubmitting} onClick={() => act("Entrega concluída", "complete", driveUrl)}><Check /> {isSubmitting ? "Salvando..." : "Concluir entrega"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={adjustmentOpen} onOpenChange={setAdjustmentOpen}><DialogContent><DialogHeader><DialogTitle>Solicitar ajuste</DialogTitle><DialogDescription>Descreva o que precisa ser alterado.</DialogDescription></DialogHeader><Textarea value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} placeholder="Ex.: Trocar a chamada principal..." /><DialogFooter><Button className="rounded-full" disabled={isSubmitting || !adjustmentDescription.trim()} onClick={async () => { await onTransition(delivery.id, "request_adjustment", adjustmentDescription); setAdjustmentDescription(""); setAdjustmentOpen(false); }}>Iniciar ajuste</Button></DialogFooter></DialogContent></Dialog>
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent><DialogHeader><DialogTitle>Histórico de alterações</DialogTitle></DialogHeader><div className="space-y-3 text-sm"><p>Tempo original: {formatSeconds(delivery.originalSeconds ?? delivery.activeSecondsAccumulated)}</p>{(delivery.adjustments ?? []).map((item) => <div key={item.id} className="rounded-xl bg-muted p-3"><p className="font-medium">{item.description}</p><p className="text-muted-foreground">{formatSeconds(item.seconds)}</p></div>)}<p className="font-semibold">Tempo total: {formatSeconds(delivery.activeSecondsAccumulated)}</p></div></DialogContent></Dialog>
+      <Dialog open={adjustmentOpen} onOpenChange={setAdjustmentOpen}><DialogContent><DialogHeader><DialogTitle>Enviar para ajuste</DialogTitle><DialogDescription>Registre a alteração. O cronômetro do ajuste começa imediatamente, sem apagar o tempo anterior.</DialogDescription></DialogHeader><Textarea value={adjustmentDescription} onChange={(event) => setAdjustmentDescription(event.target.value)} placeholder="Ex.: Trocar a chamada principal..." /><DialogFooter><Button className="rounded-full" disabled={isSubmitting || !adjustmentDescription.trim()} onClick={() => act("Ajuste iniciado", "request_adjustment", adjustmentDescription)}>Iniciar ajuste</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}><DialogContent><DialogHeader><DialogTitle>Histórico de alterações</DialogTitle><DialogDescription>Tempo registrado por rodada de produção.</DialogDescription></DialogHeader><div className="space-y-3 text-sm"><div className="rounded-xl bg-muted p-3"><p className="font-medium">Demanda original</p><p className="text-muted-foreground">{formatSeconds(delivery.originalSeconds ?? delivery.activeSecondsAccumulated)}</p></div>{(delivery.adjustments ?? []).map((item, index) => <div key={item.id} className="rounded-xl bg-muted p-3"><p className="font-medium">Ajuste {index + 1}: {item.description}</p><p className="text-muted-foreground">{formatSeconds(item.seconds)}</p></div>)}<div className="border-t pt-3"><p>Tempo em ajustes: {formatSeconds(delivery.adjustmentSeconds ?? 0)}</p><p className="mt-1 font-semibold">Tempo total: {formatSeconds(delivery.activeSecondsAccumulated)}</p></div></div></DialogContent></Dialog>
       <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
         <DialogContent className="rounded-[1.5rem] p-6 sm:max-w-md">
           <DialogHeader>
@@ -187,7 +186,6 @@ export function DeliveryCard({ delivery, onTransition, onDelete }: { delivery: D
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" className="rounded-full" onClick={() => setDeleteOpen(false)} disabled={isSubmitting}>Cancelar</Button>
-            <Button type="button" variant="destructive" className="rounded-full" onClick={remove} disabled={isSubmitting}><Trash2 /> {isSubmitting ? "Excluindo..." : "Excluir demanda"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -273,7 +271,7 @@ function DeliveryActions({
         </Button>
       );
     case "entregue":
-      return <Button size="sm" variant="outline" className="rounded-full" disabled={disabled} onClick={onAdjustment}>Solicitar ajuste</Button>;
+      return <Button size="sm" variant="outline" className="rounded-full" disabled={disabled} onClick={onAdjustment}>Enviar para ajuste</Button>;
     default:
       return null;
   }
