@@ -589,6 +589,22 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 }
 .nps-feedback-note { font-size:.68rem; font-weight:700; color:var(--primary); margin-bottom:3px; }
 
+/* Avaliacao da empresa, dentro de cada resposta */
+.btn-agencia {
+  display:inline-flex; align-items:center; gap:5px; margin-top:8px;
+  padding:3px 10px; border-radius:7px; border:1px solid var(--border);
+  background:transparent; font-family:var(--font); font-size:.66rem;
+  font-weight:600; color:var(--text-2); cursor:pointer;
+}
+.btn-agencia:hover { background:rgba(0,0,0,.04); color:var(--text); }
+.nps-agencia-box {
+  margin-top:8px; padding:8px 12px; border-radius:8px;
+  background:var(--surface); border:1px solid var(--border);
+  font-size:.75rem; line-height:1.5; color:var(--text);
+}
+.nps-agencia-nota { font-size:.66rem; font-weight:700; color:var(--text-2); margin-bottom:3px; }
+.nps-agencia-vazio { color:var(--text-2); font-style:italic; }
+
 .btn-expand {
   display:inline-flex; align-items:center; gap:6px;
   padding:6px 14px; border-radius:8px; border:1px solid var(--border);
@@ -654,6 +670,8 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .dark .gestor-app .open-table tbody tr:hover { background:#332a1f; }
 .dark .gestor-app .nps-feedback-item { background:#2a202e; }
 .dark .gestor-app .nps-gestor-herdado { color:#a5b4fc; }
+.dark .gestor-app .btn-agencia:hover { background:#332738; }
+.dark .gestor-app .nps-agencia-box { background:#241b28; }
 .dark .gestor-app .nps-tag-herdado { background:#2b2545; border-color:#3b3466; color:#c7bfff; }
 .dark .gestor-app .btn-ghost:hover,
 .dark .gestor-app .btn-expand:hover,

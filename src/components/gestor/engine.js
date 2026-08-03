@@ -3278,11 +3278,24 @@ function npsRender(data){
           Ver feedbacks (${feedbacks.length})
         </button>
         <div class="nps-feedback-list" id="${uid}" style="display:none;">
-          ${feedbacks.map(f=>`
+          ${feedbacks.map((f,fi)=>{
+            // Cada resposta guarda tambem a avaliacao da agencia. Fica atras de
+            // um expandir por resposta para nao competir com o texto do gestor.
+            const aid = uid + '-ag-' + fi;
+            const temNota = !isNaN(f.notaAgencia);
+            const temTexto = f.feedbackAgencia && f.feedbackAgencia.length > 0;
+            const blocoAgencia = (temNota || temTexto) ? `
+              <button class="btn-agencia" onclick="var el=document.getElementById('${aid}');var aberto=el.style.display!=='none';el.style.display=aberto?'none':'block';this.textContent=(aberto?'▸':'▾')+' Avaliação da empresa';">▸ Avaliação da empresa</button>
+              <div class="nps-agencia-box" id="${aid}" style="display:none;">
+                <div class="nps-agencia-nota">Nota para a empresa: ${temNota ? f.notaAgencia : '—'}</div>
+                ${temTexto ? sanitize(f.feedbackAgencia) : '<span class="nps-agencia-vazio">Não escreveu nada para a empresa.</span>'}
+              </div>` : '';
+            return `
             <div class="nps-feedback-item">
               <div class="nps-feedback-note">Nota: ${f.notaGestor}${f.gestorAnterior ? `<span class="nps-tag-herdado" title="Cliente transferido: antes era do ${sanitize(f.gestorAnterior)}">↩ antes: ${sanitize(f.gestorAnterior)}</span>` : ''}</div>
-              ${sanitize(f.feedbackGestor)}
-            </div>`).join('')}
+              ${sanitize(f.feedbackGestor)}${blocoAgencia}
+            </div>`;
+          }).join('')}
         </div>` : '<div style="font-size:.72rem;color:var(--text-2);">Sem feedbacks</div>'}
     </div>`;
   });
