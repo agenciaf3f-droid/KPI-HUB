@@ -269,6 +269,19 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
     <span id="nps-error-text"></span>
   </div>
 
+  <div class="section-title">Meta de Respostas</div>
+  <div class="nps-card nps-meta-card">
+    <div class="nps-meta-top">
+      <div>
+        <div class="nps-card-title">Respostas coletadas</div>
+        <div class="nps-card-sub" id="nps-meta-sub">Calculando meta…</div>
+      </div>
+      <div class="nps-meta-num"><span id="nps-meta-count">—</span><span class="nps-meta-den" id="nps-meta-goal"></span></div>
+    </div>
+    <div class="nps-meta-track"><div class="nps-meta-fill" id="nps-meta-fill" style="width:0%;"></div></div>
+    <div class="nps-meta-foot" id="nps-meta-foot"></div>
+  </div>
+
   <div class="section-title">Indicadores Gerais</div>
   <div class="nps-cards-grid">
     <div class="nps-card">

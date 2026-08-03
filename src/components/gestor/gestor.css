@@ -570,6 +570,27 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .nps-gestor-score { font-size:1.5rem; font-weight:800; letter-spacing:-.03em; }
 .nps-gestor-meta { font-size:.7rem; color:var(--text-2); margin-bottom:10px; }
 
+/* Meta de respostas do mes (metade dos clientes ativos) */
+.nps-meta-card { margin-bottom:22px; }
+.nps-meta-top {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:12px;
+}
+.nps-meta-num {
+  font-size:1.9rem; font-weight:800; letter-spacing:-.03em;
+  color:var(--text); line-height:1; white-space:nowrap;
+}
+.nps-meta-den { font-size:1rem; font-weight:700; color:var(--text-2); }
+.nps-meta-track {
+  height:10px; border-radius:99px; background:var(--border);
+  overflow:hidden;
+}
+.nps-meta-fill {
+  height:100%; border-radius:99px; background:var(--primary);
+  transition:width .5s ease;
+}
+.nps-meta-foot { margin-top:8px; font-size:.72rem; color:var(--text-2); font-weight:500; }
+
 /* Cliente herdado de outro gestor (utm_source de 2 digitos) */
 .nps-gestor-herdado {
   font-size:.66rem; color:#6366f1; font-weight:600;

@@ -3232,6 +3232,10 @@ function npsRender(data){
   npsDrawGauge('gauge-gestor', gestorStats.nps);
   npsDrawGauge('gauge-agencia', agenciaStats.nps);
 
+  // Meta de respostas. Sem await de proposito: depende da planilha de clientes
+  // ativos, que e outra fonte — se ela demorar ou cair, o NPS ja esta na tela.
+  npsRenderMeta(data.length, meuNome);
+
   // Per-gestor
   const byGestor = {};
   data.forEach(d=>{
@@ -3301,6 +3305,58 @@ function npsRender(data){
   });
 
   grid.innerHTML = html;
+}
+
+// Meta do mes: metade dos clientes ativos precisa responder. Reaproveita a
+// planilha "Controle dos Grupos" (mesma fonte de Clientes Ativos da aba Churn)
+// em vez de fixar um numero, que envelheceria a cada entrada ou cancelamento.
+//
+// A base e a de HOJE, inclusive quando se olha um mes passado — a planilha nao
+// guarda o historico de quantos ativos existiam naquele mes.
+async function npsRenderMeta(respostas, meuNome){
+  const sub  = document.getElementById('nps-meta-sub');
+  const cnt  = document.getElementById('nps-meta-count');
+  const goal = document.getElementById('nps-meta-goal');
+  const fill = document.getElementById('nps-meta-fill');
+  const foot = document.getElementById('nps-meta-foot');
+  if(!sub || !cnt || !goal || !fill || !foot) return;
+
+  cnt.textContent = respostas;
+  goal.textContent = '';
+  sub.textContent = 'Calculando meta…';
+  foot.textContent = '';
+  fill.style.width = '0%';
+
+  let info = null;
+  try { info = await loadActiveClients(false); } catch(_){ info = null; }
+
+  const ativos = !info ? 0
+    : (meuNome ? ((info.ativosByGestor||{})[meuNome] || 0) : (info.totalAtivos || 0));
+
+  if(!ativos){
+    // Sem base de clientes nao da para afirmar meta nenhuma; melhor dizer isso
+    // do que desenhar uma barra sobre um denominador inventado.
+    sub.textContent = meuNome
+      ? 'Não encontramos clientes ativos no seu nome para calcular a meta.'
+      : 'Não foi possível carregar os clientes ativos para calcular a meta.';
+    goal.textContent = '';
+    foot.textContent = '';
+    fill.style.width = '0%';
+    return;
+  }
+
+  const meta = Math.ceil(ativos / 2);
+  const pct  = Math.min(100, Math.round((respostas / meta) * 100));
+
+  sub.textContent = `Meta: metade dos ${ativos} clientes ativos${meuNome ? ' da sua carteira' : ''}`;
+  goal.textContent = ' / ' + meta;
+  fill.style.width = pct + '%';
+  fill.style.background = respostas >= meta ? '#22c55e' : pct >= 60 ? '#eab308' : '#ef4444';
+
+  const faltam = meta - respostas;
+  foot.textContent = respostas >= meta
+    ? `Meta batida — ${respostas} de ${meta} (${pct}%)`
+    : `${faltam === 1 ? 'Falta 1 resposta' : 'Faltam ' + faltam + ' respostas'} para bater a meta (${pct}%)`;
 }
 
 /* ── NPS GAUGE (half-donut with pointer) ── */
