@@ -570,6 +570,17 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .nps-gestor-score { font-size:1.5rem; font-weight:800; letter-spacing:-.03em; }
 .nps-gestor-meta { font-size:.7rem; color:var(--text-2); margin-bottom:10px; }
 
+/* Cliente herdado de outro gestor (utm_source de 2 digitos) */
+.nps-gestor-herdado {
+  font-size:.66rem; color:#6366f1; font-weight:600;
+  margin-top:-6px; margin-bottom:10px;
+}
+.nps-tag-herdado {
+  display:inline-block; margin-left:6px; padding:1px 7px;
+  border-radius:999px; background:#eef2ff; border:1px solid #e0e7ff;
+  color:#4f46e5; font-size:.62rem; font-weight:600; vertical-align:middle;
+}
+
 .nps-feedback-list { margin-top:12px; }
 .nps-feedback-item {
   padding:10px 14px; border-radius:10px; background:#f9fafb;
@@ -642,6 +653,8 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .dark .gestor-app .drill-table .clickable-row:hover { background:#2e2340 !important; }
 .dark .gestor-app .open-table tbody tr:hover { background:#332a1f; }
 .dark .gestor-app .nps-feedback-item { background:#2a202e; }
+.dark .gestor-app .nps-gestor-herdado { color:#a5b4fc; }
+.dark .gestor-app .nps-tag-herdado { background:#2b2545; border-color:#3b3466; color:#c7bfff; }
 .dark .gestor-app .btn-ghost:hover,
 .dark .gestor-app .btn-expand:hover,
 .dark .gestor-app .drill-close-btn:hover,

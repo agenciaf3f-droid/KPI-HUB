@@ -3015,6 +3015,19 @@ const NPS_UTM_NAMES = {
   '4':'Guilherme','5':'Rafhael','6':'Diogo'
 };
 
+// Cliente que trocou de gestor vem com utm_source de 2 digitos: o primeiro e o
+// gestor de hoje, o segundo o gestor antigo. Ex.: "61" = hoje e do Diogo, antes
+// era do Yuri. A resposta conta para o gestor atual; o antigo vira so um aviso
+// na tela. Codigo que nao casar com esse formato cai no comportamento de antes.
+function npsParseUtm(utm){
+  const raw = (utm == null ? '' : String(utm)).trim();
+  if(NPS_UTM_NAMES[raw]) return { atual: raw, anterior: null };
+  if(raw.length === 2 && NPS_UTM_NAMES[raw[0]] && NPS_UTM_NAMES[raw[1]] && raw[0] !== raw[1]){
+    return { atual: raw[0], anterior: raw[1] };
+  }
+  return { atual: raw, anterior: null };
+}
+
 let npsGaugeGestor = null;
 let npsGaugeAgencia = null;
 
@@ -3180,10 +3193,20 @@ function sanitize(str){
 }
 
 function npsRender(data){
+  // Resolve cliente transferido antes de qualquer corte: a resposta pertence ao
+  // gestor atual, entao e por ele que filtramos e agrupamos daqui pra frente.
+  data = data.map(d=>{
+    const p = npsParseUtm(d.utm);
+    return Object.assign({}, d, {
+      utmAtual: p.atual,
+      gestorAnterior: p.anterior ? NPS_UTM_NAMES[p.anterior] : null
+    });
+  });
+
   // Mesmo corte da aba de relatorios: cada gestor ve so as respostas dele.
   const meuNome = nomeDeEscopo();
   if(meuNome){
-    data = data.filter(d => (NPS_UTM_NAMES[d.utm] || '') === meuNome);
+    data = data.filter(d => (NPS_UTM_NAMES[d.utmAtual] || '') === meuNome);
   }
 
   // Overall NPS Gestor
@@ -3212,8 +3235,8 @@ function npsRender(data){
   // Per-gestor
   const byGestor = {};
   data.forEach(d=>{
-    if(!byGestor[d.utm]) byGestor[d.utm] = [];
-    byGestor[d.utm].push(d);
+    if(!byGestor[d.utmAtual]) byGestor[d.utmAtual] = [];
+    byGestor[d.utmAtual].push(d);
   });
 
   const grid = document.getElementById('nps-gestor-grid');
@@ -3232,11 +3255,18 @@ function npsRender(data){
     const feedbacks = items.filter(d=>d.feedbackGestor && d.feedbackGestor.length > 0);
     const uid = 'nps-fb-' + utm;
 
+    // Aviso de cliente herdado. Fica no cabecalho porque nem todo transferido
+    // deixa feedback escrito — se ficasse so na lista, sumiria nesses casos.
+    const herdados = items.filter(d=>d.gestorAnterior);
+    const deQuem = [...new Set(herdados.map(d=>d.gestorAnterior))].sort();
+    const avisoHerdados = herdados.length ? `<div class="nps-gestor-herdado">↩ ${herdados.length === 1 ? '1 cliente veio' : herdados.length + ' clientes vieram'} de ${sanitize(deQuem.join(' e '))}</div>` : '';
+
     html += `<div class="nps-gestor-card">
       <div class="nps-gestor-header">
         <div>
           <div class="nps-gestor-name">${sanitize(name)}</div>
           <div class="nps-gestor-meta">${stats.total} respostas · ${stats.promotores}P / ${stats.neutros}N / ${stats.detratores}D</div>
+          ${avisoHerdados}
         </div>
         <div style="text-align:right;">
           <div class="nps-gestor-score" style="color:${stats.nps>=80?'#22c55e':stats.nps>=60?'#eab308':'#ef4444'}">${stats.nps}</div>
@@ -3250,7 +3280,7 @@ function npsRender(data){
         <div class="nps-feedback-list" id="${uid}" style="display:none;">
           ${feedbacks.map(f=>`
             <div class="nps-feedback-item">
-              <div class="nps-feedback-note">Nota: ${f.notaGestor}</div>
+              <div class="nps-feedback-note">Nota: ${f.notaGestor}${f.gestorAnterior ? `<span class="nps-tag-herdado" title="Cliente transferido: antes era do ${sanitize(f.gestorAnterior)}">↩ antes: ${sanitize(f.gestorAnterior)}</span>` : ''}</div>
               ${sanitize(f.feedbackGestor)}
             </div>`).join('')}
         </div>` : '<div style="font-size:.72rem;color:var(--text-2);">Sem feedbacks</div>'}
