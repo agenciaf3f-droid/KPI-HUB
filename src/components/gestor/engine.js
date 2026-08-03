@@ -3134,12 +3134,14 @@ async function npsLoadMonth(){
 
     // Auto-detect column indices from header row
     const header = rows[0] || [];
-    let colGestor = -1, colFbGestor = -1, colAgencia = -1, colFbAgencia = -1, colUtm = -1;
+    let colGestor = -1, colFbGestor = -1, colAgencia = -1, colFbAgencia = -1, colUtm = -1, colData = -1;
     header.forEach((h, idx) => {
       const hl = (h||'').toLowerCase().trim();
       if(hl.includes('satisfeito com seu gestor') || hl.includes('satisfeito com o seu gestor')) colGestor = idx;
       else if(hl.includes('satisfeito') && (hl.includes('agência') || hl.includes('agencia'))) colAgencia = idx;
       if(hl === 'utm_source' || hl === 'utm\\_source' || hl === 'utm source') colUtm = idx;
+      // So para descobrir o ANO da aba — o mes vem do nome dela.
+      if(hl === 'submitted at' || hl === 'timestamp') colData = idx;
     });
     // Feedback columns are typically right after the nota columns
     if(colGestor >= 0) colFbGestor = colGestor + 1;
@@ -3170,8 +3172,18 @@ async function npsLoadMonth(){
 
     if(data.length === 0) throw new Error('Nenhuma resposta válida encontrada');
 
+    // Datas de envio: nao entram em nenhuma metrica, servem so para saber o ano
+    // da aba ao calcular a meta do mes.
+    const datas = [];
+    if(colData >= 0){
+      for(let i = 1; i < rows.length; i++){
+        const d = npsParseDataEnvio((rows[i]||[])[colData]);
+        if(d) datas.push(d);
+      }
+    }
+
     npsSetStatus('ok', 'OK — ' + data.length + ' respostas');
-    npsRender(data);
+    npsRender(data, npsMesReferencia(name, datas));
 
   } catch(e){
     console.error('[NPS] Error:', e);
@@ -3247,7 +3259,15 @@ function sanitize(str){
   return str.replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function npsRender(data){
+// "27/01/2026 02:25:02" — o parseChurnDate() so aceita a data pura, entao aqui
+// cortamos a hora antes de reaproveita-lo.
+function npsParseDataEnvio(valor){
+  const s = (valor == null ? '' : String(valor)).trim();
+  if(!s) return null;
+  return parseChurnDate(s.split(' ')[0]);
+}
+
+function npsRender(data, mesRef){
   // Resolve cliente transferido antes de qualquer corte: a resposta pertence ao
   // gestor atual, entao e por ele que filtramos e agrupamos daqui pra frente.
   data = data.map(d=>{
@@ -3289,7 +3309,7 @@ function npsRender(data){
 
   // Meta de respostas. Sem await de proposito: depende da planilha de clientes
   // ativos, que e outra fonte — se ela demorar ou cair, o NPS ja esta na tela.
-  npsRenderMeta(data.length, meuNome);
+  npsRenderMeta(data.length, meuNome, mesRef);
 
   // Per-gestor
   const byGestor = {};
@@ -3362,13 +3382,70 @@ function npsRender(data){
   grid.innerHTML = html;
 }
 
-// Meta do mes: metade dos clientes ativos precisa responder. Reaproveita a
-// planilha "Controle dos Grupos" (mesma fonte de Clientes Ativos da aba Churn)
-// em vez de fixar um numero, que envelheceria a cada entrada ou cancelamento.
+const NPS_MESES = {
+  'janeiro':0,'fevereiro':1,'março':2,'marco':2,'abril':3,'maio':4,'junho':5,
+  'julho':6,'agosto':7,'setembro':8,'outubro':9,'novembro':10,'dezembro':11
+};
+
+// Descobre a que mes/ano a aba se refere. O MES vem do nome da aba, nao das
+// datas de envio: a pesquisa de um mes costuma ser respondida no mes seguinte
+// (a aba de Marco tem 37 respostas de abril contra 8 de marco), entao a data de
+// envio nao serve como mes de referencia.
 //
-// A base e a de HOJE, inclusive quando se olha um mes passado — a planilha nao
-// guarda o historico de quantos ativos existiam naquele mes.
-async function npsRenderMeta(respostas, meuNome){
+// O ANO sai da resposta mais antiga, que e a que fica mais perto do mes de
+// referencia. O ajuste de virada cobre a aba de dezembro respondida em janeiro.
+function npsMesReferencia(nomeAba, datas){
+  const label = nomeAba.replace('Formulário NPS - ','').trim();
+  const mes = NPS_MESES[label.toLowerCase()];
+  if(mes === undefined) return null;
+  const validas = datas.filter(Boolean).sort((a,b)=>a-b);
+  if(!validas.length) return null;
+  let ano = validas[0].getFullYear();
+  if(mes - validas[0].getMonth() > 6) ano -= 1;
+  return { ano, mes, label, inicio: new Date(ano, mes, 1) };
+}
+
+// Base de churn so para a meta do NPS. Reaproveita _churnRows se a aba Churn ja
+// carregou; senao busca a mesma planilha por conta propria. De proposito NAO
+// chama churnLoad(), que alem de buscar tambem mexe no DOM e nos graficos da
+// outra aba.
+let _npsChurnBase = null;
+async function npsLoadChurnBase(){
+  if(_npsChurnBase) return _npsChurnBase;
+  if(typeof _churnRows !== 'undefined' && _churnRows && _churnRows.length){
+    _npsChurnBase = _churnRows;
+    return _npsChurnBase;
+  }
+  const res = await fetch(CHURN_CSV_URL, { signal: AbortSignal.timeout(20000) });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const rows = parseCsv(await res.text());
+  const data = [];
+  for(let i = 1; i < rows.length; i++){
+    const r = rows[i];
+    if(!r[0] || !r[0].trim()) continue;
+    const saida = parseChurnDate(r[9]);
+    data.push({ entrada: parseChurnDate(r[8]), saida, isChurn: !!saida, plano: (r[7]||'').trim() || '—' });
+  }
+  if(!data.length) throw new Error('planilha de churn vazia');
+  _npsChurnBase = data;
+  return _npsChurnBase;
+}
+
+// Meta do mes: metade dos clientes ativos precisa responder.
+//
+// O denominador ideal e quantos clientes existiam NAQUELE mes, nao hoje — senao
+// Janeiro (89 ativos na epoca) seria cobrado contra a carteira de agosto (105).
+// Vem de churnActiveAtMonthStart() sobre a planilha de churn, a mesma conta da
+// aba Churn. Sanidade: para hoje essa conta da 105, igual ao que a planilha
+// "Controle dos Grupos" reporta por outro caminho.
+//
+// Duas ressalvas assumidas de proposito:
+//  - a planilha de churn parou de ser alimentada em 28/05/2026, entao de junho
+//    em diante ela devolve o mesmo numero de hoje;
+//  - com gestor logado a meta continua sendo a carteira ATUAL dele: nao da para
+//    reconstruir com confianca quem era de quem num mes passado, ainda mais com
+//    cliente trocando de gestor (ver npsParseUtm).
+async function npsRenderMeta(respostas, meuNome, mesRef){
   const sub  = document.getElementById('nps-meta-sub');
   const cnt  = document.getElementById('nps-meta-count');
   const goal = document.getElementById('nps-meta-goal');
@@ -3382,11 +3459,34 @@ async function npsRenderMeta(respostas, meuNome){
   foot.textContent = '';
   fill.style.width = '0%';
 
-  let info = null;
-  try { info = await loadActiveClients(false); } catch { info = null; }
+  let ativos = 0;
+  let base = '';
 
-  const ativos = !info ? 0
-    : (meuNome ? ((info.ativosByGestor||{})[meuNome] || 0) : (info.totalAtivos || 0));
+  if(meuNome){
+    // Escopo de gestor: so da para afirmar a carteira de hoje.
+    let info = null;
+    try { info = await loadActiveClients(false); } catch { info = null; }
+    ativos = info ? ((info.ativosByGestor||{})[meuNome] || 0) : 0;
+    base = 'da sua carteira hoje';
+  } else {
+    // Visao geral: tenta o numero do proprio mes antes de cair para o de hoje.
+    if(mesRef){
+      try {
+        const churn = await npsLoadChurnBase();
+        const hist = churnActiveAtMonthStart(churn, mesRef.inicio, 'all').count;
+        if(hist > 0){
+          ativos = hist;
+          base = 'ativos no início de ' + mesRef.label;
+        }
+      } catch { /* cai para a base de hoje logo abaixo */ }
+    }
+    if(!ativos){
+      let info = null;
+      try { info = await loadActiveClients(false); } catch { info = null; }
+      ativos = info ? (info.totalAtivos || 0) : 0;
+      base = 'ativos hoje';
+    }
+  }
 
   if(!ativos){
     // Sem base de clientes nao da para afirmar meta nenhuma; melhor dizer isso
@@ -3403,7 +3503,7 @@ async function npsRenderMeta(respostas, meuNome){
   const meta = Math.ceil(ativos / 2);
   const pct  = Math.min(100, Math.round((respostas / meta) * 100));
 
-  sub.textContent = `Meta: metade dos ${ativos} clientes ativos${meuNome ? ' da sua carteira' : ''}`;
+  sub.textContent = `Meta: metade dos ${ativos} clientes ${base}`;
   goal.textContent = ' / ' + meta;
   fill.style.width = pct + '%';
   fill.style.background = respostas >= meta ? '#22c55e' : pct >= 60 ? '#eab308' : '#ef4444';
