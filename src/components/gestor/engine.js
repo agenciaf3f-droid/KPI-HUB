@@ -3006,6 +3006,8 @@ const NPS_SHEETS = {
   "Formulário NPS - Fevereiro": 501408772,
   "Formulário NPS - Março": 1564651329,
   "Formulário NPS - Abril": 210580385,
+  "Formulário NPS - Maio": 1474077717,
+  "Formulário NPS - Julho": 1451590710,
 };
 
 const NPS_UTM_NAMES = {
