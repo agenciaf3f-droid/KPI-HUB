@@ -3061,10 +3061,66 @@ function npsHideError(){
   document.getElementById('nps-error-banner').style.display = 'none';
 }
 
+// Zera o painel. Sem isso, um mes que falha ao carregar deixa os numeros do mes
+// anterior na tela com o nome do mes novo no seletor — foi o que aconteceu em
+// 03/08/2026: o seletor dizia Janeiro e os gauges mostravam Fevereiro (os dois
+// meses tem 61 respostas, entao nada denunciava a troca).
+function npsLimpaPainel(){
+  const txt = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  const htm = (id,v)=>{ const el=document.getElementById(id); if(el) el.innerHTML=v; };
+  txt('nps-val-gestor','—');
+  txt('nps-val-agencia','—');
+  htm('nps-badge-gestor','');
+  htm('nps-badge-agencia','');
+  const zerado = '<span><div class="dot-p"></div> 0 Promotores</span>'
+               + '<span><div class="dot-n"></div> 0 Neutros</span>'
+               + '<span><div class="dot-d"></div> 0 Detratores</span>';
+  htm('nps-break-gestor', zerado);
+  htm('nps-break-agencia', zerado);
+  htm('nps-gestor-grid','<div class="nps-card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-2);font-size:.8rem;">Sem dados carregados para este mês.</div>');
+  npsDrawGauge('gauge-gestor', 0);
+  npsDrawGauge('gauge-agencia', 0);
+  txt('nps-meta-count','—');
+  txt('nps-meta-goal','');
+  txt('nps-meta-foot','');
+  txt('nps-meta-sub','Sem dados carregados para este mês.');
+  const fill = document.getElementById('nps-meta-fill');
+  if(fill) fill.style.width = '0%';
+}
+
+// O Google as vezes engasga e a requisicao estoura o tempo (foi o "signal timed
+// out" relatado). Costuma passar na tentativa seguinte, entao insistimos — mas
+// so quando o erro e de tempo: planilha despublicada ou gid errado nao melhora
+// com retry, e nesses casos falhar rapido e melhor.
+async function npsFetchCsv(url, tentativas){
+  let ultimoErro = null;
+  for(let i = 0; i < tentativas; i++){
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(15000 + i * 10000) });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const text = await resp.text();
+      if(text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')){
+        throw new Error('Google retornou HTML em vez de CSV. Verifique se a planilha está publicada.');
+      }
+      return text;
+    } catch(e){
+      ultimoErro = e;
+      const nome = (e && e.name) || '';
+      const msg  = (e && e.message) || '';
+      const ehTempo = nome === 'TimeoutError' || nome === 'AbortError' || /timed out|timeout|network/i.test(msg);
+      if(!ehTempo || i === tentativas - 1) break;
+      npsSetStatus('loading', 'Demorou, tentando de novo (' + (i + 2) + '/' + tentativas + ')…');
+      await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+    }
+  }
+  throw ultimoErro;
+}
+
 async function npsLoadMonth(){
   const sel = document.getElementById('nps-month-select');
   const name = sel.value;
   const gid = NPS_SHEETS[name];
+  const mesLabel = name.replace('Formulário NPS - ','');
   if(!gid){ npsSetStatus('error','Mês não encontrado'); return; }
 
   npsSetStatus('loading','Carregando…');
@@ -3072,12 +3128,7 @@ async function npsLoadMonth(){
 
   try {
     const url = NPS_PUB_BASE + '?gid=' + gid + '&single=true&output=csv';
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    const text = await resp.text();
-    if(text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')){
-      throw new Error('Google retornou HTML em vez de CSV. Verifique se a planilha está publicada.');
-    }
+    const text = await npsFetchCsv(url, 3);
     const rows = npsParseCSV(text);
     if(rows.length < 2) throw new Error('CSV vazio ou inválido');
 
@@ -3124,8 +3175,12 @@ async function npsLoadMonth(){
 
   } catch(e){
     console.error('[NPS] Error:', e);
+    // Limpar e obrigatorio: o seletor ja mudou para o mes novo, entao qualquer
+    // numero que sobrasse na tela seria lido como sendo desse mes.
+    npsLimpaPainel();
     npsSetStatus('error','Erro');
-    npsShowError(e.message || 'Erro ao carregar dados');
+    const detalhe = (e && e.message) || 'erro desconhecido';
+    npsShowError('Não foi possível carregar ' + mesLabel + ' (' + detalhe + '). Os números foram limpos para não mostrar dados de outro mês — clique em Atualizar para tentar de novo.');
   }
 }
 
@@ -3532,7 +3587,10 @@ async function loadActiveClients(force){
   // 1) Tenta a planilha pública (fonte oficial)
   try {
     const url = force ? `${ACTIVE_CLIENTS_CSV_URL}&_=${Date.now()}` : ACTIVE_CLIENTS_CSV_URL;
-    const res = await fetch(url);
+    // Sem timeout esta requisicao podia ficar pendurada para sempre; quem espera
+    // por ela (barra de meta do NPS) ficava travado em "Calculando meta…".
+    // Estourando o tempo, cai no fallback do Supabase logo abaixo.
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if(!res.ok) throw new Error('HTTP '+res.status);
     const rows = parseCsv(await res.text());
     if(rows.length<2) throw new Error('vazio');
