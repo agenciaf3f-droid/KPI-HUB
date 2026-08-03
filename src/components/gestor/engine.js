@@ -3328,7 +3328,7 @@ async function npsRenderMeta(respostas, meuNome){
   fill.style.width = '0%';
 
   let info = null;
-  try { info = await loadActiveClients(false); } catch(_){ info = null; }
+  try { info = await loadActiveClients(false); } catch { info = null; }
 
   const ativos = !info ? 0
     : (meuNome ? ((info.ativosByGestor||{})[meuNome] || 0) : (info.totalAtivos || 0));
