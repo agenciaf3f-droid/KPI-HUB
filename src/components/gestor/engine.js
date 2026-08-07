@@ -3006,6 +3006,7 @@ const NPS_SHEETS = {
   "Formulário NPS - Fevereiro": 501408772,
   "Formulário NPS - Março": 1564651329,
   "Formulário NPS - Abril": 210580385,
+  "Formulário NPS - Julho": 1451590710,
 };
 
 const NPS_UTM_NAMES = {
@@ -3092,7 +3093,14 @@ async function npsLoadMonth(){
     for(let i = 1; i < rows.length; i++){
       const r = rows[i];
       if(!r || r.length < colUtm + 1) continue;
-      const utm = (r[colUtm]||'').toString().trim();
+      const utmBruto = (r[colUtm]||'').toString().trim();
+      // Cliente que trocou de gestor vem com utm_source de 2 digitos: o primeiro
+      // e o gestor de hoje, o segundo o antigo. Ex.: "61" = hoje e do Diogo. A
+      // resposta conta para o gestor atual. Aparece so a partir de Julho/2026;
+      // codigo que nao casar com esse formato segue igual a antes.
+      const utm = (utmBruto.length === 2 && NPS_UTM_NAMES[utmBruto[0]] && NPS_UTM_NAMES[utmBruto[1]])
+        ? utmBruto[0]
+        : utmBruto;
       if(!utm) continue;
       const notaGestor = parseFloat(r[colGestor]);
       const feedbackGestor = (r[colFbGestor]||'').trim();
