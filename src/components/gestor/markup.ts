@@ -361,6 +361,14 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
   <div class="section-title">Cancelamentos por Mês</div>
   <div class="nps-card" style="padding:20px;margin-bottom:28px;"><div style="height:340px;"><canvas id="chart-churn-month"></canvas></div></div>
 
+  <div class="section-title">Clientes Ativos por Mês</div>
+  <div class="nps-card" style="padding:20px;margin-bottom:28px;">
+    <div style="font-size:.75rem;color:var(--text-2);margin-bottom:12px;">
+      Tamanho da carteira no <strong>primeiro dia de cada mês</strong> — entradas menos cancelamentos acumulados até ali (colunas V e W da planilha de grupos). Começa em janeiro de 2026, que é de onde a coluna W tem preenchimento. Passe o mouse para ver quantos entraram e quantos saíram no mês.
+    </div>
+    <div style="height:340px;"><canvas id="chart-churn-ativos"></canvas></div>
+  </div>
+
   <div class="section-title">🚨 Área de Risco — Clientes há mais tempo sem mensagem</div>
   <div class="nps-card" style="padding:20px;margin-bottom:28px;">
     <div style="font-size:.75rem;color:var(--text-2);margin-bottom:12px;">

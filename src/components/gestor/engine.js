@@ -3579,7 +3579,7 @@ const DIA_MS = 86400000;
 
 // Todos os clientes da planilha (ativos e cancelados) — a base do churn.
 let _churnRows = [];
-let _churnCharts = { month:null, plan:null, tenure:null, gestor:null, risk:null };
+let _churnCharts = { month:null, ativos:null, plan:null, tenure:null, gestor:null, risk:null };
 
 // Plugin Chart.js: desenha valores absolutos no topo das barras
 const churnBarValuePlugin = {
@@ -4007,6 +4007,9 @@ function churnRender(){
     }
   });
 
+  // ───── Evolução da carteira ─────
+  renderClientesAtivosChart(planFilter, cutoff);
+
   // ───── Gráfico de ÁREA DE RISCO — clientes ativos por dias sem mensagem ─────
   renderChurnRiskChart(planFilter);
 
@@ -4079,6 +4082,120 @@ function churnRender(){
       </tr>
     `).join('');
   }
+}
+
+// ─────── Gráfico de Clientes Ativos por mês ───────
+// Mesma conta que serve de denominador ao % de churn: entradas com data em V
+// antes do mês menos cancelamentos com data em W antes do mês.
+//
+// Começa em jan/2026 de propósito. A coluna W só tem preenchimento a partir de
+// nov/2025, então antes disso a série contaria entradas sem as saídas
+// correspondentes e a curva subiria sozinha — pareceria crescimento onde só
+// falta dado.
+const ATIVOS_CHART_INICIO = new Date(2026, 0, 1);
+
+function renderClientesAtivosChart(planFilter, cutoff){
+  const canvas = document.getElementById('chart-churn-ativos');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const all = _churnRows;
+  const now = new Date();
+  // O filtro de período da aba encurta a janela, mas nunca vai antes de jan/26.
+  const inicio = (cutoff && cutoff > ATIVOS_CHART_INICIO)
+    ? new Date(cutoff.getFullYear(), cutoff.getMonth(), 1)
+    : ATIVOS_CHART_INICIO;
+  const planOk = (d) => planFilter==='all' || d.plano===planFilter;
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  const pontos = [];
+  const cur = new Date(inicio);
+  const ultimoMes = new Date(now.getFullYear(), now.getMonth(), 1);
+  while(cur <= ultimoMes){
+    const monthStart = new Date(cur);
+    const monthEnd = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
+    pontos.push({
+      label: `${meses[monthStart.getMonth()]}/${String(monthStart.getFullYear()).slice(2)}`,
+      ativos: churnActiveAtMonthStart(all, monthStart, planFilter),
+      entradas: all.filter(d => d.entrada && d.entrada >= monthStart && d.entrada < monthEnd && planOk(d)).length,
+      saidas:   all.filter(d => d.saida   && d.saida   >= monthStart && d.saida   < monthEnd && planOk(d)).length
+    });
+    cur.setMonth(cur.getMonth()+1);
+  }
+  // Último ponto: a posição de HOJE. Sem ele a curva terminaria no dia 1º do mês
+  // corrente e não bateria com o KPI de Clientes Ativos logo acima, que é de hoje.
+  const amanha = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
+  pontos.push({ label:'Hoje', ativos: churnActiveAtMonthStart(all, amanha, planFilter), hoje:true });
+
+  if(_churnCharts.ativos) _churnCharts.ativos.destroy();
+  if(!pontos.length) return;
+
+  const valores = pontos.map(p => p.ativos);
+  const gradGreen = ctx.createLinearGradient(0,0,0,300);
+  gradGreen.addColorStop(0,'rgba(16,185,129,.35)');
+  gradGreen.addColorStop(1,'rgba(16,185,129,.02)');
+
+  // O eixo não começa em zero: a carteira nunca chega perto disso e a variação
+  // mês a mês (uma dezena de clientes) sumiria esmagada contra a base.
+  const min = Math.min(...valores), max = Math.max(...valores);
+  const folga = Math.max(5, Math.round((max-min) * 0.4));
+
+  _churnCharts.ativos = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: pontos.map(p=>p.label),
+      datasets:[{
+        label:'Clientes ativos',
+        data: valores,
+        borderColor:'#10b981',
+        backgroundColor: gradGreen,
+        borderWidth:2.5,
+        tension:.35,
+        fill:true,
+        pointBackgroundColor:'#fff',
+        pointBorderColor:'#10b981',
+        pointBorderWidth:2,
+        pointRadius:4,
+        pointHoverRadius:6
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:24 } },
+      plugins:{
+        legend:{ display:false },
+        churnBarValue:{
+          enabled:true,
+          datasetIndex:0,
+          values: valores,
+          color:'#047857',
+          size:12,
+          weight:700
+        },
+        tooltip:{
+          backgroundColor:'#111827', padding:10, titleFont:{size:12, weight:'600'}, bodyFont:{size:12},
+          callbacks:{
+            label: (c) => `Clientes ativos: ${c.parsed.y}`,
+            afterLabel: (c) => {
+              const p = pontos[c.dataIndex];
+              if(p.hoje) return 'Posição de hoje';
+              return [`Entraram no mês: ${p.entradas}`, `Cancelaram no mês: ${p.saidas}`];
+            }
+          }
+        }
+      },
+      scales:{
+        y:{
+          beginAtZero:false,
+          suggestedMin: Math.max(0, min - folga),
+          suggestedMax: max + folga,
+          title:{ display:true, text:'Clientes ativos', color:CT().tick, font:{size:11} },
+          ticks:{ color:CT().tick, precision:0 },
+          grid:{ color:CT().grid }
+        },
+        x:{ ticks:{ color:CT().tick }, grid:{ display:false } }
+      }
+    }
+  });
 }
 
 // ─────── Gráfico de Área de Risco ───────
