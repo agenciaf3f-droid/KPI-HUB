@@ -3398,46 +3398,32 @@ function npsMesReferencia(nomeAba, datas){
   return { ano, mes, label, inicio: new Date(ano, mes, 1) };
 }
 
-// Base de churn so para a meta do NPS. Reaproveita _churnRows se a aba Churn ja
-// carregou; senao busca a mesma planilha por conta propria. De proposito NAO
-// chama churnLoad(), que alem de buscar tambem mexe no DOM e nos graficos da
-// outra aba.
-let _npsChurnBase = null;
+// Base de churn so para a meta do NPS. Desde as colunas V/W ela e a mesma
+// planilha "Controle dos Grupos" que ja alimenta os clientes ativos, entao aqui
+// so garante que a carga aconteceu — nao ha mais uma segunda planilha para
+// buscar. De proposito NAO chama churnLoad(), que alem de buscar tambem mexe no
+// DOM e nos graficos da outra aba.
 async function npsLoadChurnBase(){
-  if(_npsChurnBase) return _npsChurnBase;
-  if(typeof _churnRows !== 'undefined' && _churnRows && _churnRows.length){
-    _npsChurnBase = _churnRows;
-    return _npsChurnBase;
-  }
-  const res = await fetch(CHURN_CSV_URL, { signal: AbortSignal.timeout(20000) });
-  if(!res.ok) throw new Error('HTTP ' + res.status);
-  const rows = parseCsv(await res.text());
-  const data = [];
-  for(let i = 1; i < rows.length; i++){
-    const r = rows[i];
-    if(!r[0] || !r[0].trim()) continue;
-    const saida = parseChurnDate(r[9]);
-    data.push({ entrada: parseChurnDate(r[8]), saida, isChurn: !!saida, plano: (r[7]||'').trim() || '—' });
-  }
-  if(!data.length) throw new Error('planilha de churn vazia');
-  _npsChurnBase = data;
-  return _npsChurnBase;
+  if(_churnRows && _churnRows.length) return _churnRows;
+  await loadActiveClients(false);
+  if(!_churnRows.length) throw new Error('planilha de grupos sem clientes');
+  return _churnRows;
 }
 
 // Meta do mes: metade dos clientes ativos precisa responder.
 //
 // O denominador ideal e quantos clientes existiam NAQUELE mes, nao hoje — senao
 // Janeiro (89 ativos na epoca) seria cobrado contra a carteira de agosto (105).
-// Vem de churnActiveAtMonthStart() sobre a planilha de churn, a mesma conta da
-// aba Churn. Sanidade: para hoje essa conta da 105, igual ao que a planilha
-// "Controle dos Grupos" reporta por outro caminho.
+// Vem de churnActiveAtMonthStart() sobre as colunas V/W da planilha de grupos,
+// a mesma conta da aba Churn.
 //
-// Duas ressalvas assumidas de proposito:
-//  - a planilha de churn parou de ser alimentada em 28/05/2026, entao de junho
-//    em diante ela devolve o mesmo numero de hoje;
-//  - com gestor logado a meta continua sendo a carteira ATUAL dele: nao da para
-//    reconstruir com confianca quem era de quem num mes passado, ainda mais com
-//    cliente trocando de gestor (ver npsParseUtm).
+// A ressalva de que a planilha de churn parava em 28/05/2026 (e por isso junho
+// em diante repetia o numero de hoje) morreu junto com aquela planilha: V/W vao
+// ate a data de hoje, entao todo mes tem base propria.
+//
+// Continua valendo: com gestor logado a meta e a carteira ATUAL dele: nao da
+// para reconstruir com confianca quem era de quem num mes passado, ainda mais
+// com cliente trocando de gestor (ver npsParseUtm).
 async function npsRenderMeta(respostas, meuNome, mesRef){
   const sub  = document.getElementById('nps-meta-sub');
   const cnt  = document.getElementById('nps-meta-count');
@@ -3466,7 +3452,7 @@ async function npsRenderMeta(respostas, meuNome, mesRef){
     if(mesRef){
       try {
         const churn = await npsLoadChurnBase();
-        const hist = churnActiveAtMonthStart(churn, mesRef.inicio, 'all').count;
+        const hist = churnActiveAtMonthStart(churn, mesRef.inicio, 'all');
         if(hist > 0){
           ativos = hist;
           base = 'ativos no início de ' + mesRef.label;
