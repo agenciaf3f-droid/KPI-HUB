@@ -720,13 +720,6 @@ async function fetchData(){
         renderChurnRiskChart(sel ? sel.value : 'all');
       }
     } catch(_){}
-    // O churn de mai/26+ vem de rawRows (grupos FECHADO). Se a aba já foi aberta
-    // antes dos dados chegarem, re-renderiza agora para preencher esses meses.
-    try {
-      if(window._churnInitialized && _churnRows && _churnRows.length && typeof churnRender === 'function'){
-        churnRender();
-      }
-    } catch(_){}
   } catch(e){
     console.error('[F3F] Erro ao buscar dados:', e);
     _isFetching = false;
@@ -3581,10 +3574,24 @@ function npsDrawGauge(canvasId, npsValue){
 /* ================================================================
    ABA 3 — CHURN
    ================================================================ */
-const CHURN_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSF5q4-3SSrwKbbCzWfGCXidDDVH7FuiXSGljbJU02eqbDUdrdm21dPTYBsPwaYb5jSvDT0xnZuxHy6/pub?gid=442069732&single=true&output=csv';
 // Planilha "Controle dos Grupos" — fonte da verdade GLOBAL para Clientes Ativos
+// e, desde as colunas V e W, também para o churn.
+//
+// Antes eram três fontes remendadas: a planilha de churn (preenchida à mão pelo
+// formulário, parou em mai/2026), uma heurística que datava a saída pela 1ª
+// mensagem com "(FECHADO)" no nome do grupo, e esta planilha só para o total de
+// ativos. As colunas V ("Dia que Entrou") e W ("Dia que Cancelou") tornaram as
+// duas primeiras desnecessárias: entrada e saída de cada cliente agora vêm da
+// mesma linha, com data exata, sem inferência.
 const ACTIVE_CLIENTS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTK9DhrWACjloFOoAUsC26xHmJLgnpDXnjvN4IzROtUC4WTx-64d4wM661AtlgPJkbt_jOXQsxrCfDk/pub?output=csv';
 
+// Índice de cada coluna usada da planilha (0 = A). Ficam nomeados porque a
+// planilha tem 27 colunas e a leitura por número mágico já causou confusão.
+const G_COL = { grupo:0, gestor:3, status:14, plano:17, entrada:21, saida:22 };
+
+const DIA_MS = 86400000;
+
+// Todos os clientes da planilha (ativos e cancelados) — a base do churn.
 let _churnRows = [];
 let _churnCharts = { month:null, plan:null, tenure:null, gestor:null, risk:null };
 
@@ -3620,7 +3627,7 @@ const churnBarValuePlugin = {
 if(typeof Chart !== 'undefined' && !Chart.registry?.plugins?.get?.('churnBarValue')){
   try { Chart.register(churnBarValuePlugin); } catch(_){}
 }
-// Cache global dos grupos: { ativos: [{nome, gestor, plano}], gestorByName: Map<nomeNormalizado, gestor>, totalAtivos: N, ativosByGestor: {gestor: count} }
+// Cache global dos grupos: { clientes: [...], ativos: [{nome, gestor, plano}], totalAtivos: N, ativosByGestor: {gestor: count} }
 let _activeClientsData = null;
 
 function churnSetStatus(state, text){
@@ -3667,19 +3674,65 @@ function parseChurnDate(s){
   return isNaN(dt) ? null : dt;
 }
 
-function parseLTV(s){
-  if(!s) return 0;
-  const cleaned = String(s).replace(/[R$\s.]/g,'').replace(',','.');
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? 0 : n;
-}
-
 // Normaliza nome (remove acentos, minúsculas, só alfa-num e espaço)
 function normName(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
 }
 
-// Carrega planilha "Controle dos Grupos" — usado como fonte GLOBAL de Clientes Ativos
+// Extrai o nome do cliente de "F3F - NOME - PLANO". O marcador de fechado sai
+// fora: o nome do cliente é o mesmo antes e depois do grupo ser encerrado.
+function nomeClienteDoGrupo(grupoRaw){
+  const limpo = String(grupoRaw||'').replace(/^\(FECHADO\)\s*/i,'').trim();
+  const m = limpo.match(/^F3F\s*-\s*(.+?)\s*-\s*[^-]+$/);
+  return m ? m[1].trim() : limpo;
+}
+
+// Uma linha da planilha vira um registro de cliente. `entrada` e `saida` são as
+// colunas V e W; ter data de saída é o que define um churn — não o nome do grupo,
+// não a coluna Status.
+function montaClienteDoGrupo({ grupo, gestor, status, plano, entrada, saida }){
+  const nome = nomeClienteDoGrupo(grupo);
+  if(!nome) return null;
+  const g = (gestor||'').trim();
+  // Excluir Denzel (regra global)
+  if(isExcludedGestor(g)) return null;
+  const dtEntrada = parseChurnDate(entrada);
+  const dtSaida   = parseChurnDate(saida);
+  // Tempo de casa sai da subtração das duas colunas — a planilha não traz esse
+  // número pronto, como a antiga de churn trazia.
+  const dias = (dtEntrada && dtSaida) ? Math.max(0, Math.round((dtSaida - dtEntrada)/DIA_MS)) : null;
+  return {
+    nome,
+    gestor: g || 'Sem gestor',
+    plano: (plano||'').trim() || '—',
+    status: (status||'').trim(),
+    entrada: dtEntrada,
+    saida: dtSaida,
+    dias,
+    isChurn: !!dtSaida
+  };
+}
+
+// Monta o cache global a partir das linhas já normalizadas.
+// Quem conta como ativo HOJE continua saindo da coluna Status: as colunas V/W
+// mandam no churn e na base mensal, não neste KPI.
+function montaCacheGrupos(clientes, source){
+  const ativos = clientes.filter(c => c.status === 'Ativo')
+                         .map(c => ({ nome:c.nome, gestor:c.gestor, plano:c.plano }));
+  const ativosByGestor = {};
+  ativos.forEach(c => { ativosByGestor[c.gestor] = (ativosByGestor[c.gestor]||0)+1; });
+  // Status e coluna W têm que concordar. Quando não concordam é buraco de
+  // preenchimento — um inativo sem data em W some do churn mensal sem sumir da
+  // lista de ativos — e some calado. Melhor gritar no console.
+  const inconsistentes = clientes.filter(c => (c.status === 'Ativo') === c.isChurn);
+  if(inconsistentes.length){
+    console.warn(`[Grupos] Status e coluna W discordam em ${inconsistentes.length} linha(s):`,
+      inconsistentes.map(c => `${c.nome} (status=${c.status||'vazio'}, W=${c.saida?'preenchida':'vazia'})`));
+  }
+  return { clientes, ativos, totalAtivos: ativos.length, ativosByGestor, source };
+}
+
+// Carrega a planilha "Controle dos Grupos" — fonte dos Clientes Ativos E do churn.
 // Fallback: se a planilha não responder (CORS/offline/privada), usa a tabela `groups`
 // do backend Supabase como fonte alternativa (mesma estrutura: id/nome/gestor/status/plano).
 async function loadActiveClients(force){
@@ -3694,136 +3747,72 @@ async function loadActiveClients(force){
     if(!res.ok) throw new Error('HTTP '+res.status);
     const rows = parseCsv(await res.text());
     if(rows.length<2) throw new Error('vazio');
-    // Header: 0=Grupo, 3=Gestor Responsável, 14=Status, 17=Plano
-    const ativos = [];
-    const gestorByName = new Map();
+    const clientes = [];
     for(let i=1;i<rows.length;i++){
       const r = rows[i];
-      if(!r[0] || !r[0].trim()) continue;
-      const grupoRaw = r[0].trim();
-      const gestor = (r[3]||'').trim();
-      const status = (r[14]||'').trim();
-      const plano = (r[17]||'').trim();
-      // Extrai nome do cliente: "F3F - NOME - PLANO" (ignora prefixo (FECHADO))
-      const limpo = grupoRaw.replace(/^\(FECHADO\)\s*/i,'').trim();
-      const m = limpo.match(/^F3F\s*-\s*(.+?)\s*-\s*[^-]+$/);
-      const nomeCliente = m ? m[1].trim() : limpo;
-      const nm = normName(nomeCliente);
-      // Excluir Denzel (regra global)
-      if(isExcludedGestor(gestor)) continue;
-      if(nm && gestor){
-        gestorByName.set(nm, gestor);
-        const toks = nm.split(' ');
-        if(toks.length>=2) gestorByName.set(toks[0]+' '+toks[toks.length-1], gestor);
-      }
-      if(status==='Ativo'){
-        ativos.push({ nome: nomeCliente, gestor: gestor||'Sem gestor', plano });
-      }
+      if(!r[G_COL.grupo] || !r[G_COL.grupo].trim()) continue;
+      const c = montaClienteDoGrupo({
+        grupo:   r[G_COL.grupo],
+        gestor:  r[G_COL.gestor],
+        status:  r[G_COL.status],
+        plano:   r[G_COL.plano],
+        entrada: r[G_COL.entrada],
+        saida:   r[G_COL.saida]
+      });
+      if(c) clientes.push(c);
     }
-    if(!ativos.length) throw new Error('planilha sem ativos');
-    const ativosByGestor = {};
-    ativos.forEach(c => { ativosByGestor[c.gestor] = (ativosByGestor[c.gestor]||0)+1; });
-    _activeClientsData = { ativos, gestorByName, totalAtivos: ativos.length, ativosByGestor, source:'sheet' };
-    console.log('[ActiveClients] (planilha) total ativos:', ativos.length, 'por gestor:', ativosByGestor);
+    if(!clientes.length) throw new Error('planilha sem clientes');
+    _churnRows = clientes;
+    _activeClientsData = montaCacheGrupos(clientes, 'sheet');
+    console.log('[ActiveClients] (planilha)', clientes.length, 'clientes ·',
+      _activeClientsData.totalAtivos, 'ativos ·', clientes.filter(c=>c.isChurn).length, 'cancelados');
     return _activeClientsData;
   } catch(e){
     console.warn('[ActiveClients] planilha falhou, usando fallback Supabase groups:', e.message);
   }
-  // 2) Fallback: tabela `groups` do backend (precisa estar autenticado para ler)
+  // 2) Fallback: tabela `groups` do backend (precisa estar autenticado para ler).
+  // Esta tabela não tem as colunas V/W: o fallback sustenta o KPI de ativos, mas
+  // o churn fica zerado até a planilha voltar.
   try {
     const client = hub; // hub client (mesmo projeto); era window.__authClient do CDN
     if(!client) throw new Error('cliente auth indisponível');
     const { data, error } = await client.from('groups').select('id,nome,gestor,status,plano');
     if(error) throw error;
-    const rows = data || [];
-    const ativos = [];
-    const gestorByName = new Map();
-    for(const r of rows){
-      const gestor = (r.gestor||'').trim();
-      const plano  = (r.plano||'').trim();
-      const status = (r.status||'').trim();
-      const grupoRaw = (r.nome||'').trim();
-      const limpo = grupoRaw.replace(/^\(FECHADO\)\s*/i,'').trim();
-      const m = limpo.match(/^F3F\s*-\s*(.+?)\s*-\s*[^-]+$/);
-      const nomeCliente = m ? m[1].trim() : limpo;
-      const nm = normName(nomeCliente);
-      if(isExcludedGestor(gestor)) continue;
-      if(nm && gestor){
-        gestorByName.set(nm, gestor);
-        const toks = nm.split(' ');
-        if(toks.length>=2) gestorByName.set(toks[0]+' '+toks[toks.length-1], gestor);
-      }
-      if(status==='Ativo' && nomeCliente){
-        ativos.push({ nome: nomeCliente, gestor: gestor||'Sem gestor', plano });
-      }
+    const clientes = [];
+    for(const r of (data || [])){
+      const c = montaClienteDoGrupo({ grupo:r.nome, gestor:r.gestor, status:r.status, plano:r.plano });
+      if(c) clientes.push(c);
     }
-    const ativosByGestor = {};
-    ativos.forEach(c => { ativosByGestor[c.gestor] = (ativosByGestor[c.gestor]||0)+1; });
-    _activeClientsData = { ativos, gestorByName, totalAtivos: ativos.length, ativosByGestor, source:'supabase' };
-    console.log('[ActiveClients] (Supabase fallback) total ativos:', ativos.length);
+    _churnRows = clientes;
+    _activeClientsData = montaCacheGrupos(clientes, 'supabase');
+    console.log('[ActiveClients] (Supabase fallback) total ativos:', _activeClientsData.totalAtivos);
     return _activeClientsData;
   } catch(e2){
     console.error('[ActiveClients] fallback Supabase também falhou:', e2);
-    _activeClientsData = { ativos: [], gestorByName: new Map(), totalAtivos: 0, ativosByGestor: {}, source:'none', error: e2.message||String(e2) };
+    _churnRows = [];
+    _activeClientsData = { clientes: [], ativos: [], totalAtivos: 0, ativosByGestor: {}, source:'none', error: e2.message||String(e2) };
     return _activeClientsData;
   }
 }
 
-// Resolve gestor do cliente da planilha de churn pelo nome
-function resolveGestorForChurn(nome){
-  if(!_activeClientsData) return 'Sem gestor';
-  const nm = normName(nome);
-  if(_activeClientsData.gestorByName.has(nm)) return _activeClientsData.gestorByName.get(nm);
-  const toks = nm.split(' ');
-  if(toks.length>=2){
-    const k = toks[0]+' '+toks[toks.length-1];
-    if(_activeClientsData.gestorByName.has(k)) return _activeClientsData.gestorByName.get(k);
-  }
-  return 'Sem gestor';
-}
-
 async function churnInit(){
-  await loadActiveClients(false);
   await churnLoad(false);
 }
 
+// Uma planilha só: clientes ativos e cancelamentos saem da mesma carga.
 async function churnLoad(force){
   churnSetStatus('loading','Carregando planilha…');
   document.getElementById('churn-error-banner').style.display='none';
   try {
-    if(force) await loadActiveClients(true);
-    else if(!_activeClientsData) await loadActiveClients(false);
-    const url = force ? `${CHURN_CSV_URL}&_=${Date.now()}` : CHURN_CSV_URL;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    const rows = parseCsv(text);
-    if(rows.length<2) throw new Error('Planilha vazia');
-    // Estrutura: 0=Nome, 7=Plano, 8=Entrada, 9=Saída, 10=Dias, 11=LTV, 12=Retornou?
-    const data = [];
-    for(let i=1;i<rows.length;i++){
-      const r = rows[i];
-      if(!r[0] || !r[0].trim()) continue;
-      const nome = r[0].trim();
-      const plano = (r[7]||'').trim() || '—';
-      const entrada = parseChurnDate(r[8]);
-      const saida = parseChurnDate(r[9]);
-      const dias = parseInt(r[10],10);
-      const ltv = parseLTV(r[11]);
-      const retornouRaw = (r[12]||'').trim();
-      const retornou = parseChurnDate(retornouRaw) ? true : (retornouRaw && retornouRaw.toLowerCase()!=='não' && retornouRaw.toLowerCase()!=='nao' ? true : false);
-      // Coluna P (índice 15) = Gestor responsável (preenchido manualmente na planilha de churn).
-      // Fallback: tenta resolver pelo cruzamento com a planilha de grupos ativos.
-      const gestorPlanilha = (r[15]||'').trim();
-      const gestor = gestorPlanilha || resolveGestorForChurn(nome);
-      data.push({ nome, plano, gestor, entrada, saida, dias: isNaN(dias)?null:dias, ltv, retornou, retornouRaw, isChurn: !!saida });
-    }
-    _churnRows = data;
+    const dados = await loadActiveClients(!!force);
+    if(dados.error) throw new Error(dados.error);
+    const data = _churnRows;
+    if(!data.length) throw new Error('Planilha vazia');
     // Popular filtro de planos
     const planSel = document.getElementById('churn-plan-select');
     const plans = [...new Set(data.filter(d=>d.isChurn).map(d=>d.plano))].sort();
     planSel.innerHTML = '<option value="all">Todos os planos</option>' + plans.map(p=>`<option value="${p}">${p}</option>`).join('');
-    churnSetStatus('success', `${data.length} registros • ${data.filter(d=>d.isChurn).length} churns`);
+    churnSetStatus('success', `${data.length} clientes • ${data.filter(d=>d.isChurn).length} cancelamentos`);
     churnRender();
   } catch(e){
     console.error('[Churn] erro:', e);
@@ -3833,96 +3822,16 @@ async function churnLoad(force){
   }
 }
 
-// Calcula clientes ativos no INÍCIO de um mês específico — usando SOMENTE a planilha de churn.
-// Lógica solicitada pelo usuário:
-//   ativos_no_inicio_do_mes = (entradas com data < monthStart) − (cancelamentos com saída < monthStart)
-// Considera tanto registros ativos quanto cancelados (ambos têm coluna Entrada).
-// Ex.: para março, soma todas entradas até o fim de fevereiro e subtrai todos cancelamentos até o fim de fevereiro.
+// Clientes ativos no INÍCIO de um mês — o denominador do % de churn do mês.
+//   ativos_no_inicio_do_mes = (entradas com V < monthStart) − (cancelamentos com W < monthStart)
+// Ex.: para março, soma todas as entradas até o fim de fevereiro e subtrai todos
+// os cancelamentos até o fim de fevereiro. Considera tanto os clientes ativos
+// quanto os cancelados — os dois têm data na coluna V.
 function churnActiveAtMonthStart(rows, monthStart, planFilter){
   const planOk = (d) => planFilter==='all' || d.plano===planFilter;
   const entradasAntes = rows.filter(d => d.entrada && d.entrada < monthStart && planOk(d)).length;
-  const cancelAntes   = rows.filter(d => d.isChurn && d.saida && d.saida < monthStart && planOk(d)).length;
-  const count = Math.max(0, entradasAntes - cancelAntes);
-  const list = rows.filter(d => !d.isChurn && planOk(d));
-  return { count, list };
-}
-
-// A planilha de churn era mantida à mão até abril/2026 — de maio em diante pararam.
-// Deste mês em diante o churn vem do NOSSO banco (as mensagens): o cliente saiu no
-// dia em que o grupo foi renomeado para "(FECHADO)". A data da 1ª mensagem já com o
-// marcador é a data da saída. Antes de maio, segue a planilha.
-const CHURN_DB_CUTOFF = new Date(2026, 4, 1); // 1º de maio de 2026
-
-function gruposChurnPorMes(){
-  const rows = window.rawRows || [];
-  const byG = new Map();
-  for(const r of rows){
-    const g = gf(r,'groupId').trim(); if(!g) continue;
-    const dt = parseDateTime(r); if(!dt) continue;
-    if(!byG.has(g)) byG.set(g, []);
-    byG.get(g).push({ dt, nome: gf(r,'groupName'), gestor: gf(r,'gestorName') });
-  }
-  // "F3F - NOME - PLANO" (com marcador de fechado em qualquer lugar) -> {nome, plano}
-  const limpa = raw => {
-    const s = String(raw||'').replace(/\(?\s*fechado\s*\)?/ig,' ').replace(/\s+/g,' ').trim();
-    const m = s.match(/^F3F\s*-\s*(.+?)\s*-\s*([^-]+)$/i);
-    return m ? { nome:m[1].trim(), plano:m[2].trim() } : { nome:s.replace(/^F3F\s*-\s*/i,'').trim() || '—', plano:'—' };
-  };
-  // Cliente que voltou não é churn. O retorno acontece de dois jeitos: o grupo é
-  // renomeado de volta (tira o FECHADO), OU abrem um grupo NOVO para o mesmo cliente
-  // (foi o caso da Gisele: grupo antigo fechado + grupo novo "FUNIL"). Os dois são
-  // pegos casando o NOME do cliente: se há atividade em grupo aberto depois de fechar,
-  // ele voltou. Guarda a última atividade aberta por cliente.
-  const cliKey = raw => limpa(raw).nome.toLowerCase();
-  const ativoAte = {};
-  for(const arr of byG.values()){
-    for(const m of arr){
-      if(!isGrupoFechado(m.nome)){
-        const c = cliKey(m.nome);
-        if(c && (!ativoAte[c] || m.dt > ativoAte[c])) ativoAte[c] = m.dt;
-      }
-    }
-  }
-
-  const saidas = {}, items = {}, grupos = [];
-  for(const [g, arr] of byG){
-    arr.sort((a,b)=>a.dt-b.dt);
-    const inicio = arr[0].dt;
-    // Vale o ÚLTIMO estado do nome, não a primeira vez que o marcador apareceu.
-    // 4 grupos foram renomeados de volta (tiraram o FECHADO) — um deles seguiu
-    // com 67 mensagens por mais 50 dias. Pela regra antiga o grupo saía da base
-    // de "ativos no dia 01" para sempre, mas também não contava como churn: o
-    // cliente sumia da conta dos dois lados. Se a última mensagem não tem o
-    // marcador, o grupo está aberto; se tem, a saída é o começo da sequência
-    // fechada final.
-    let idx = -1;
-    if(isGrupoFechado(arr[arr.length-1].nome)){
-      idx = arr.length - 1;
-      while(idx > 0 && isGrupoFechado(arr[idx-1].nome)) idx--;
-    }
-    const bornFechado = idx === 0;               // já nasceu fechado -> não dá pra datar a saída
-    let fim = idx >= 0 ? arr[idx].dt : null;
-    if(idx > 0){
-      const cli = cliKey(arr[idx].nome);
-      const voltou = ativoAte[cli] && ativoAte[cli] > fim;   // ativo depois de fechar = voltou
-      if(!voltou){
-        const k = `${fim.getFullYear()}-${String(fim.getMonth()+1).padStart(2,'0')}`;
-        saidas[k] = (saidas[k]||0) + 1;
-        const { nome, plano } = limpa(arr[idx].nome);
-        const gestor = [...arr].reverse().map(m=>m.gestor).find(x=>x && x.trim()) || '—';
-        // shape compatível com o drill do gráfico mensal (churnOpenDrilldown).
-        // entrada/dias/ltv = null: só sabemos a data de SAÍDA (a de entrada real não
-        // está no grupo, só a 1ª mensagem da janela de dados — não é confiável).
-        (items[k] = items[k] || []).push({ nome, gestor, plano, entrada:null, saida:fim, dias:null, ltv:null, isChurn:true });
-      }
-    }
-    grupos.push({ inicio, fim, bornFechado });
-  }
-  // ativos no início de um mês: grupos que já existiam e ainda não tinham fechado
-  const ativosNoInicio = (monthStart) => grupos.filter(a =>
-    !a.bornFechado && a.inicio < monthStart && (!a.fim || a.fim >= monthStart)
-  ).length;
-  return { saidas, items, ativosNoInicio };
+  const cancelAntes   = rows.filter(d => d.saida && d.saida < monthStart && planOk(d)).length;
+  return Math.max(0, entradasAntes - cancelAntes);
 }
 
 function churnRender(){
@@ -3939,17 +3848,11 @@ function churnRender(){
   const churns = all.filter(d => d.isChurn
     && (!cutoff || d.saida >= cutoff)
     && (planFilter==='all' || d.plano===planFilter));
-  const ativos = all.filter(d => !d.isChurn && (planFilter==='all' || d.plano===planFilter));
 
   // ───── KPIs básicos ─────
-  const total = churns.length;
-  const ativosCount = ativos.length;
+  // Permanência média = W − V dos cancelados do período.
   const tempos = churns.map(d=>d.dias).filter(d=>d!=null && d>0);
   const avgTempo = tempos.length ? Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length) : 0;
-  const ltvs = churns.map(d=>d.ltv).filter(v=>v>0);
-  const avgLtv = ltvs.length ? ltvs.reduce((a,b)=>a+b,0)/ltvs.length : 0;
-  const retornaram = churns.filter(d=>d.retornou).length;
-  const taxaRetorno = total>0 ? (retornaram/total*100) : 0;
 
   // ───── Gráfico por mês: % CHURN baseado em ativos no início do mês ─────
   // Monta lista de meses do período
@@ -3966,15 +3869,18 @@ function churnRender(){
       cur.setMonth(cur.getMonth()+1);
     }
   }
-  // period='all' não preenche meses contínuos, então jun/jul 2026 — que só têm dado
-  // no banco, não na planilha (parou em maio) — ficavam de fora. Garante a era do
-  // banco (a partir do corte) até o mês atual.
+  // period='all': do primeiro cancelamento registrado até hoje, sem pular os meses
+  // que não tiveram saída nenhuma — senão o eixo do gráfico mente sobre o intervalo.
   if(!cutoff){
-    const cur = new Date(CHURN_DB_CUTOFF.getFullYear(), CHURN_DB_CUTOFF.getMonth(), 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), 1);
-    while(cur <= end){
-      monthSet.add(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`);
-      cur.setMonth(cur.getMonth()+1);
+    const datas = all.filter(d=>d.isChurn).map(d=>d.saida.getTime());
+    if(datas.length){
+      const min = new Date(Math.min(...datas));
+      const cur = new Date(min.getFullYear(), min.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
+      while(cur <= end){
+        monthSet.add(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`);
+        cur.setMonth(cur.getMonth()+1);
+      }
     }
   }
   const monthKeys = [...monthSet].sort();
@@ -3982,26 +3888,12 @@ function churnRender(){
     const [y,m] = k.split('-').map(Number);
     const monthStart = new Date(y, m-1, 1);
     const monthEnd = new Date(y, m, 1);
-    const ai = churnActiveAtMonthStart(all, monthStart, planFilter);
+    const baseTotal = churnActiveAtMonthStart(all, monthStart, planFilter);
     const cancelMes = all.filter(d => d.isChurn && d.saida >= monthStart && d.saida < monthEnd
       && (planFilter==='all' || d.plano===planFilter));
-    const baseTotal = ai.count;
     const cancel = cancelMes.length;
     const pct = baseTotal>0 ? (cancel/baseTotal*100) : 0;
     return { key:k, monthStart, monthEnd, baseTotal, cancelMes, cancel, pct };
-  });
-
-  // De maio/2026 em diante, sobrescreve com o churn calculado do banco (grupos que
-  // viraram FECHADO). A planilha parou de ser mantida nesse mês.
-  const _dbChurn = gruposChurnPorMes();
-  monthData.forEach(d => {
-    if(d.monthStart >= CHURN_DB_CUTOFF){
-      d.cancel     = _dbChurn.saidas[d.key] || 0;
-      d.cancelMes  = _dbChurn.items[d.key] || [];
-      d.baseTotal  = _dbChurn.ativosNoInicio(d.monthStart);
-      d.pct        = d.baseTotal>0 ? (d.cancel/d.baseTotal*100) : 0;
-      d.fonteDB    = true;
-    }
   });
 
   // KPI Churn Rate = média ponderada (total cancelamentos / soma das bases)
@@ -4009,20 +3901,15 @@ function churnRender(){
   const sumCancel = monthData.reduce((a,b)=>a+b.cancel,0);
   const rateMedio = sumBase>0 ? (sumCancel/sumBase*100) : 0;
 
-  // Total combinado: planilha (até abr/26) + grupos do banco (mai/26+). sumCancel já
-  // soma os meses com a fonte certa em cada um.
   document.getElementById('churn-kpi-total').textContent = sumCancel;
   document.getElementById('churn-kpi-total-sub').textContent =
-    (period==='all'?'todo o histórico':'no período') + ' · planilha + grupos';
-  // ───── KPI: Clientes Ativos vem da planilha "Controle dos Grupos" (fonte da verdade global) ─────
+    (period==='all'?'todo o histórico':'no período') + ' · coluna W';
+  // ───── KPI: Clientes Ativos = coluna Status da planilha "Controle dos Grupos" ─────
   const totalAtivosGlobal = _activeClientsData ? _activeClientsData.totalAtivos : 0;
   document.getElementById('churn-kpi-active').textContent = totalAtivosGlobal;
   document.getElementById('churn-kpi-active-sub').textContent = 'na planilha de grupos';
   document.getElementById('churn-kpi-rate').textContent = rateMedio.toFixed(1)+'%';
   document.getElementById('churn-kpi-tempo').textContent = avgTempo+' d';
-  document.getElementById('churn-kpi-ltv').textContent = 'R$ '+avgLtv.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
-  document.getElementById('churn-kpi-retorno').textContent = taxaRetorno.toFixed(1)+'%';
-  document.getElementById('churn-kpi-retorno-sub').textContent = `${retornaram} de ${total} (planilha)`;
 
   const monthLabels = monthData.map(d=>{
     const [y,m] = d.key.split('-');
@@ -4192,7 +4079,7 @@ function churnRender(){
   const tbody = document.getElementById('churn-table-body');
   const sorted = [...churns].sort((a,b)=>b.saida-a.saida);
   if(sorted.length===0){
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-2);">Nenhum cancelamento no período selecionado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-2);">Nenhum cancelamento no período selecionado</td></tr>';
   } else {
     const fmt = d => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '—';
     tbody.innerHTML = sorted.map(d => `
@@ -4203,16 +4090,14 @@ function churnRender(){
         <td style="padding:10px 16px;color:var(--text-2);">${fmt(d.entrada)}</td>
         <td style="padding:10px 16px;color:var(--text-2);">${fmt(d.saida)}</td>
         <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;">${d.dias!=null?d.dias:'—'}</td>
-        <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;">R$ ${d.ltv.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-        <td style="padding:10px 16px;text-align:center;">${d.retornou?'<span style="background:#dbeafe;color:#1d4ed8;padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:600;">Sim</span>':'<span style="color:#9ca3af;">—</span>'}</td>
       </tr>
     `).join('');
   }
 }
 
 // ─────── Gráfico de Área de Risco ───────
-// Para cada cliente ATIVO (planilha de grupos), encontra a última mensagem
-// enviada PELO CLIENTE em rawRows (mensagens do time são desconsideradas).
+// Para cada cliente ATIVO (coluna Status da planilha de grupos), encontra a última
+// mensagem enviada PELO CLIENTE em rawRows (mensagens do time são desconsideradas).
 // Bucketiza por dias desde essa última mensagem.
 function renderChurnRiskChart(planFilter){
   const canvas = document.getElementById('chart-churn-risk');
@@ -4247,8 +4132,8 @@ function renderChurnRiskChart(planFilter){
 
   // Última mensagem do CLIENTE (não-time, não-automação) por grupo.
   // Index por nome normalizado do grupo via Coluna A da rawRows (group_nome).
-  // Como o nome do grupo na planilha de churn é só o "nome do cliente", precisamos
-  // casar com o group_nome do supabase ("F3F - {Nome} - {Plano}") por substring/normName.
+  // A planilha guarda o grupo inteiro ("F3F - {Nome} - {Plano}") e as mensagens
+  // também, mas os dois nem sempre batem caractere a caractere — daí o normName.
   const lastClientMsgByName = new Map(); // normName(nomeCliente) -> Date
   for(let i=0; i<messageRows.length; i++){
     const r = messageRows[i];
@@ -4260,11 +4145,7 @@ function renderChurnRiskChart(planFilter){
     if(!dt || isNaN(dt)) continue;
     const grpNome = (r.groupName || '').toString();
     if(!grpNome) continue;
-    // Extrai nome do cliente do "F3F - NOME - PLANO"
-    const limpo = grpNome.replace(/^\(FECHADO\)\s*/i,'').trim();
-    const m = limpo.match(/^F3F\s*-\s*(.+?)\s*-\s*[^-]+$/);
-    const nomeCliente = m ? m[1].trim() : limpo;
-    const nm = normName(nomeCliente);
+    const nm = normName(nomeClienteDoGrupo(grpNome));
     if(!nm) continue;
     const prev = lastClientMsgByName.get(nm);
     if(!prev || dt > prev) lastClientMsgByName.set(nm, dt);
@@ -4620,7 +4501,6 @@ function churnOpenDrilldown(title, subtitle, list){
               <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Entrada</th>
               <th style="text-align:left;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Saída</th>
               <th style="text-align:right;padding:10px 16px;color:var(--m-text-2);font-weight:600;">Dias</th>
-              <th style="text-align:right;padding:10px 16px;color:var(--m-text-2);font-weight:600;">LTV</th>
             </tr>
           </thead>
           <tbody>
@@ -4632,7 +4512,6 @@ function churnOpenDrilldown(title, subtitle, list){
                 <td style="padding:10px 16px;color:var(--m-text-2);">${fmt(d.entrada)}</td>
                 <td style="padding:10px 16px;color:var(--m-text-2);">${fmt(d.saida)}</td>
                 <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;">${d.dias!=null?d.dias:'—'}</td>
-                <td style="padding:10px 16px;text-align:right;font-variant-numeric:tabular-nums;">R$ ${(d.ltv||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
               </tr>
             `).join('')}
           </tbody>

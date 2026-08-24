@@ -355,9 +355,7 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
     <div class="nps-card"><div class="nps-card-title">🚪 Cancelamentos</div><div style="font-size:1.9rem;font-weight:700;color:#dc2626;margin-top:8px;" id="churn-kpi-total">—</div><div class="nps-card-sub" id="churn-kpi-total-sub">no período</div></div>
     <div class="nps-card"><div class="nps-card-title">👥 Clientes Ativos</div><div style="font-size:1.9rem;font-weight:700;color:#10b981;margin-top:8px;" id="churn-kpi-active">—</div><div class="nps-card-sub" id="churn-kpi-active-sub">atualmente na base</div></div>
     <div class="nps-card"><div class="nps-card-title">📉 Churn Rate</div><div style="font-size:1.9rem;font-weight:700;color:var(--primary);margin-top:8px;" id="churn-kpi-rate">—</div><div class="nps-card-sub">no período</div></div>
-    <div class="nps-card"><div class="nps-card-title">⏱️ Permanência Média</div><div style="font-size:1.9rem;font-weight:700;color:var(--text);margin-top:8px;" id="churn-kpi-tempo">—</div><div class="nps-card-sub">dias até cancelar</div></div>
-    <div class="nps-card"><div class="nps-card-title">💰 LTV Médio</div><div style="font-size:1.9rem;font-weight:700;color:var(--text);margin-top:8px;" id="churn-kpi-ltv">—</div><div class="nps-card-sub">dos cancelados</div></div>
-    <div class="nps-card"><div class="nps-card-title">🔄 Taxa de Retorno</div><div style="font-size:1.9rem;font-weight:700;color:#8b5cf6;margin-top:8px;" id="churn-kpi-retorno">—</div><div class="nps-card-sub" id="churn-kpi-retorno-sub">voltaram após churn</div></div>
+    <div class="nps-card"><div class="nps-card-title">⏱️ Permanência Média</div><div style="font-size:1.9rem;font-weight:700;color:var(--text);margin-top:8px;" id="churn-kpi-tempo">—</div><div class="nps-card-sub">dias entre entrar e cancelar</div></div>
   </div>
 
   <div class="section-title">Cancelamentos por Mês</div>
@@ -385,7 +383,7 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
   <div class="section-title" style="margin-top:28px;">Churn por Gestor</div>
   <div class="nps-card" style="padding:20px;margin-bottom:28px;">
     <div style="font-size:.78rem;color:var(--text-2);margin-bottom:10px;line-height:1.5;">
-      Cancelamentos por gestor (coluna P da planilha) — barra mostra <strong>nº absoluto de churns</strong> e a linha mostra <strong>% de churn</strong> sobre o total de clientes que ele já teve (ativos hoje + cancelados). Clique em um gestor para ver os clientes cancelados.
+      Cancelamentos por gestor (coluna D da planilha de grupos) — barra mostra <strong>nº absoluto de churns</strong> e a linha mostra <strong>% de churn</strong> sobre o total de clientes que ele já teve (ativos hoje + cancelados). Clique em um gestor para ver os clientes cancelados.
     </div>
     <div style="height:340px;"><canvas id="chart-churn-gestor"></canvas></div>
   </div>
@@ -402,11 +400,9 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
             <th style="text-align:left;padding:12px 16px;font-weight:600;color:var(--text-2);">Entrada</th>
             <th style="text-align:left;padding:12px 16px;font-weight:600;color:var(--text-2);">Saída</th>
             <th style="text-align:right;padding:12px 16px;font-weight:600;color:var(--text-2);">Dias</th>
-            <th style="text-align:right;padding:12px 16px;font-weight:600;color:var(--text-2);">LTV</th>
-            <th style="text-align:center;padding:12px 16px;font-weight:600;color:var(--text-2);">Retornou?</th>
           </tr>
         </thead>
-        <tbody id="churn-table-body"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-2);">Carregando…</td></tr></tbody>
+        <tbody id="churn-table-body"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-2);">Carregando…</td></tr></tbody>
       </table>
     </div>
   </div>
