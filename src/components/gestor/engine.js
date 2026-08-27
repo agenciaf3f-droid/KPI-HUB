@@ -2197,19 +2197,16 @@ function openDrillLT(gestorName, casos){
         status: gData?.status || '',
         casos: [],
         leadComercial: [],   // minutos úteis
-        leadCorrido: [],     // relógio de parede
         lastInteraction: null,
       };
     }
     const agg = grpAgg[gid];
     agg.casos.push(c);
-    // As duas medidas, separadas — antes viravam um número misto só, e não dava
-    // para saber o que era hora de trabalho e o que era madrugada/fim de semana.
-    // Comercial = minutos úteis. Corrido = relógio de parede.
+    // Só minutos úteis: o relógio de parede não é lead time aqui — madrugada e
+    // fim de semana não são tempo de espera do cliente.
     // Trilha aberta fica de fora: ainda é do grupo, não é atendimento de ninguém.
     if(!c.aberto){
       agg.leadComercial.push(c.leadMins);
-      agg.leadCorrido.push(Math.round((c.respondido_em - c.pendente_desde) / 60000));
       if(!agg.lastInteraction || c.respondido_em > agg.lastInteraction) agg.lastInteraction = c.respondido_em;
     }
   });
@@ -2226,14 +2223,12 @@ function openDrillLT(gestorName, casos){
 
   const totalN = casos.filter(c => !c.aberto).length;
   const totalAvg      = mediaDe(grpList.flatMap(g => g.leadComercial));
-  const totalAvgCorr  = mediaDe(grpList.flatMap(g => g.leadCorrido));
 
   // Store grpList for index-based click access
   window._drillLTGrpList = grpList;
 
   const rows = grpList.map((g,i) => {
     const avg     = mediaDe(g.leadComercial);
-    const avgCorr = mediaDe(g.leadCorrido);
     const openCount = g.casos.filter(c => c.aberto).length;
     const statusBadge = /ativo/i.test(g.status)
       ? '<span class="badge badge-green" style="font-size:.6rem;">Ativo</span>'
@@ -2247,7 +2242,6 @@ function openDrillLT(gestorName, casos){
       <td>${planBadge}</td>
       <td style="text-align:center;">${g.leadComercial.length}${openBadge}</td>
       <td><strong style="color:${avg>60?'#b91c1c':'#15803d'}">${g.leadComercial.length?fmtMins(avg):'—'}</strong></td>
-      <td><strong style="color:rgba(22,163,74,0.85)">${g.leadCorrido.length?fmtMins(avgCorr):'—'}</strong></td>
       <td style="white-space:nowrap;">${lastDt}</td>
       <td>${statusBadge}</td>
     </tr>`;
@@ -2256,8 +2250,7 @@ function openDrillLT(gestorName, casos){
   const body = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
       <span class="drill-count-pill">N = ${totalN}</span>
-      <span class="drill-count-pill" style="background:#eff6ff;color:rgba(8,102,255,0.9);border-color:rgba(8,102,255,.2);">Comercial ${fmtMins(totalAvg)}</span>
-      <span class="drill-count-pill" style="background:#f0fdf4;color:#15803d;border-color:rgba(22,163,74,.2);">Corrido ${fmtMins(totalAvgCorr)}</span>
+      <span class="drill-count-pill" style="background:#eff6ff;color:rgba(8,102,255,0.9);border-color:rgba(8,102,255,.2);">Lead Time ${fmtMins(totalAvg)}</span>
       <span style="font-size:.72rem;color:var(--text-2);">👆 Clique em um grupo para ver os logs</span>
     </div>
     <div style="overflow-x:auto;">
@@ -2265,15 +2258,14 @@ function openDrillLT(gestorName, casos){
       <thead><tr>
         <th>#</th><th>Grupo</th><th>Plano</th>
         <th>Atendimentos</th>
-        <th style="color:rgba(8,102,255,0.85);">LT Comercial</th>
-        <th style="color:rgba(22,163,74,0.85);">LT Corrido</th>
+        <th style="color:rgba(8,102,255,0.85);">Lead Time</th>
         <th>Última interação</th><th>Status</th>
       </tr></thead>
-      <tbody>${rows || '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum caso</td></tr>'}</tbody>
+      <tbody>${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum caso</td></tr>'}</tbody>
     </table></div>`;
 
   openDrill(`Detalhes — Lead Time · ${gestorName}`,
-    `Gestor: ${gestorName} · ${grpList.length} grupos · N = ${totalN} · Comercial ${fmtMins(totalAvg)} · Corrido ${fmtMins(totalAvgCorr)}`,
+    `Gestor: ${gestorName} · ${grpList.length} grupos · N = ${totalN} · Lead Time ${fmtMins(totalAvg)}`,
     body);
 
   // Store for second-level drill
@@ -2309,12 +2301,8 @@ function openDrillLTGroup(gestorName, grpId){
     const client  = esc(c.pendente_phone || '—');
     const cliNome = esc(c.pendente_nome  || '—');
     const desde   = fmtDT(c.pendente_desde);
-    // Lead Time Comercial = bizMins (always available)
+    // Lead Time = bizMins (minutos úteis), sempre disponível
     const ltComercial = c.leadMins;
-    // Lead Time Corrido = real elapsed minutes
-    const ltCorrido = c.aberto
-      ? Math.round((new Date() - c.pendente_desde) / 60000)
-      : (c.respondido_em ? Math.round((c.respondido_em - c.pendente_desde) / 60000) : null);
 
     if(c.aberto){
       return `<tr class="clickable-row" style="background:#fff7ed;" title="Clique para ver log" onclick="openDrillLog(${JSON.stringify(c.grpId)},${JSON.stringify(c.grpNameCurrent||c.grpId)},${c.pendente_desde?c.pendente_desde.getTime():0},0)">
@@ -2323,7 +2311,6 @@ function openDrillLTGroup(gestorName, grpId){
         <td style="white-space:nowrap;">${desde}</td>
         <td><span class="badge badge-amber" style="font-size:.65rem;">⏳ Em aberto</span></td>
         <td><strong style="color:rgba(8,102,255,0.85)">${fmtMins(ltComercial)}</strong></td>
-        <td><strong style="color:rgba(22,163,74,0.85)">${fmtMins(ltCorrido)}</strong></td>
         <td><span style="color:var(--text-2);font-style:italic;font-size:.72rem;">Aguardando resposta</span></td>
       </tr>`;
     }
@@ -2337,14 +2324,12 @@ function openDrillLTGroup(gestorName, grpId){
       <td style="white-space:nowrap;">${desde}</td>
       <td style="white-space:nowrap;">${resp}</td>
       <td><strong style="color:rgba(8,102,255,0.85)">${fmtMins(ltComercial)}</strong></td>
-      <td><strong style="color:rgba(22,163,74,0.85)">${fmtMins(ltCorrido)}</strong></td>
       <td><div>${respNom}</div><div style="font-size:.65rem;color:var(--text-2);">${respNum}</div></td>
     </tr>`;
   }).join('');
 
   const mediaLista = (a) => a.length ? Math.round(a.reduce((x,y)=>x+y,0)/a.length) : 0;
   const avgComercial = mediaLista(agg.leadComercial);
-  const avgCorrido   = mediaLista(agg.leadCorrido);
 
   const body = `
     <div class="drill-breadcrumb">
@@ -2354,8 +2339,7 @@ function openDrillLTGroup(gestorName, grpId){
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
       <span class="drill-count-pill">N = ${n}</span>
-      <span class="drill-count-pill" style="background:#eff6ff;color:rgba(8,102,255,0.9);border-color:rgba(8,102,255,.2);">Comercial ${fmtMins(avgComercial)}</span>
-      <span class="drill-count-pill" style="background:#f0fdf4;color:#15803d;border-color:rgba(22,163,74,.2);">Corrido ${fmtMins(avgCorrido)}</span>
+      <span class="drill-count-pill" style="background:#eff6ff;color:rgba(8,102,255,0.9);border-color:rgba(8,102,255,.2);">Lead Time ${fmtMins(avgComercial)}</span>
       <span style="font-size:.72rem;color:var(--text-2);">👆 Clique em um item para ver o log</span>
     </div>
     <div style="overflow-x:auto;">
@@ -2363,11 +2347,10 @@ function openDrillLTGroup(gestorName, grpId){
       <thead><tr>
         <th>#</th><th>Cliente</th>
         <th>Pendente desde</th><th>Respondido em</th>
-        <th style="color:rgba(8,102,255,0.85);">LT Comercial</th>
-        <th style="color:rgba(22,163,74,0.85);">LT Corrido</th>
+        <th style="color:rgba(8,102,255,0.85);">Lead Time</th>
         <th>Respondente</th>
       </tr></thead>
-      <tbody>${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum caso</td></tr>'}</tbody>
+      <tbody>${rows || '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum caso</td></tr>'}</tbody>
     </table></div>`;
 
   openDrill(`Detalhes — ${esc(agg.grpName)}`,
