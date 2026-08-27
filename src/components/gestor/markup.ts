@@ -171,7 +171,7 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
           <div class="chart-title">Lead Time da equipe</div>
           <span style="font-size:.65rem;color:var(--text-2);font-weight:500;">· clique para detalhes</span>
         </div>
-        <div class="chart-sub">Azul: horário comercial (min úteis) · Verde: fora do horário (min corridos)</div>
+        <div class="chart-sub">Minutos úteis de espera do cliente — expediente 09h–18h, seg a sex. Mensagem que chega fora do expediente só começa a contar na abertura seguinte.</div>
       </div>
       <div class="chart-wrap" style="height:230px;"><canvas id="chart-lt"></canvas></div>
     </div>

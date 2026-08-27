@@ -417,36 +417,6 @@ function bizMins(start, end){
   return mins;
 }
 
-/* ================================================================
-   FORA DO EXPEDIENTE — helpers
-   ================================================================ */
-function isForaExpediente(dt){
-  if(!dt) return false;
-  const dow = dt.getDay(); // 0=Sun, 6=Sat
-  if(dow === 0 || dow === 6) return true;
-  const h = dt.getHours();
-  if(h < BIZ_START || h >= BIZ_END) return true;
-  return false;
-}
-
-function nextBizOpen(dt){
-  // Returns the next business-hour opening (09:00 on next weekday)
-  const c = new Date(dt);
-  // If currently before 09:00 on a weekday, next biz open is today 09:00
-  const dow = c.getDay();
-  if(dow >= 1 && dow <= 5 && c.getHours() < BIZ_START){
-    c.setHours(BIZ_START, 0, 0, 0);
-    return c;
-  }
-  // Otherwise, advance to next day and find first weekday
-  c.setDate(c.getDate() + 1);
-  c.setHours(BIZ_START, 0, 0, 0);
-  while(c.getDay() === 0 || c.getDay() === 6){
-    c.setDate(c.getDate() + 1);
-  }
-  return c;
-}
-
 function isoWeek(d){
   const t=new Date(d); t.setHours(0,0,0,0);
   t.setDate(t.getDate()+3-(t.getDay()+6)%7);
@@ -1594,33 +1564,6 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
   window._ltCasesWebdesign = ltCasesWebdesign;
   window._ltCasesEstrategia = ltCasesEstrategia;
 
-  /* ================================================================
-     LEAD TIME FORA DO HORÁRIO
-     ================================================================ */
-  const ltExtraCases = [];
-  ltCases.forEach(caso => {
-    if(caso.tipo !== 'GESTOR') return;
-    if(!caso.pendente_desde || !caso.respondido_em) return;
-    if(!isForaExpediente(caso.respondido_em)) return;
-    const tempoReal = Math.round((caso.respondido_em - caso.pendente_desde) / 60000);
-    ltExtraCases.push({ ...caso, leadMinsExtra: tempoReal });
-  });
-  window._ltExtraCases = ltExtraCases;
-
-  const ltExtraByGestor = {};
-  ltExtraCases.forEach(c => {
-    const g = c.gestor_nome || '—';
-    if(!ltExtraByGestor[g]) ltExtraByGestor[g] = { total: 0, tempos: [] };
-    ltExtraByGestor[g].total++;
-    ltExtraByGestor[g].tempos.push(c.leadMinsExtra);
-  });
-  Object.values(ltExtraByGestor).forEach(v => {
-    v.media = v.tempos.length ? Math.round(v.tempos.reduce((a,b)=>a+b,0)/v.tempos.length) : 0;
-  });
-  window._ltExtraByGestor = ltExtraByGestor;
-
-  console.log(`[LT-EXTRA] ${ltExtraCases.length} atendimentos fora do horário.`, ltExtraByGestor);
-
   // ── Save global gestor set & populate filter dropdowns ──
   allGestors = allGestorNames;
   populateFilters(Object.values(grpMap), allGestorNames);
@@ -1711,7 +1654,10 @@ function renderKPIs(){
   const gestorSet = new Set(groupData.map(g => g.gestor).filter(Boolean));
 
   // PONTO 1: Lead Time Geral = média de TODOS os atendimentos (fechados + em aberto)
-  // Comercial → minutos úteis, Fora do horário → tempo corrido, Em aberto → bizMins até agora
+  // Sempre em minutos ÚTEIS (bizMins), inclusive quando a resposta saiu fora do
+  // expediente. O relógio só corre das 09h às 18h em dia de semana: mensagem que
+  // chega 19h e é respondida 22h50 custou 0 minuto de espera comercial; chegou
+  // 17h58 e respondida 22h50, custou os 2 minutos que faltavam para as 18h.
   // Respect gestor filter
   const ltCasesAll = window._ltCases || [];
   const activeGF = window._activeGestorFilter || '';
@@ -1729,8 +1675,6 @@ function renderKPIs(){
       allLeadValues.push(caso.leadMins);
     } else if(!caso.respondido_em){
       return;
-    } else if(isForaExpediente(caso.respondido_em)){
-      allLeadValues.push(Math.round((caso.respondido_em - caso.pendente_desde) / 60000));
     } else {
       allLeadValues.push(caso.leadMins);
     }
@@ -1885,14 +1829,6 @@ function renderCharts(){
   // Collect gestor names — respect gestor filter
   const activeGF = window._activeGestorFilter || '';
   const allLtGestors = new Set([...Object.keys(ltMap)]);
-  const extraByGRaw = window._ltExtraByGestor || {};
-  // Filter extra by gestor if filter active
-  const extraByG = {};
-  Object.keys(extraByGRaw).forEach(g => {
-    if(activeGF && g !== activeGF) return;
-    extraByG[g] = extraByGRaw[g];
-    allLtGestors.add(g);
-  });
   // Remove gestors not matching filter
   if(activeGF){
     allLtGestors.forEach(g => { if(g !== activeGF) allLtGestors.delete(g); });
@@ -1904,13 +1840,7 @@ function renderCharts(){
     if(!times || !times.length) return 0;
     return Math.round(times.reduce((a,b) => a+b, 0) / times.length);
   });
-  const ltDataExtra = ltLabels.map(name => {
-    const info = extraByG[name];
-    if(!info || !info.tempos.length) return 0;
-    return info.media;
-  });
   const ltNComercial = ltLabels.map(name => (ltMap[name] || []).length);
-  const ltNExtra = ltLabels.map(name => (extraByG[name]?.total || 0));
 
   const ltCtx = document.getElementById('chart-lt').getContext('2d');
   if(chartLT) chartLT.destroy();
@@ -1921,20 +1851,12 @@ function renderCharts(){
       labels: ltLabels.length ? ltLabels : ['Sem dados'],
       datasets:[
         {
-          label:'Comercial (min úteis)',
+          label:'Lead Time (min úteis)',
           data:  ltLabels.length ? ltDataComercial : [0],
           backgroundColor:'rgba(8,102,255,0.12)',
           borderColor:'rgba(8,102,255,0.75)',
           borderWidth:2, borderRadius:8, borderSkipped:false,
           yAxisID:'y'
-        },
-        {
-          label:'Fora do horário (min corridos)',
-          data:  ltLabels.length ? ltDataExtra : [0],
-          backgroundColor:'rgba(22,163,74,0.12)',
-          borderColor:'rgba(22,163,74,0.75)',
-          borderWidth:2, borderRadius:8, borderSkipped:false,
-          yAxisID:'y1'
         }
       ]
     },
@@ -1950,22 +1872,13 @@ function renderCharts(){
         openDrillLT(gname, casos);
       },
       plugins:{
-        legend:{ position:'bottom', labels:{ color:CT().tick, font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
+        legend:{ display:false },
         tooltip:{ callbacks:{
-          label: function(c){
-            const idx = c.dataIndex;
-            const dsIdx = c.datasetIndex;
-            if(dsIdx === 0){
-              return ` Comercial: ${fmtMins(c.raw)} (n=${ltNComercial[idx]})`;
-            } else {
-              return ` Fora do horário: ${fmtMins(c.raw)} (n=${ltNExtra[idx]})`;
-            }
-          }
+          label: (c) => ` Lead Time: ${fmtMins(c.raw)} (n=${ltNComercial[c.dataIndex]})`
         }}
       },
       scales:{
-        y:{ position:'left', title:{display:true,text:'Comercial (min úteis)',color:'rgba(8,102,255,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{color:CT().grid}, ticks:{color:'rgba(8,102,255,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
-        y1:{ position:'right', title:{display:true,text:'Fora do horário (min corridos)',color:'rgba(22,163,74,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{drawOnChartArea:false}, ticks:{color:'rgba(22,163,74,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
+        y:{ position:'left', title:{display:true,text:'Lead Time (min úteis)',color:'rgba(8,102,255,0.75)',font:{size:10,weight:'600',family:"'Poppins',sans-serif"}}, grid:{color:CT().grid}, ticks:{color:'rgba(8,102,255,0.75)',font:{size:11,family:"'Poppins',sans-serif"}}, border:{display:false} },
         x:{ grid:{display:false}, ticks:{color:CT().tick,font:{size:10,family:"'Poppins',sans-serif"},maxRotation:25}, border:{display:false} }
       }
     }
