@@ -102,6 +102,27 @@ const BIZ_START = 9, BIZ_END = 18;
 const ABANDONO_DIAS = 45;
 
 /* ================================================================
+   GRUPOS DE TESTE
+   ================================================================ */
+// Grupos que não entram em cálculo NENHUM: nem lead time, nem relatório semanal,
+// nem clientes ativos, nem churn. São grupos internos criados para testar o
+// sistema — na planilha aparecem como cliente Ativo normal, então sem esta lista
+// entram na carteira e na média de alguém.
+//
+// O casamento é pelo nome normalizado (sem acento, sem pontuação e sem o marcador
+// de fechado) porque o nome é digitado à mão e aparece com espaçamento e caixa
+// variados na base e na planilha.
+const GRUPOS_TESTE = ['f3f arthur 16 fases'];
+
+function isGrupoTeste(groupName){
+  const s = String(groupName || '')
+    .replace(/\(?\s*fechado\s*\)?/ig, ' ')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return !!s && GRUPOS_TESTE.includes(s);
+}
+
+/* ================================================================
    LEAD TIME — PHONE LISTS (preenchidas por applyRoster)
    ================================================================ */
 // Nomes de gestor excluídos de todo o dashboard (lowercase)
@@ -661,7 +682,18 @@ async function fetchData(){
     }
 
     // Mapeia para o formato interno (colunas fixas via mapSupabaseRow)
-    rawRows = allRows.map(mapSupabaseRow);
+    const mapeadas = allRows.map(mapSupabaseRow);
+    // Grupo de teste sai aqui, na entrada: assim nenhum motor lá embaixo precisa
+    // saber que ele existe. O corte é por ID, não só por nome, porque nem toda
+    // linha traz group_nome preenchido — bastaria uma em branco para o grupo
+    // voltar a aparecer em lead time e relatório.
+    const idsTeste = new Set();
+    for(const r of mapeadas){ if(r.groupId && isGrupoTeste(r.groupName)) idsTeste.add(r.groupId); }
+    rawRows = mapeadas.filter(r => !idsTeste.has(r.groupId) && !isGrupoTeste(r.groupName));
+    if(mapeadas.length !== rawRows.length){
+      console.log(`[F3F] ${mapeadas.length - rawRows.length} linhas de grupo de teste descartadas`,
+        [...idsTeste]);
+    }
     window.rawRows = rawRows;
 
     const sample = rawRows[0];
@@ -3590,6 +3622,9 @@ function nomeClienteDoGrupo(grupoRaw){
 // colunas V e W; ter data de saída é o que define um churn — não o nome do grupo,
 // não a coluna Status.
 function montaClienteDoGrupo({ grupo, gestor, status, plano, entrada, saida }){
+  // Grupo de teste não é cliente: fora dos ativos, fora do churn, fora da
+  // carteira do gestor.
+  if(isGrupoTeste(grupo)) return null;
   const nome = nomeClienteDoGrupo(grupo);
   if(!nome) return null;
   const g = (gestor||'').trim();
