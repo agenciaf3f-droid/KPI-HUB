@@ -3611,8 +3611,10 @@ function montaClienteDoGrupo({ grupo, gestor, status, plano, entrada, saida }){
   const nome = nomeClienteDoGrupo(grupo);
   if(!nome) return null;
   const g = (gestor||'').trim();
-  // Excluir Denzel (regra global)
-  if(isExcludedGestor(g)) return null;
+  // A lista de exclusão NÃO entra aqui, de propósito. Ela diz quem não aparece
+  // como gestor (médias, barras, carteira) — não que o cliente deixou de existir.
+  // Cliente atendido por quem saiu da agência cancelou de verdade e continua no
+  // churn dela; quem filtra por gestor é quem agrega por gestor, lá embaixo.
   const dtEntrada = parseChurnDate(entrada);
   const dtSaida   = parseChurnDate(saida);
   // Tempo de casa sai da subtração das duas colunas — a planilha não traz esse
