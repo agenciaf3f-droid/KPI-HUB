@@ -30,6 +30,7 @@ export default async function GestorPage() {
         admin={acesso.isAdmin}
         gestor={acesso.panels.includes("gestor")}
         editor={acesso.panels.includes("editor")}
+        estrategia={acesso.setor === "ESTRATEGIA"}
       />
     </div>
   );

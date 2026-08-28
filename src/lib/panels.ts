@@ -35,6 +35,15 @@ export type PanelAccess = {
   editorName?: string;
   /** Valor exato da coluna `Gestor` em `Controle de Mensagens`. */
   gestorName?: string;
+  /**
+   * Setor no `GESTOR_ROSTER` — "TRAFEGO", "ESTRATEGIA" ou "CRIACAO".
+   *
+   * Existe porque o painel do gestor filtra pela coluna `Gestor`, e essa coluna
+   * só tem gestor de tráfego. Quem é de estratégia não aparece nela: o trabalho
+   * dele é creditado por telefone, na trilha de estratégia. Sem saber o setor, o
+   * painel filtra por um nome que não existe na coluna e abre vazio.
+   */
+  setor?: string;
   /** `creator_profiles.id` — resolvido no banco, não neste mapa. */
   creatorProfileId?: string;
   /** `hub_members.id` — presente quando o acesso veio da tabela. */
@@ -104,6 +113,13 @@ export const GESTOR_ROSTER = [
   { nome: "Denzel", setor: "CRIACAO" },
 ] as const;
 
+/** Setor da pessoa no roster. `undefined` para quem não está lá. */
+export function setorNoRoster(nome: string | undefined): string | undefined {
+  if (!nome) return undefined;
+  const alvo = nome.trim().toLowerCase();
+  return GESTOR_ROSTER.find((m) => m.nome.toLowerCase() === alvo)?.setor;
+}
+
 /**
  * Parte pura — testável sem banco. Converte uma linha de `hub_members` no
  * acesso dela: `areas` → painéis na ordem da sidebar (gestor, editor, creator);
@@ -127,6 +143,7 @@ export function memberToAccess(member: HubMemberRow): PanelAccess {
     // mostra "Visão administrativa" e não filtra por editor_name.
     editorName: isAdmin ? "Admin" : member.areas.includes("editor") ? member.nome : undefined,
     gestorName: member.areas.includes("gestor") ? member.nome : undefined,
+    setor: setorNoRoster(member.nome),
     memberId: member.id,
     fullName: member.nome,
     avatarUrl: member.avatar_url ?? undefined,
@@ -151,6 +168,7 @@ export function resolveIdentity(email: string, creatorProfileId?: string): Panel
     isAdmin,
     editorName: identity.editorName,
     gestorName: identity.gestorName,
+    setor: identity.gestorName ? setorNoRoster(identity.gestorName) : undefined,
     creatorProfileId,
   };
 }

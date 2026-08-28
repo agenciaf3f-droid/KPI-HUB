@@ -40,7 +40,44 @@ function nomeDeEscopo(){
   // roster), nunca ao nome pessoal. Se o admin marcar Video + Gestor para um
   // editor, filtrar pelo nome dele devolveria painel vazio.
   if(e.editor) return nomeDoGestor('Edição');
+  // Estrategista nao tem carteira: ele atende os clientes dos outros, e a coluna
+  // "Gestor" nunca traz o nome dele. Filtrar por nome devolvia painel vazio —
+  // era o caso do Paulo. Sem filtro por nome aqui; o recorte dele e por
+  // atendimento, em gruposDoEscopoEstrategia().
+  if(e.estrategia) return '';
   return e.nome || '';
+}
+
+/** Telefones do roster que pertencem a esta pessoa. */
+function telefonesDoNome(nome){
+  const alvo = String(nome||'').trim().toLowerCase();
+  const out = new Set();
+  if(!alvo || typeof EQUIPE_POR_TELEFONE === 'undefined') return out;
+  EQUIPE_POR_TELEFONE.forEach((reg, tel) => {
+    if(reg && String(reg.nome||'').trim().toLowerCase() === alvo) out.add(tel);
+  });
+  return out;
+}
+
+/**
+ * Grupos que o estrategista logado atendeu — o recorte dele.
+ * `null` = sem recorte por atendimento (nao e estrategista, ou e admin).
+ */
+function gruposDoEscopoEstrategia(casosEstrategia){
+  const e = escopo();
+  if(!e || e.admin || !e.estrategia) return null;
+  const tels = telefonesDoNome(e.nome);
+  if(!tels.size){
+    // Painel vazio calado e o que fez o Paulo abrir o dashboard sem nada por
+    // meses. Se o nome nao casa com ninguem no roster, diga.
+    console.warn(`[Escopo] "${e.nome}" e de estrategia mas nao tem telefone no roster — o painel vai abrir vazio. Conferir ROSTER.equipe.`);
+  }
+  const ids = new Set();
+  (casosEstrategia || []).forEach(c => {
+    if(c && c.grpId && c.respondente_phone && tels.has(c.respondente_phone)) ids.add(c.grpId);
+  });
+  console.log(`[Escopo] estrategia "${e.nome}": ${tels.size} telefone(s), ${ids.size} grupo(s) atendidos.`);
+  return ids;
 }
 
 // Tema dos graficos. O dashboard original so tinha modo claro e passava a cor
@@ -1616,7 +1653,12 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
   window._activeStatusFilter = statusFilter;
 
   // ── Apply filters ──
+  // Estrategista: o recorte e a lista de grupos que ELE atendeu, montada dos
+  // casos de estrategia (casados por telefone do roster). Para os demais e null
+  // e nada muda.
+  const gruposEstrategia = gruposDoEscopoEstrategia(ltCasesEstrategia);
   const passaFiltros = (g) => {
+    if(gruposEstrategia && !gruposEstrategia.has(g.id)) return false;
     if(planFilter   && g.plan   !== planFilter)   return false;
     if(gestorFilter && g.gestor !== gestorFilter)  return false;
     if(statusFilter){

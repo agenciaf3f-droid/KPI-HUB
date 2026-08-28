@@ -13,7 +13,14 @@ import "./gestor.css";
  * `document` e o init() precisa do markup já no DOM.
  */
 /** Recorte de quem está vendo o painel. Vem do RSC — nunca do cliente. */
-export type EscopoGestor = { nome: string; admin: boolean; gestor: boolean; editor: boolean };
+export type EscopoGestor = {
+  nome: string;
+  admin: boolean;
+  gestor: boolean;
+  editor: boolean;
+  /** Setor ESTRATEGIA: não existe na coluna `Gestor`, escopo é por atendimento. */
+  estrategia: boolean;
+};
 
 // Props primitivas de propósito: um objeto seria recriado a cada render e
 // reiniciaria o motor inteiro no efeito.
@@ -23,12 +30,14 @@ export function GestorApp({
   admin = false,
   gestor = false,
   editor = false,
+  estrategia = false,
 }: {
   churnOnly?: boolean;
   nome?: string;
   admin?: boolean;
   gestor?: boolean;
   editor?: boolean;
+  estrategia?: boolean;
 } = {}) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +51,7 @@ export function GestorApp({
       const mod = await import("./engine");
       if (cancelled || !hostRef.current) return;
       // Antes do init: o motor lê o escopo já na primeira renderização dos dados.
-      (window as unknown as { __F3F_ESCOPO?: EscopoGestor }).__F3F_ESCOPO = { nome, admin, gestor, editor };
+      (window as unknown as { __F3F_ESCOPO?: EscopoGestor }).__F3F_ESCOPO = { nome, admin, gestor, editor, estrategia };
       if (!admin) hostRef.current.classList.add("escopo-usuario");
       mod.initGestor(hostRef.current);
       destroy = mod.destroyGestor;
@@ -72,7 +81,7 @@ export function GestorApp({
       observer?.disconnect();
       destroy?.();
     };
-  }, [churnOnly, nome, admin, gestor, editor]);
+  }, [churnOnly, nome, admin, gestor, editor, estrategia]);
 
   return <div ref={hostRef} className="gestor-app min-h-svh" />;
 }
