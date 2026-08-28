@@ -1927,31 +1927,47 @@ async function marcarRelatorio(grupoId, semana, status, motivo){
    da tabela ele seria cortado: o corpo do modal tem overflow:auto, e um menu
    absoluto na última linha ficaria escondido atrás da borda. */
 let _menuEnviadoEl = null;
+let _menuEnviadoBtn = null;
 
 function fechaMenuEnviado(){
   if(_menuEnviadoEl){ _menuEnviadoEl.remove(); _menuEnviadoEl = null; }
-  document.removeEventListener('mousedown', _fechaMenuForaDoClique, true);
+  _menuEnviadoBtn = null;
+  document.removeEventListener('mousedown', _menuCliqueFora, true);
+  document.removeEventListener('keydown', _menuTecla, true);
+  // capture: pega rolagem de QUALQUER container, inclusive o corpo do modal.
+  // Sem isso o menu, que é position:fixed, descola da linha ao rolar.
+  document.removeEventListener('scroll', fechaMenuEnviado, true);
   window.removeEventListener('resize', fechaMenuEnviado);
 }
 
-function _fechaMenuForaDoClique(ev){
-  if(_menuEnviadoEl && !_menuEnviadoEl.contains(ev.target)) fechaMenuEnviado();
+function _menuCliqueFora(ev){
+  if(!_menuEnviadoEl) return;
+  // Clicar no próprio botão não fecha aqui: o onclick dele alterna logo depois.
+  if(_menuEnviadoEl.contains(ev.target)) return;
+  if(_menuEnviadoBtn && _menuEnviadoBtn.contains(ev.target)) return;
+  fechaMenuEnviado();
 }
 
+function _menuTecla(ev){ if(ev.key === 'Escape') fechaMenuEnviado(); }
+
 function abreMenuEnviado(botao, grupoId, semana){
-  const jaAberto = _menuEnviadoEl && _menuEnviadoEl.dataset.grupo === grupoId
-                                  && _menuEnviadoEl.dataset.semana === semana;
+  const jaAberto = _menuEnviadoBtn === botao;
   fechaMenuEnviado();
   if(jaAberto) return;   // segundo clique no mesmo botão fecha
 
   const menu = document.createElement('div');
   menu.className = 'marcar-menu gestor-modal';
-  menu.dataset.grupo = grupoId;
-  menu.dataset.semana = semana;
-  menu.innerHTML = MOTIVOS_ENVIADO.map(m =>
-    `<button type="button" class="marcar-menu-item"
-             onclick="marcarRelatorio('${esc(grupoId)}','${esc(semana)}','enviado','${m.id}')">${m.label}</button>`
-  ).join('');
+  // Handlers de verdade, não onclick inline: o menu é filho do <body>, fora do
+  // root do painel, e um inline dependeria de a função estar em window. Se
+  // faltasse, o item ficava mudo e o menu parecia travado na tela.
+  MOTIVOS_ENVIADO.forEach(m => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'marcar-menu-item';
+    item.textContent = m.label;
+    item.addEventListener('click', () => marcarRelatorio(grupoId, semana, 'enviado', m.id));
+    menu.appendChild(item);
+  });
   document.body.appendChild(menu);
 
   const r = botao.getBoundingClientRect();
@@ -1960,9 +1976,13 @@ function abreMenuEnviado(botao, grupoId, semana){
   const alturaMenu = menu.offsetHeight;
   const cabeEmbaixo = r.bottom + alturaMenu + 8 <= window.innerHeight;
   menu.style.top = `${cabeEmbaixo ? r.bottom + 6 : r.top - alturaMenu - 6}px`;
-  menu.style.left = `${Math.min(r.left, window.innerWidth - menu.offsetWidth - 12)}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 12))}px`;
 
-  document.addEventListener('mousedown', _fechaMenuForaDoClique, true);
+  _menuEnviadoEl = menu;
+  _menuEnviadoBtn = botao;
+  document.addEventListener('mousedown', _menuCliqueFora, true);
+  document.addEventListener('keydown', _menuTecla, true);
+  document.addEventListener('scroll', fechaMenuEnviado, true);
   window.addEventListener('resize', fechaMenuEnviado);
 }
 
@@ -2396,6 +2416,9 @@ function openDrill(title, sub, bodyHTML){
   document.getElementById('drill-overlay').classList.add('open');
 }
 function closeDrill(){
+  // O menu de motivos é filho do <body>, não do modal: fechar o drill não o
+  // levava junto e ele ficava flutuando sobre o dashboard.
+  fechaMenuEnviado();
   document.getElementById('drill-overlay').classList.remove('open');
 }
 function drillOverlayClick(e){
