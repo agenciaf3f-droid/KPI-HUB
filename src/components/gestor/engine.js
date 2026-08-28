@@ -2665,19 +2665,23 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
     .sort((a,b) => a.pct - b.pct || b.faltam - a.faltam);
 
   const corPct = p => p >= 80 ? '#15803d' : p >= 50 ? '#b45309' : '#b91c1c';
+  // Uma função só para a célula de porcentagem, usada nas linhas E no total.
+  // Antes o total era texto solto enquanto as linhas tinham barra + número, e
+  // as duas coisas caíam em posições diferentes na mesma coluna.
+  const celulaPct = (pct) => `<td class="num">
+        <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+          <div style="flex:0 0 72px;height:6px;border-radius:99px;background:var(--m-line);overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${corPct(pct)};border-radius:99px;"></div>
+          </div>
+          <strong style="color:${corPct(pct)};min-width:38px;text-align:right;">${pct}%</strong>
+        </div>
+      </td>`;
   const resumoRows = resumo.map(r => `<tr>
-      <td style="font-weight:600;">${esc(r.nome)}</td>
+      <td style="font-weight:600;white-space:nowrap;">${esc(r.nome)}</td>
       <td class="num" style="color:#15803d;font-weight:600;">${r.enviados}</td>
       <td class="num" style="color:${r.dispensados ? '#b45309' : 'var(--text-2)'};">${r.dispensados}</td>
       <td class="num" style="color:${r.faltam ? '#b91c1c' : 'var(--text-2)'};font-weight:600;">${r.faltam}</td>
-      <td class="num">
-        <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
-          <div style="flex:0 0 72px;height:6px;border-radius:99px;background:var(--m-line);overflow:hidden;">
-            <div style="width:${r.pct}%;height:100%;background:${corPct(r.pct)};border-radius:99px;"></div>
-          </div>
-          <strong style="color:${corPct(r.pct)};min-width:36px;">${r.pct}%</strong>
-        </div>
-      </td>
+      ${celulaPct(r.pct)}
     </tr>`).join('');
 
   const totalEnv = resumo.reduce((s,r) => s + r.enviados, 0);
@@ -2690,16 +2694,16 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
       <div style="font-size:.72rem;font-weight:600;color:var(--text-2);margin-bottom:8px;">Resumo por gestor</div>
       <div style="overflow-x:auto;"><table class="drill-table">
         <thead><tr>
-          <th>Gestor</th><th class="num">Relatórios Enviados</th>
-          <th class="num">Não precisava</th>
-          <th class="num">Relatórios que Faltam</th><th class="num">Porcentagem</th>
+          <th>Gestor</th><th class="num">Enviados</th>
+          <th class="num">Não precisa</th>
+          <th class="num">Faltam</th><th class="num">Cobertura</th>
         </tr></thead>
         <tbody>${resumoRows}</tbody>
         <tfoot><tr style="border-top:2px solid var(--border,#e5e7eb);font-weight:700;">
           <td>Total</td><td class="num" style="color:#15803d;">${totalEnv}</td>
           <td class="num" style="color:${totalDis ? '#b45309' : 'var(--text-2)'};">${totalDis}</td>
           <td class="num" style="color:${totalFal ? '#b91c1c' : 'var(--text-2)'};">${totalFal}</td>
-          <td class="num"><strong style="color:${corPct(totalPct)};">${totalPct}%</strong></td>
+          ${celulaPct(totalPct)}
         </tr></tfoot>
       </table></div>
     </div>` : '';
