@@ -1863,7 +1863,8 @@ async function carregaMarcacoes(){
     const { marcacoes } = await r.json();
     _marcacoes.clear();
     (marcacoes || []).forEach(m => {
-      _marcacoes.set(chaveMarcacao(m.grupo_id, m.semana), { status: m.status, nome: m.marcado_nome || '' });
+      _marcacoes.set(chaveMarcacao(m.grupo_id, m.semana),
+        { status: m.status, motivo: m.motivo || null, nome: m.marcado_nome || '' });
     });
     console.log(`[Relatórios] ${_marcacoes.size} marcação(ões) carregada(s).`);
   } catch(e){
@@ -1883,19 +1884,35 @@ function podeMarcar(g){
   return !!meu && !!dono && meu === dono;
 }
 
+/* "Enviado" tem três motivos. Eles NÃO são status: para a cobrança e para o
+   gráfico as três valem a mesma coisa (relatório entregue, fatia verde) — o que
+   muda é o porquê, que fica guardado para auditoria. */
+const MOTIVOS_ENVIADO = [
+  { id:'manual',    label:'Enviado Manualmente' },
+  { id:'dashboard', label:'Enviado pelo Dashboard' },
+  { id:'reuniao',   label:'Reunião Realizada Hoje/Ontem' }
+];
+const rotuloMotivo = (id) => (MOTIVOS_ENVIADO.find(m => m.id === id) || {}).label || '';
+
 /** Clique nos botões da lista de pendentes. Alterna: clicar no mesmo desfaz. */
-async function marcarRelatorio(grupoId, semana, status){
+async function marcarRelatorio(grupoId, semana, status, motivo){
+  fechaMenuEnviado();
   const atual = marcacaoDe(grupoId, semana);
-  const novo = (atual && atual.status === status) ? null : status;
+  // Repetir a MESMA marcação desfaz. Para 'enviado' o motivo entra na conta:
+  // trocar de "Manualmente" para "Reunião" é correção, não desfazer.
+  const igual = atual && atual.status === status &&
+                (status !== 'enviado' || (atual.motivo || null) === (motivo || null));
+  const novo = igual ? null : status;
   try {
     const r = await fetch('/api/gestor/relatorios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grupoId, semana, status: novo })
+      body: JSON.stringify({ grupoId, semana, status: novo, motivo: novo === 'enviado' ? motivo : null })
     });
     const json = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(json.error || ('HTTP ' + r.status));
-    if(novo) _marcacoes.set(chaveMarcacao(grupoId, semana), { status: novo, nome: 'você' });
+    if(novo) _marcacoes.set(chaveMarcacao(grupoId, semana),
+                            { status: novo, motivo: novo === 'enviado' ? (motivo || null) : null, nome: 'você' });
     else     _marcacoes.delete(chaveMarcacao(grupoId, semana));
     // Refaz o gráfico e reabre o modal já sem o grupo marcado.
     applyFilter();
@@ -1903,6 +1920,50 @@ async function marcarRelatorio(grupoId, semana, status){
   } catch(e){
     alert('Não foi possível marcar: ' + e.message);
   }
+}
+
+/* Menu do botão "Enviado".
+   Vive solto no <body> e é posicionado com position:fixed sobre o botão. Dentro
+   da tabela ele seria cortado: o corpo do modal tem overflow:auto, e um menu
+   absoluto na última linha ficaria escondido atrás da borda. */
+let _menuEnviadoEl = null;
+
+function fechaMenuEnviado(){
+  if(_menuEnviadoEl){ _menuEnviadoEl.remove(); _menuEnviadoEl = null; }
+  document.removeEventListener('mousedown', _fechaMenuForaDoClique, true);
+  window.removeEventListener('resize', fechaMenuEnviado);
+}
+
+function _fechaMenuForaDoClique(ev){
+  if(_menuEnviadoEl && !_menuEnviadoEl.contains(ev.target)) fechaMenuEnviado();
+}
+
+function abreMenuEnviado(botao, grupoId, semana){
+  const jaAberto = _menuEnviadoEl && _menuEnviadoEl.dataset.grupo === grupoId
+                                  && _menuEnviadoEl.dataset.semana === semana;
+  fechaMenuEnviado();
+  if(jaAberto) return;   // segundo clique no mesmo botão fecha
+
+  const menu = document.createElement('div');
+  menu.className = 'marcar-menu gestor-modal';
+  menu.dataset.grupo = grupoId;
+  menu.dataset.semana = semana;
+  menu.innerHTML = MOTIVOS_ENVIADO.map(m =>
+    `<button type="button" class="marcar-menu-item"
+             onclick="marcarRelatorio('${esc(grupoId)}','${esc(semana)}','enviado','${m.id}')">${m.label}</button>`
+  ).join('');
+  document.body.appendChild(menu);
+
+  const r = botao.getBoundingClientRect();
+  // Abre para cima quando não há espaço embaixo — na última linha da tabela o
+  // menu sairia da tela.
+  const alturaMenu = menu.offsetHeight;
+  const cabeEmbaixo = r.bottom + alturaMenu + 8 <= window.innerHeight;
+  menu.style.top = `${cabeEmbaixo ? r.bottom + 6 : r.top - alturaMenu - 6}px`;
+  menu.style.left = `${Math.min(r.left, window.innerWidth - menu.offsetWidth - 12)}px`;
+
+  document.addEventListener('mousedown', _fechaMenuForaDoClique, true);
+  window.addEventListener('resize', fechaMenuEnviado);
 }
 
 // Escreve o valor de cada barra em cima dela, em 01h50m. Plugin inline de
@@ -2735,7 +2796,7 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
     const acoes = podeMarcar(g)
       ? `<div class="marcar-acoes">
            <button type="button" class="btn-marcar btn-marcar-enviado"
-                   onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','enviado')">Enviado</button>
+                   onclick="abreMenuEnviado(this,'${esc(g.id)}','${esc(wk)}')">Enviado <span class="btn-marcar-seta">▾</span></button>
            <button type="button" class="btn-marcar btn-marcar-dispensa"
                    onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','nao_precisa')">Não precisa</button>
          </div>`
@@ -2777,6 +2838,37 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
       <div style="overflow-x:auto;"><table class="drill-table"><tbody>${dispensadosRows}</tbody></table></div>
     </div>` : '';
 
+  // Marcados à mão como enviados. Sem esta lista um clique errado no menu não
+  // teria volta: o grupo sai dos pendentes e some da tela.
+  const marcadosEnviados = (enviados || []).filter(g => {
+    const m = marcacaoDe(g.id, wk);
+    return m && m.status === 'enviado';
+  });
+  const enviadosRows = marcadosEnviados.map(g => {
+    const m = marcacaoDe(g.id, wk) || {};
+    const motivo = rotuloMotivo(m.motivo);
+    const quem = m.nome ? ` · por ${esc(m.nome)}` : '';
+    const desfazer = podeMarcar(g)
+      ? `<button type="button" class="btn-desfazer btn-desfazer-verde"
+                 onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','enviado','${esc(m.motivo || '')}')">desfazer</button>`
+      : '';
+    return `<tr>
+      <td style="color:var(--text-2);">
+        <span style="color:#15803d;">●</span> ${esc(g.name || g.id)}
+        ${motivo ? `<span style="color:var(--text-2);"> — ${esc(motivo)}</span>` : ''}${quem}
+      </td>
+      <td style="width:1%;white-space:nowrap;">${desfazer}</td>
+    </tr>`;
+  }).join('');
+
+  const blocoEnviados = marcadosEnviados.length ? `
+    <div style="margin-top:18px;">
+      <div style="font-size:.72rem;font-weight:600;color:var(--text-2);margin-bottom:8px;">
+        Marcados como enviados nesta semana (${marcadosEnviados.length})
+      </div>
+      <div style="overflow-x:auto;"><table class="drill-table"><tbody>${enviadosRows}</tbody></table></div>
+    </div>` : '';
+
   const opcoesGestor = ['<option value="">Todos os gestores</option>']
     .concat(gestoresDaSemana.map(n =>
       `<option value="${esc(n)}"${n === _drillSemanaGestor ? ' selected' : ''}>${esc(n)}</option>`))
@@ -2797,6 +2889,7 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
       <thead><tr><th>Grupo</th><th>Gestor</th><th>Último relatório</th><th>Marcar</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum grupo pendente</td></tr>'}</tbody>
     </table></div>
+    ${blocoEnviados}
     ${blocoDispensados}`;
 
    openDrill(`Detalhes — Faltam Enviar (${wkLabel})`,
@@ -4924,7 +5017,7 @@ const WINDOW_FNS = { switchTab, applyFilter, sortBy, toggleDatePicker, reloadDat
   // dashboard original tudo era escopo global e o onclick inline resolvia; como
   // modulo ES, sem passar por window elas ficam invisiveis para o HTML.
   dpClick, openDrillLT, openDrillLTGroupByIdx, openDrillLog, logToggleAuto,
-  marcarRelatorio, filtraDrillSemana };
+  marcarRelatorio, filtraDrillSemana, abreMenuEnviado };
 
 export function initGestor(rootEl){
   rootEl.innerHTML = GESTOR_MARKUP;

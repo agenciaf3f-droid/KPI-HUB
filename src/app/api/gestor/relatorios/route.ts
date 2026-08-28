@@ -16,6 +16,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 const STATUS_VALIDOS = ["enviado", "nao_precisa"];
+// Por que conta como enviado. Não são status: para a cobrança e para o gráfico
+// as três significam a mesma coisa, muda só o porquê.
+const MOTIVOS_VALIDOS = ["manual", "dashboard", "reuniao"];
 
 /**
  * Mesmo formato de `normalizeGroupId()` no motor: só a parte numérica.
@@ -39,7 +42,7 @@ export async function GET() {
 
     const { data, error } = await createAdminClient()
       .from("gestor_relatorio_marcacoes")
-      .select("grupo_id, semana, status, marcado_nome, atualizado_em");
+      .select("grupo_id, semana, status, motivo, marcado_nome, atualizado_em");
     if (error) throw error;
 
     return NextResponse.json({ marcacoes: data ?? [] });
@@ -61,12 +64,16 @@ export async function POST(request: Request) {
     const semana = String(body.semana ?? "").trim();
     // status vazio/null = desfazer a marcação.
     const status = body.status == null || body.status === "" ? null : String(body.status);
+    const motivo = body.motivo == null || body.motivo === "" ? null : String(body.motivo);
 
     if (!grupoId || !/^\d{4}-W\d{2}$/.test(semana)) {
       return NextResponse.json({ error: "Informe grupoId e semana (formato 2026-W35)." }, { status: 400 });
     }
     if (status !== null && !STATUS_VALIDOS.includes(status)) {
       return NextResponse.json({ error: "Status inválido." }, { status: 400 });
+    }
+    if (motivo !== null && !MOTIVOS_VALIDOS.includes(motivo)) {
+      return NextResponse.json({ error: "Motivo inválido." }, { status: 400 });
     }
 
     const admin = createAdminClient();
@@ -112,6 +119,8 @@ export async function POST(request: Request) {
           grupo_id: grupoId,
           semana,
           status,
+          // Motivo só faz sentido em 'enviado'; em 'nao_precisa' fica nulo.
+          motivo: status === "enviado" ? motivo : null,
           marcado_por: acesso.memberId ?? null,
           marcado_nome: acesso.fullName ?? acesso.gestorName ?? acesso.email,
           atualizado_em: new Date().toISOString(),
@@ -120,7 +129,7 @@ export async function POST(request: Request) {
       );
     if (error) throw error;
 
-    return NextResponse.json({ ok: true, status });
+    return NextResponse.json({ ok: true, status, motivo });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -465,6 +465,32 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 
 .marcar-acoes { display:flex; gap:8px; align-items:center; }
 .marcar-vazio { font-size:.65rem; color:var(--text-2); white-space:nowrap; }
+.btn-marcar-seta { font-size:.6rem; opacity:.75; margin-left:1px; }
+
+/* Menu de motivos do "Enviado". Fica no <body> com position:fixed porque dentro
+   da tabela o overflow:auto do corpo do modal cortaria ele na última linha.
+   z-index acima do overlay do drill (9999). */
+.marcar-menu {
+  position:fixed; z-index:10050;
+  min-width:210px; padding:5px;
+  background:var(--m-surface, #fff);
+  border:1px solid var(--border); border-radius:10px;
+  box-shadow:0 12px 32px rgba(16,24,40,.18);
+  display:flex; flex-direction:column; gap:2px;
+}
+.marcar-menu-item {
+  display:block; width:100%; text-align:left;
+  padding:9px 11px; border-radius:7px;
+  background:none; border:none;
+  font-family:inherit; font-size:.74rem; font-weight:500;
+  color:var(--m-text, var(--text)); cursor:pointer; white-space:nowrap;
+  transition:background var(--transition);
+}
+.marcar-menu-item:hover { background:#dcfce7; color:#15803d; font-weight:600; }
+.marcar-menu-item:focus-visible { outline:2px solid #2563eb; outline-offset:-2px; }
+
+.btn-desfazer-verde { color:#15803d; }
+.btn-desfazer-verde:hover { background:#dcfce7; }
 
 /* Highlight for pending/response timestamps */
 .hl-open   { background:#fef9c3 !important; }
@@ -742,6 +768,11 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .dark .gestor-app .btn-marcar-dispensa:hover { background:#543c10; border-color:#8a6417; }
 .dark .gestor-app .btn-desfazer { color:#fbbf24; }
 .dark .gestor-app .btn-desfazer:hover { background:#3d2c0c; }
+/* O menu vive fora de .gestor-app (é filho do <body>), então o seletor de tema
+   dele é .dark direto, como o modal do drill. */
+.dark .marcar-menu { background:#241b28; border-color:#3a2e40; box-shadow:0 12px 32px rgba(0,0,0,.5); }
+.dark .marcar-menu-item { color:#e9e0ec; }
+.dark .marcar-menu-item:hover { background:#14361f; color:#6ee7a0; }
 .dark .gestor-app .open-table tbody tr:hover { background:#332a1f; }
 .dark .gestor-app .nps-feedback-item { background:#2a202e; }
 .dark .gestor-app .nps-gestor-herdado { color:#a5b4fc; }
