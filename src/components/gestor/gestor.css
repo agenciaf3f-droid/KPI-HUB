@@ -420,6 +420,48 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .drill-table .clickable-row { cursor:pointer; }
 .drill-table .clickable-row:hover { background:#eff6ff !important; }
 
+/* Colunas numéricas do drill. A regra existia só para .open-table, então todo
+   `class="num"` usado nas tabelas de drill não fazia nada: o número ficava
+   encostado à esquerda de uma coluna larga e a tabela parecia desalinhada. */
+.drill-table thead th.num,
+.drill-table tbody td.num,
+.drill-table tfoot td.num { text-align:right; font-variant-numeric:tabular-nums; }
+
+/* Botões de marcação do relatório semanal ("Enviado" / "Não precisa").
+   Com cor de fundo só, sem borda nem relevo, eles pareciam etiqueta e ninguém
+   percebia que dava para clicar. */
+.btn-marcar {
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:6px 12px; border-radius:8px;
+  font-family:inherit; font-size:.7rem; font-weight:600; line-height:1.1;
+  white-space:nowrap; cursor:pointer;
+  border:1px solid transparent;
+  box-shadow:0 1px 2px rgba(16,24,40,.07);
+  transition:background var(--transition), border-color var(--transition),
+             box-shadow var(--transition), transform .06s ease;
+}
+.btn-marcar:hover  { box-shadow:0 2px 6px rgba(16,24,40,.13); }
+.btn-marcar:active { transform:translateY(1px); box-shadow:0 1px 1px rgba(16,24,40,.09); }
+.btn-marcar:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+
+.btn-marcar-enviado { background:#dcfce7; color:#15803d; border-color:#86efac; }
+.btn-marcar-enviado:hover { background:#bbf7d0; border-color:#4ade80; }
+
+.btn-marcar-dispensa { background:#fef3c7; color:#b45309; border-color:#fcd34d; }
+.btn-marcar-dispensa:hover { background:#fde68a; border-color:#fbbf24; }
+
+/* Ação discreta (desfazer uma dispensa) — texto, não botão cheio. */
+.btn-desfazer {
+  background:none; border:none; padding:4px 6px; border-radius:6px;
+  font-family:inherit; font-size:.68rem; font-weight:600;
+  color:#b45309; cursor:pointer; text-decoration:underline;
+  transition:background var(--transition);
+}
+.btn-desfazer:hover { background:#fef3c7; }
+
+.marcar-acoes { display:flex; gap:8px; align-items:center; }
+.marcar-vazio { font-size:.65rem; color:var(--text-2); white-space:nowrap; }
+
 /* Highlight for pending/response timestamps */
 .hl-open   { background:#fef9c3 !important; }
 .hl-closed { background:#dcfce7 !important; }
@@ -688,6 +730,14 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .dark .gestor-app tbody tr:hover,
 .dark .gestor-app .drill-table tbody tr:hover { background:#261d2a; }
 .dark .gestor-app .drill-table .clickable-row:hover { background:#2e2340 !important; }
+/* Os botões de marcação usam verde/âmbar claros; no escuro invertem para fundo
+   fechado e texto claro, senão viram dois blocos brancos no meio da tabela. */
+.dark .gestor-app .btn-marcar-enviado { background:#14361f; color:#6ee7a0; border-color:#1f5c33; }
+.dark .gestor-app .btn-marcar-enviado:hover { background:#1b4a2a; border-color:#2f7d47; }
+.dark .gestor-app .btn-marcar-dispensa { background:#3d2c0c; color:#fbbf24; border-color:#6b4d12; }
+.dark .gestor-app .btn-marcar-dispensa:hover { background:#543c10; border-color:#8a6417; }
+.dark .gestor-app .btn-desfazer { color:#fbbf24; }
+.dark .gestor-app .btn-desfazer:hover { background:#3d2c0c; }
 .dark .gestor-app .open-table tbody tr:hover { background:#332a1f; }
 .dark .gestor-app .nps-feedback-item { background:#2a202e; }
 .dark .gestor-app .nps-gestor-herdado { color:#a5b4fc; }

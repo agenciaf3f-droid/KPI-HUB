@@ -2715,19 +2715,20 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
     // Só o gestor do grupo (ou admin) marca. Para os demais a coluna explica o
     // porquê, em vez de mostrar botão que devolveria 403 no clique.
     const acoes = podeMarcar(g)
-      ? `<div style="display:flex;gap:6px;justify-content:flex-end;">
-           <button class="btn-marcar" style="background:#dcfce7;color:#15803d;border:1px solid rgba(22,163,74,.35);border-radius:8px;padding:5px 10px;font-size:.68rem;font-weight:600;cursor:pointer;"
+      ? `<div class="marcar-acoes">
+           <button type="button" class="btn-marcar btn-marcar-enviado"
                    onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','enviado')">Enviado</button>
-           <button class="btn-marcar" style="background:#fef3c7;color:#b45309;border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:5px 10px;font-size:.68rem;font-weight:600;cursor:pointer;"
+           <button type="button" class="btn-marcar btn-marcar-dispensa"
                    onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','nao_precisa')">Não precisa</button>
          </div>`
-      : '<span style="font-size:.65rem;color:var(--text-2);">só o gestor do grupo</span>';
+      : '<span class="marcar-vazio">só o gestor do grupo</span>';
+    // Sem a coluna "Semana": ela repetia o mesmo valor em todas as linhas e o
+    // título do modal já diz de que semana se trata. Idem "Motivo", que dizia
+    // sempre a mesma frase — o motivo é a própria lista.
     return `<tr>
-      <td>${wkLabel}</td>
-      <td><div style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</div>
+      <td><div style="font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</div>
           <div style="font-size:.65rem;color:var(--text-2);">${esc(g.id)}</div></td>
       <td>${gest}</td>
-      <td>Grupo ativo sem relatório na semana</td>
       <td>${rptBadge}</td>
       <td>${acoes}</td>
     </tr>`;
@@ -2739,14 +2740,14 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
     const m = marcacaoDe(g.id, wk);
     const quem = m && m.nome ? ` · por ${esc(m.nome)}` : '';
     const desfazer = podeMarcar(g)
-      ? `<button style="background:none;border:none;color:#b45309;font-size:.68rem;font-weight:600;cursor:pointer;text-decoration:underline;"
+      ? `<button type="button" class="btn-desfazer"
                  onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','nao_precisa')">desfazer</button>`
       : '';
     return `<tr>
-      <td colspan="4" style="color:var(--text-2);">
+      <td style="color:var(--text-2);">
         <span style="color:#b45309;">●</span> ${esc(g.name || g.id)}${quem}
       </td>
-      <td style="text-align:right;">${desfazer}</td>
+      <td style="width:1%;white-space:nowrap;">${desfazer}</td>
     </tr>`;
   }).join('');
 
@@ -2775,8 +2776,8 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
     ${resumoTabela}
     <div style="font-size:.72rem;font-weight:600;color:var(--text-2);margin-bottom:8px;">Grupos que faltam</div>
     <div style="overflow-x:auto;"><table class="drill-table">
-      <thead><tr><th>Semana</th><th>Grupo</th><th>Gestor</th><th>Motivo</th><th>Status Relatório</th><th style="text-align:right;">Marcar</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum grupo pendente</td></tr>'}</tbody>
+      <thead><tr><th>Grupo</th><th>Gestor</th><th>Último relatório</th><th>Marcar</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum grupo pendente</td></tr>'}</tbody>
     </table></div>
     ${blocoDispensados}`;
 
