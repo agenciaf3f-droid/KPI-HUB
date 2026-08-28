@@ -416,7 +416,11 @@ tbody td { padding:14px 18px; color:var(--text); vertical-align:middle; }
 .drill-table tbody tr { border-bottom:1px solid #f3f4f6; transition:background var(--transition); }
 .drill-table tbody tr:last-child { border-bottom:none; }
 .drill-table tbody tr:hover { background:#fafbfc; }
-.drill-table tbody td { padding:11px 14px; color:var(--text); vertical-align:middle; }
+/* tfoot junto com tbody: a regra valia só para o tbody, e a linha de Total
+   ficava sem recuo — encostava na borda da célula e saía ~14px fora do eixo
+   das linhas de cima, em todas as colunas. */
+.drill-table tbody td,
+.drill-table tfoot td { padding:11px 14px; color:var(--text); vertical-align:middle; }
 .drill-table .clickable-row { cursor:pointer; }
 .drill-table .clickable-row:hover { background:#eff6ff !important; }
 

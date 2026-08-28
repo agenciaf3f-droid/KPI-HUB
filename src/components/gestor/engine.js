@@ -2711,11 +2711,11 @@ function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
   const rows = groups.map(g => {
     const name = esc(g.name || g.id);
     const gest = esc(g.gestor || '—');
-    let rptBadge = g.lastReport
-      ? (g.reportDays <= 7
-          ? `<span class="badge badge-green">${g.reportDays}d atrás</span>`
-          : `<span class="badge badge-red">${g.reportDays}d atrás</span>`)
-      : '<span class="badge badge-red">Sem relatório</span>';
+    // Texto puro, sem fundo: com pílula aqui eram dois elementos arredondados e
+    // coloridos lado a lado, e o que NÃO é clicável competia com os botões.
+    const rptBadge = g.lastReport
+      ? `<span style="color:${g.reportDays <= 7 ? '#15803d' : '#b91c1c'};font-weight:600;">${g.reportDays}d atrás</span>`
+      : '<span style="color:var(--text-2);">Sem relatório</span>';
     // Só o gestor do grupo (ou admin) marca. Para os demais a coluna explica o
     // porquê, em vez de mostrar botão que devolveria 403 no clique.
     const acoes = podeMarcar(g)
