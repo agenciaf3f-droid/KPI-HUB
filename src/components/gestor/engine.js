@@ -48,13 +48,25 @@ function nomeDeEscopo(){
   return e.nome || '';
 }
 
+/**
+ * Mesma pessoa? O nome de cadastro e o nome que aparece nas mensagens quase
+ * nunca sao iguais: em hub_members o Paulo e "Paulo", no WhatsApp ele assina
+ * "Paulo - Estrategista" e "Paulo Estrategista". Exigir igualdade exata
+ * devolvia painel vazio. Compara o cadastro contra o inicio do outro nome, em
+ * limite de palavra — "Paulo" casa com "Paulo Estrategista", nao com "Paulinho".
+ */
+function mesmaPessoa(nomeCadastro, outroNome){
+  const a = normName(nomeCadastro), b = normName(outroNome);
+  if(!a || !b) return false;
+  return a === b || b.startsWith(a + ' ') || a.startsWith(b + ' ');
+}
+
 /** Telefones do roster que pertencem a esta pessoa. */
 function telefonesDoNome(nome){
-  const alvo = String(nome||'').trim().toLowerCase();
   const out = new Set();
-  if(!alvo || typeof EQUIPE_POR_TELEFONE === 'undefined') return out;
+  if(!String(nome||'').trim() || typeof EQUIPE_POR_TELEFONE === 'undefined') return out;
   EQUIPE_POR_TELEFONE.forEach((reg, tel) => {
-    if(reg && String(reg.nome||'').trim().toLowerCase() === alvo) out.add(tel);
+    if(reg && mesmaPessoa(nome, reg.nome)) out.add(tel);
   });
   return out;
 }
@@ -70,13 +82,17 @@ function gruposDoEscopoEstrategia(casosEstrategia){
   if(!tels.size){
     // Painel vazio calado e o que fez o Paulo abrir o dashboard sem nada por
     // meses. Se o nome nao casa com ninguem no roster, diga.
-    console.warn(`[Escopo] "${e.nome}" e de estrategia mas nao tem telefone no roster — o painel vai abrir vazio. Conferir ROSTER.equipe.`);
+    console.warn(`[Escopo] "${e.nome}" e de estrategia mas nao tem telefone no roster — caindo para o nome de quem respondeu. Conferir ROSTER.equipe.`);
   }
   const ids = new Set();
   (casosEstrategia || []).forEach(c => {
-    if(c && c.grpId && c.respondente_phone && tels.has(c.respondente_phone)) ids.add(c.grpId);
+    if(!c || !c.grpId) return;
+    // Telefone primeiro (e o identificador estavel); o nome de quem respondeu e
+    // a rede de seguranca para quando o roster estiver com outra grafia.
+    if(c.respondente_phone && tels.has(c.respondente_phone)) ids.add(c.grpId);
+    else if(mesmaPessoa(e.nome, c.respondente_nome)) ids.add(c.grpId);
   });
-  console.log(`[Escopo] estrategia "${e.nome}": ${tels.size} telefone(s), ${ids.size} grupo(s) atendidos.`);
+  console.log(`[Escopo] estrategia "${e.nome}": ${tels.size} telefone(s) no roster, ${ids.size} grupo(s) atendidos.`);
   return ids;
 }
 
