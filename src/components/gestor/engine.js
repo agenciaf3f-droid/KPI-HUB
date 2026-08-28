@@ -1810,7 +1810,70 @@ const set = (id,v) => { document.getElementById(id).textContent = v; };
 /* ── CHARTS ── */
 // Stores drill-down data for click handlers (rebuilt each renderCharts call)
 window._drillLT  = {}; // gestor → [caso, ...]
-let _drillWks = {}; // wkey   → { needed:[g,...], sent:[g,...] }
+let _drillWks = {}; // wkey   → { needed:[g,...], sent:[g,...], dispensados:[g,...] }
+
+/* ================================================================
+   MARCAÇÃO MANUAL DE RELATÓRIO
+   ================================================================
+   A cobrança semanal é derivada das mensagens, e duas coisas não aparecem lá:
+   relatório entregue por outro canal ('enviado') e semana em que aquele grupo
+   não precisava de relatório ('nao_precisa'). Quem marca é o gestor do grupo,
+   pela própria tela; a rota /api/gestor/relatorios guarda e confere permissão.
+
+   Chave: `${grupoId}|${semanaISO}` — a mesma dupla que é única no banco. */
+const _marcacoes = new Map();
+
+function chaveMarcacao(grupoId, semana){ return `${grupoId}|${semana}`; }
+function marcacaoDe(grupoId, semana){ return _marcacoes.get(chaveMarcacao(grupoId, semana)) || null; }
+
+async function carregaMarcacoes(){
+  try {
+    const r = await fetch('/api/gestor/relatorios', { signal: AbortSignal.timeout(15000) });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const { marcacoes } = await r.json();
+    _marcacoes.clear();
+    (marcacoes || []).forEach(m => {
+      _marcacoes.set(chaveMarcacao(m.grupo_id, m.semana), { status: m.status, nome: m.marcado_nome || '' });
+    });
+    console.log(`[Relatórios] ${_marcacoes.size} marcação(ões) carregada(s).`);
+  } catch(e){
+    // Falha aqui não pode derrubar a aba: sem marcação a cobrança volta a ser
+    // só a derivada das mensagens, que é o comportamento de antes.
+    console.warn('[Relatórios] não foi possível carregar as marcações:', e.message);
+  }
+}
+
+/** Só o gestor do próprio grupo marca — e o admin, qualquer um. Espelha a rota. */
+function podeMarcar(g){
+  const e = escopo();
+  if(!e) return false;
+  if(e.admin) return true;
+  const meu = String(e.nome || '').trim().toLowerCase();
+  const dono = String(nomeDoGestor(g.gestor) || '').trim().toLowerCase();
+  return !!meu && !!dono && meu === dono;
+}
+
+/** Clique nos botões da lista de pendentes. Alterna: clicar no mesmo desfaz. */
+async function marcarRelatorio(grupoId, semana, status){
+  const atual = marcacaoDe(grupoId, semana);
+  const novo = (atual && atual.status === status) ? null : status;
+  try {
+    const r = await fetch('/api/gestor/relatorios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grupoId, semana, status: novo })
+    });
+    const json = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(json.error || ('HTTP ' + r.status));
+    if(novo) _marcacoes.set(chaveMarcacao(grupoId, semana), { status: novo, nome: 'você' });
+    else     _marcacoes.delete(chaveMarcacao(grupoId, semana));
+    // Refaz o gráfico e reabre o modal já sem o grupo marcado.
+    applyFilter();
+    reabreDrillSemana(semana);
+  } catch(e){
+    alert('Não foi possível marcar: ' + e.message);
+  }
+}
 
 // Escreve o valor de cada barra em cima dela, em 01h50m. Plugin inline de
 // propósito: chartjs-plugin-datalabels seria mais um <script> de CDN só para
@@ -1988,18 +2051,29 @@ function renderCharts(){
     let d = new Date(weekMonday(relIni));
     while(d <= relFim){
       const wk = isoWeek(d);
-      if(!weeks[wk]) weeks[wk] = { needed:0, sent:0 };
-      if(!_drillWks[wk]) _drillWks[wk] = { needed:[], sent:[], label:'' };
+      if(!weeks[wk]) weeks[wk] = { needed:0, sent:0, dispensados:0 };
+      if(!_drillWks[wk]) _drillWks[wk] = { needed:[], sent:[], dispensados:[], label:'' };
       weeks[wk].needed++;
       _drillWks[wk].needed.push(g);
       d = addDays(d, 7);
     }
     // Uma semana com dois relatórios do mesmo grupo conta uma vez só, senão
     // "enviados" passa de "faltam enviar" e a barra empilhada fica sem sentido.
-    new Set((g.reportDates || []).map(isoWeek)).forEach(wk => {
-      if(!weeks[wk]) return;
-      weeks[wk].sent++;
-      _drillWks[wk].sent.push(g);
+    const semanasEnviadas = new Set((g.reportDates || []).map(isoWeek));
+    // Marcação manual entra por cima do que as mensagens dizem: 'enviado' cobre
+    // o relatório entregue por fora, 'nao_precisa' tira o grupo dos pendentes
+    // sem tirar do total — vira a fatia amarela.
+    Object.keys(weeks).forEach(wk => {
+      const m = marcacaoDe(g.id, wk);
+      if(m && m.status === 'nao_precisa'){
+        weeks[wk].dispensados++;
+        _drillWks[wk].dispensados.push(g);
+        return;
+      }
+      if(semanasEnviadas.has(wk) || (m && m.status === 'enviado')){
+        weeks[wk].sent++;
+        _drillWks[wk].sent.push(g);
+      }
     });
   });
   const wkeys   = Object.keys(weeks).sort();
@@ -2020,7 +2094,10 @@ function renderCharts(){
         { label:'Enviados', data:wkeys.map(w=>weeks[w].sent),
           backgroundColor:'rgba(22,163,74,0.6)', borderColor:'rgba(22,163,74,0.85)',
           borderWidth:2, borderRadius:6, borderSkipped:false },
-        { label:'Faltam Enviar', data:wkeys.map(w=>Math.max(0, weeks[w].needed - weeks[w].sent)),
+        { label:'Não precisa', data:wkeys.map(w=>weeks[w].dispensados),
+          backgroundColor:'rgba(245,158,11,0.35)', borderColor:'rgba(245,158,11,0.9)',
+          borderWidth:2, borderRadius:6, borderSkipped:false },
+        { label:'Faltam Enviar', data:wkeys.map(w=>Math.max(0, weeks[w].needed - weeks[w].sent - weeks[w].dispensados)),
           backgroundColor:'rgba(239,68,68,0.18)', borderColor:'rgba(239,68,68,0.7)',
           borderWidth:2, borderRadius:6, borderSkipped:false }
       ]
@@ -2032,13 +2109,10 @@ function renderCharts(){
       onClick:(e, els) => {
         if(!els.length) return;
         const idx   = els[0].index;
-        const dsIdx = els[0].datasetIndex; // 0=Enviados, 1=Faltam Enviar
+        const dsIdx = els[0].datasetIndex; // 0=Enviados, 1=Não precisa, 2=Faltam Enviar
         const wk    = wkeys[idx];
-        const lbl   = wkLabels[idx];
-        const drill = _drillWks[wk] || { needed:[], sent:[], label:lbl };
-        const missing = drill.needed.filter(g => !drill.sent.some(s => s.id === g.id));
-        if(dsIdx === 0) openDrillWeekSent(lbl, drill.sent);
-        else            openDrillWeekNeeded(lbl, missing, drill.sent);
+        if(dsIdx === 0) openDrillWeekSent(wkLabels[idx], (_drillWks[wk] || {}).sent || []);
+        else            abreDrillSemana(wk);
       },
       plugins:{
         legend:{ position:'bottom', labels:{ color:CT().tick, font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16 } },
@@ -2512,18 +2586,63 @@ function logToggleAuto(grpId, grpNameCurrent, pendenteMsTs, respondidoMsTs, chec
 /* ================================================================
    DRILL 3 — RELATÓRIOS NECESSÁRIOS
    ================================================================ */
-function openDrillWeekNeeded(wkLabel, groups, enviados){
+/* Estado do modal de pendentes: qual semana está aberta e o filtro de gestor.
+   Fica fora da função porque os botões e o select re-renderizam o mesmo modal. */
+let _drillSemana = null;
+let _drillSemanaGestor = '';
+
+function abreDrillSemana(wk){
+  _drillSemana = wk;
+  renderDrillSemana();
+}
+
+/** Redesenha o modal se ele estiver aberto naquela semana (após uma marcação). */
+function reabreDrillSemana(wk){
+  if(_drillSemana === wk) renderDrillSemana();
+}
+
+function filtraDrillSemana(valor){
+  _drillSemanaGestor = valor || '';
+  renderDrillSemana();
+}
+
+function renderDrillSemana(){
+  const wk = _drillSemana;
+  const drill = _drillWks[wk];
+  if(!drill) return;
+  // Pendente = precisava, não enviou e não foi dispensado. As duas últimas listas
+  // já vêm da agregação, que é quem sabe das marcações.
+  const fora = new Set([...drill.sent, ...drill.dispensados].map(g => g.id));
+  const pendentes = drill.needed.filter(g => !fora.has(g.id));
+  openDrillWeekNeeded(wk, drill.label || wk, pendentes, drill.sent, drill.dispensados);
+}
+
+function openDrillWeekNeeded(wk, wkLabel, groups, enviados, dispensados){
   // Resumo por gestor: quanto cada um já entregou da semana. A lista abaixo diz
   // quais grupos faltam; esta tabela diz o tamanho do buraco de cada um.
+  // Universo de gestores para o seletor: sai das três listas, antes de filtrar.
+  const gestoresDaSemana = [...new Set(
+    [...(enviados||[]), ...(groups||[]), ...(dispensados||[])].map(g => nomeDoGestor(g.gestor) || '—')
+  )].sort();
+  const doGestor = (lista) => (_drillSemanaGestor
+    ? (lista || []).filter(g => (nomeDoGestor(g.gestor) || '—') === _drillSemanaGestor)
+    : (lista || []));
+  enviados    = doGestor(enviados);
+  groups      = doGestor(groups);
+  dispensados = doGestor(dispensados);
+
   const porGestor = {};
   const conta = (lista, campo) => (lista || []).forEach(g => {
     const nome = nomeDoGestor(g.gestor) || '—';
-    if(!porGestor[nome]) porGestor[nome] = { enviados:0, faltam:0 };
+    if(!porGestor[nome]) porGestor[nome] = { enviados:0, faltam:0, dispensados:0 };
     porGestor[nome][campo]++;
   });
-  conta(enviados, 'enviados');
-  conta(groups,   'faltam');
+  conta(enviados,    'enviados');
+  conta(groups,      'faltam');
+  conta(dispensados, 'dispensados');
 
+  // Dispensado não entra no percentual: não foi entrega, mas também não foi
+  // falha. Vira coluna própria, para dar para ver quantas dispensas cada um deu.
   const resumo = Object.entries(porGestor)
     .map(([nome, v]) => ({ nome, ...v, total: v.enviados + v.faltam,
                            pct: (v.enviados + v.faltam) ? Math.round(v.enviados * 100 / (v.enviados + v.faltam)) : 0 }))
@@ -2533,6 +2652,7 @@ function openDrillWeekNeeded(wkLabel, groups, enviados){
   const resumoRows = resumo.map(r => `<tr>
       <td style="font-weight:600;">${esc(r.nome)}</td>
       <td class="num" style="color:#15803d;font-weight:600;">${r.enviados}</td>
+      <td class="num" style="color:${r.dispensados ? '#b45309' : 'var(--text-2)'};">${r.dispensados}</td>
       <td class="num" style="color:${r.faltam ? '#b91c1c' : 'var(--text-2)'};font-weight:600;">${r.faltam}</td>
       <td class="num">
         <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
@@ -2546,6 +2666,7 @@ function openDrillWeekNeeded(wkLabel, groups, enviados){
 
   const totalEnv = resumo.reduce((s,r) => s + r.enviados, 0);
   const totalFal = resumo.reduce((s,r) => s + r.faltam, 0);
+  const totalDis = resumo.reduce((s,r) => s + r.dispensados, 0);
   const totalPct = (totalEnv + totalFal) ? Math.round(totalEnv * 100 / (totalEnv + totalFal)) : 0;
 
   const resumoTabela = resumo.length ? `
@@ -2554,11 +2675,13 @@ function openDrillWeekNeeded(wkLabel, groups, enviados){
       <div style="overflow-x:auto;"><table class="drill-table">
         <thead><tr>
           <th>Gestor</th><th class="num">Relatórios Enviados</th>
+          <th class="num">Não precisava</th>
           <th class="num">Relatórios que Faltam</th><th class="num">Porcentagem</th>
         </tr></thead>
         <tbody>${resumoRows}</tbody>
         <tfoot><tr style="border-top:2px solid var(--border,#e5e7eb);font-weight:700;">
           <td>Total</td><td class="num" style="color:#15803d;">${totalEnv}</td>
+          <td class="num" style="color:${totalDis ? '#b45309' : 'var(--text-2)'};">${totalDis}</td>
           <td class="num" style="color:${totalFal ? '#b91c1c' : 'var(--text-2)'};">${totalFal}</td>
           <td class="num"><strong style="color:${corPct(totalPct)};">${totalPct}%</strong></td>
         </tr></tfoot>
@@ -2573,6 +2696,16 @@ function openDrillWeekNeeded(wkLabel, groups, enviados){
           ? `<span class="badge badge-green">${g.reportDays}d atrás</span>`
           : `<span class="badge badge-red">${g.reportDays}d atrás</span>`)
       : '<span class="badge badge-red">Sem relatório</span>';
+    // Só o gestor do grupo (ou admin) marca. Para os demais a coluna explica o
+    // porquê, em vez de mostrar botão que devolveria 403 no clique.
+    const acoes = podeMarcar(g)
+      ? `<div style="display:flex;gap:6px;justify-content:flex-end;">
+           <button class="btn-marcar" style="background:#dcfce7;color:#15803d;border:1px solid rgba(22,163,74,.35);border-radius:8px;padding:5px 10px;font-size:.68rem;font-weight:600;cursor:pointer;"
+                   onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','enviado')">Enviado</button>
+           <button class="btn-marcar" style="background:#fef3c7;color:#b45309;border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:5px 10px;font-size:.68rem;font-weight:600;cursor:pointer;"
+                   onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','nao_precisa')">Não precisa</button>
+         </div>`
+      : '<span style="font-size:.65rem;color:var(--text-2);">só o gestor do grupo</span>';
     return `<tr>
       <td>${wkLabel}</td>
       <td><div style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</div>
@@ -2580,19 +2713,56 @@ function openDrillWeekNeeded(wkLabel, groups, enviados){
       <td>${gest}</td>
       <td>Grupo ativo sem relatório na semana</td>
       <td>${rptBadge}</td>
+      <td>${acoes}</td>
     </tr>`;
   }).join('');
 
+  // Lista das dispensas da semana, para o "Não precisa" não virar buraco negro:
+  // quem marcou some da cobrança, mas continua auditável aqui e no amarelo.
+  const dispensadosRows = (dispensados || []).map(g => {
+    const m = marcacaoDe(g.id, wk);
+    const quem = m && m.nome ? ` · por ${esc(m.nome)}` : '';
+    const desfazer = podeMarcar(g)
+      ? `<button style="background:none;border:none;color:#b45309;font-size:.68rem;font-weight:600;cursor:pointer;text-decoration:underline;"
+                 onclick="marcarRelatorio('${esc(g.id)}','${esc(wk)}','nao_precisa')">desfazer</button>`
+      : '';
+    return `<tr>
+      <td colspan="4" style="color:var(--text-2);">
+        <span style="color:#b45309;">●</span> ${esc(g.name || g.id)}${quem}
+      </td>
+      <td style="text-align:right;">${desfazer}</td>
+    </tr>`;
+  }).join('');
+
+  const blocoDispensados = (dispensados || []).length ? `
+    <div style="margin-top:18px;">
+      <div style="font-size:.72rem;font-weight:600;color:var(--text-2);margin-bottom:8px;">
+        Marcados como "não precisa" nesta semana (${dispensados.length})
+      </div>
+      <div style="overflow-x:auto;"><table class="drill-table"><tbody>${dispensadosRows}</tbody></table></div>
+    </div>` : '';
+
+  const opcoesGestor = ['<option value="">Todos os gestores</option>']
+    .concat(gestoresDaSemana.map(n =>
+      `<option value="${esc(n)}"${n === _drillSemanaGestor ? ' selected' : ''}>${esc(n)}</option>`))
+    .join('');
+
   const body = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
       <span class="drill-count-pill" style="background:#fef2f2;color:#dc2626;border-color:rgba(239,68,68,.2);">Faltam Enviar: ${groups.length}</span>
+      ${dispensados.length ? `<span class="drill-count-pill" style="background:#fffbeb;color:#b45309;border-color:rgba(245,158,11,.3);">Não precisa: ${dispensados.length}</span>` : ''}
+      <label style="display:flex;align-items:center;gap:6px;margin-left:auto;font-size:.72rem;color:var(--text-2);">
+        Gestor:
+        <select class="filter-select" onchange="filtraDrillSemana(this.value)">${opcoesGestor}</select>
+      </label>
     </div>
     ${resumoTabela}
     <div style="font-size:.72rem;font-weight:600;color:var(--text-2);margin-bottom:8px;">Grupos que faltam</div>
     <div style="overflow-x:auto;"><table class="drill-table">
-      <thead><tr><th>Semana</th><th>Grupo</th><th>Gestor</th><th>Motivo</th><th>Status Relatório</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum grupo</td></tr>'}</tbody>
-    </table></div>`;
+      <thead><tr><th>Semana</th><th>Grupo</th><th>Gestor</th><th>Motivo</th><th>Status Relatório</th><th style="text-align:right;">Marcar</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-2);">Nenhum grupo pendente</td></tr>'}</tbody>
+    </table></div>
+    ${blocoDispensados}`;
 
    openDrill(`Detalhes — Faltam Enviar (${wkLabel})`,
     `${groups.length} grupo${groups.length!==1?'s':''} ainda não enviaram relatório nesta semana`,
@@ -4675,6 +4845,11 @@ async function bootData(){
   loadActiveClients(false)
     .then(() => { if(_dataLoaded) applyFilter(); })
     .catch(() => {});
+  // Marcações de relatório: mesma ideia, em paralelo. Sem elas a cobrança volta
+  // a ser só a derivada das mensagens — degrada, não quebra.
+  carregaMarcacoes()
+    .then(() => { if(_dataLoaded) applyFilter(); })
+    .catch(() => {});
   fetchData();
   startAutoRefresh();
 }
@@ -4701,7 +4876,8 @@ const WINDOW_FNS = { switchTab, applyFilter, sortBy, toggleDatePicker, reloadDat
   // Estas o proprio engine escreve em runtime, dentro de template strings. No
   // dashboard original tudo era escopo global e o onclick inline resolvia; como
   // modulo ES, sem passar por window elas ficam invisiveis para o HTML.
-  dpClick, openDrillLT, openDrillLTGroupByIdx, openDrillLog, logToggleAuto };
+  dpClick, openDrillLT, openDrillLTGroupByIdx, openDrillLog, logToggleAuto,
+  marcarRelatorio, filtraDrillSemana };
 
 export function initGestor(rootEl){
   rootEl.innerHTML = GESTOR_MARKUP;
