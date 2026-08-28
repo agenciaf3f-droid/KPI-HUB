@@ -775,6 +775,13 @@ async function fetchData(){
     } else {
       hideError();
     }
+    // Espera a planilha de grupos ANTES do primeiro render. Ela diz quem já
+    // saiu da agência, e sem ela o painel cobra relatório de ex-cliente. Foi
+    // disparada lá no bootData, em paralelo com esta busca: no caminho normal
+    // já chegou e este await não custa nada. Com o cache do IndexedDB quente as
+    // mensagens vinham antes dela, e aí o universo era montado sem saber das
+    // saídas — o Gabriel Gonçalves seguia sendo cobrado.
+    await loadActiveClients(false).catch(() => {});
     applyFilter();
     setStatus(pageError?'warning':'ok', pageError ? `Parcial · ${rawRows.length} registros` : `OK · ${rawRows.length} registros`);
     _dataLoaded = !pageError;
@@ -1698,6 +1705,7 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
   // parado há mais de ABANDONO_DIAS não são cobrados — juntos, os 46 casos que
   // apareceriam indevidamente se o universo entrasse cru.
   const agoraUniverso = new Date();
+  const cortadosPorSaida = [];
   window._universoGrupos = Object.entries(grpMeta).map(([id, m]) => ({
     id, name: m.name || id, plan: m.plan || '', gestor: m.gestor || '', status: m.status || '',
     lastReport: m.lastReportCmd || null, reportDates: m.reportDates || [], reportDays: m.reportDays,
@@ -1710,10 +1718,16 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
     // congelado com o nome antigo, sem o marcador de fechado — e seguia sendo
     // cobrado de relatório até completar ABANDONO_DIAS. Eram 10 grupos assim.
     // A planilha sabe da saída no dia em que ela acontece; ela manda aqui.
-    if(clienteEncerrado(g.name)) return false;
+    if(clienteEncerrado(g.name)){ cortadosPorSaida.push(g.name); return false; }
     if(!g.ultimaMsg || (agoraUniverso - g.ultimaMsg) / 86400000 > ABANDONO_DIAS) return false;
     return passaFiltros(g);
   });
+  // Sem este log, "fulano cancelou e continua sendo cobrado" vira adivinhação:
+  // não dá para saber se a planilha não chegou, se o nome não casou, ou se o
+  // corte funcionou e o problema é outro.
+  const encSize = (_activeClientsData && _activeClientsData.encerrados) ? _activeClientsData.encerrados.size : 0;
+  console.log(`[Relatórios] ${cortadosPorSaida.length} grupo(s) fora da cobrança por cliente encerrado ` +
+    `(planilha: ${encSize} encerrados${encSize ? '' : ' — NÃO CARREGOU'}).`, cortadosPorSaida);
 
   renderAll();
 }
@@ -3926,7 +3940,19 @@ function montaCacheGrupos(clientes, source){
 // Carrega a planilha "Controle dos Grupos" — fonte dos Clientes Ativos E do churn.
 // Fallback: se a planilha não responder (CORS/offline/privada), usa a tabela `groups`
 // do backend Supabase como fonte alternativa (mesma estrutura: id/nome/gestor/status/plano).
-async function loadActiveClients(force){
+// Promessa em voo, para quem pedir a planilha enquanto ela ainda está vindo
+// receber a MESMA carga em vez de disparar um segundo download. É o que permite
+// o fetchData esperar por ela sem custo: no caminho normal ela já está pronta.
+let _activeClientsPromise = null;
+
+function loadActiveClients(force){
+  if(_activeClientsData && !force) return Promise.resolve(_activeClientsData);
+  if(_activeClientsPromise && !force) return _activeClientsPromise;
+  _activeClientsPromise = carregaGrupos(force).finally(() => { _activeClientsPromise = null; });
+  return _activeClientsPromise;
+}
+
+async function carregaGrupos(force){
   if(_activeClientsData && !force) return _activeClientsData;
   // 1) Tenta a planilha pública (fonte oficial)
   try {
