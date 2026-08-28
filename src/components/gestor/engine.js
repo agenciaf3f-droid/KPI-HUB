@@ -114,6 +114,16 @@ const ABANDONO_DIAS = 45;
 // variados na base e na planilha.
 const GRUPOS_TESTE = ['f3f arthur 16 fases'];
 
+// Cliente que saiu de vez, segundo a coluna W da planilha de grupos. Enquanto a
+// planilha não tiver carregado o conjunto está vazio e nada é cortado — nunca
+// corta por engano, no máximo demora um render para cortar.
+function clienteEncerrado(groupName){
+  const enc = _activeClientsData && _activeClientsData.encerrados;
+  if(!enc || !enc.size) return false;
+  const nm = normName(nomeClienteDoGrupo(groupName));
+  return !!nm && enc.has(nm);
+}
+
 function isGrupoTeste(groupName){
   const s = String(groupName || '')
     .replace(/\(?\s*fechado\s*\)?/ig, ' ')
@@ -1637,6 +1647,12 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
   })).filter(g => {
     if(isExcludedGestor(g.gestor)) return false;
     if(isGrupoFechado(g.name)) return false;
+    // O nome do grupo aqui vem da BASE DE MENSAGENS, que só é atualizada quando
+    // alguém fala. Cliente que cancela e nunca mais escreve deixa o grupo
+    // congelado com o nome antigo, sem o marcador de fechado — e seguia sendo
+    // cobrado de relatório até completar ABANDONO_DIAS. Eram 10 grupos assim.
+    // A planilha sabe da saída no dia em que ela acontece; ela manda aqui.
+    if(clienteEncerrado(g.name)) return false;
     if(!g.ultimaMsg || (agoraUniverso - g.ultimaMsg) / 86400000 > ABANDONO_DIAS) return false;
     return passaFiltros(g);
   });
@@ -1682,7 +1698,7 @@ function renderEmpty(){
 /* ── KPIs ── */
 function renderKPIs(){
   const totalMsgs = groupData.reduce((a,g) => a + g.msgs.length, 0);
-  const active    = groupData.filter(g => /ativo/i.test(g.status)).length;
+  const active    = groupData.filter(g => /^\s*ativo\s*$/i.test(g.status)).length;
   const gestorSet = new Set(groupData.map(g => g.gestor).filter(Boolean));
 
   // PONTO 1: Lead Time Geral = média de TODOS os atendimentos (fechados + em aberto)
@@ -1926,7 +1942,7 @@ function renderCharts(){
   const weeks = {};
   // Todo grupo ativo precisa de relatório na semana, tenha o cliente falado ou não.
   (window._universoGrupos || groupData).forEach(g => {
-    if(!/ativo/i.test(g.status)) return;
+    if(!/^\s*ativo\s*$/i.test(g.status)) return;
     let d = new Date(weekMonday(relIni));
     while(d <= relFim){
       const wk = isoWeek(d);
@@ -2230,7 +2246,7 @@ function openDrillLT(gestorName, casos){
   const rows = grpList.map((g,i) => {
     const avg     = mediaDe(g.leadComercial);
     const openCount = g.casos.filter(c => c.aberto).length;
-    const statusBadge = /ativo/i.test(g.status)
+    const statusBadge = /^\s*ativo\s*$/i.test(g.status)
       ? '<span class="badge badge-green" style="font-size:.6rem;">Ativo</span>'
       : g.status ? `<span class="badge badge-gray" style="font-size:.6rem;">${esc(g.status)}</span>` : '';
     const planBadge = g.plan ? `<span class="badge badge-blue" style="font-size:.6rem;">${esc(g.plan)}</span>` : '—';
@@ -2640,7 +2656,7 @@ function renderTable(){
   }
 
   document.getElementById('tbody').innerHTML = sorted.map((g,i) => {
-    const statusBadge = /ativo/i.test(g.status)
+    const statusBadge = /^\s*ativo\s*$/i.test(g.status)
       ? '<span class="badge badge-green" style="margin-top:5px;display:inline-flex;">Ativo</span>'
       : g.status
         ? `<span class="badge badge-gray" style="margin-top:5px;display:inline-flex;">${esc(g.status)}</span>`
@@ -3595,8 +3611,18 @@ function normName(s){
 
 // Extrai o nome do cliente de "F3F - NOME - PLANO". O marcador de fechado sai
 // fora: o nome do cliente é o mesmo antes e depois do grupo ser encerrado.
+//
+// A remoção é solta, sem âncora e sem exigir os parênteses, porque o marcador é
+// escrito à mão e aparece em 4 formatos — "(FECHADO)F3F - X", "( FECHADO ) F3F -
+// X", "F3F - (FECHADO) X" e "F3F - X (FECHADO)". Com o regex ancorado de antes
+// (/^\(FECHADO\)\s*/), "( FECHADO )  F3F - Fulano - 2 FASES" não era limpo, não
+// casava com o padrão do grupo e o "nome do cliente" virava a linha inteira,
+// marcador incluído — quebrando todo cruzamento por nome com a base de mensagens.
 function nomeClienteDoGrupo(grupoRaw){
-  const limpo = String(grupoRaw||'').replace(/^\(FECHADO\)\s*/i,'').trim();
+  const limpo = String(grupoRaw||'')
+    .replace(/\(?\s*fechado\s*\)?/ig, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const m = limpo.match(/^F3F\s*-\s*(.+?)\s*-\s*[^-]+$/);
   return m ? m[1].trim() : limpo;
 }
@@ -3638,6 +3664,19 @@ function montaClienteDoGrupo({ grupo, gestor, status, plano, entrada, saida }){
 function montaCacheGrupos(clientes, source){
   const ativos = clientes.filter(c => c.status === 'Ativo')
                          .map(c => ({ nome:c.nome, gestor:c.gestor, plano:c.plano }));
+
+  // Clientes que saíram DE VEZ — usado para parar de cobrar relatório semanal.
+  //
+  // O corte é por CLIENTE, não por linha: quem cancelou e voltou tem duas linhas
+  // na planilha (a antiga com data em W e a nova ativa, quase sempre com outro
+  // plano). Gisele, Dionatan, Frederico e Rafael Júnior estão nessa situação —
+  // cortar pela linha cancelada tiraria da cobrança um cliente que está ativo.
+  const temAtivo = new Set(clientes.filter(c => c.status === 'Ativo').map(c => normName(c.nome)));
+  const encerrados = new Set();
+  clientes.forEach(c => {
+    const nm = normName(c.nome);
+    if(nm && c.isChurn && !temAtivo.has(nm)) encerrados.add(nm);
+  });
   const ativosByGestor = {};
   ativos.forEach(c => { ativosByGestor[c.gestor] = (ativosByGestor[c.gestor]||0)+1; });
   // Status e coluna W têm que concordar. Quando não concordam é buraco de
@@ -3648,7 +3687,7 @@ function montaCacheGrupos(clientes, source){
     console.warn(`[Grupos] Status e coluna W discordam em ${inconsistentes.length} linha(s):`,
       inconsistentes.map(c => `${c.nome} (status=${c.status||'vazio'}, W=${c.saida?'preenchida':'vazia'})`));
   }
-  return { clientes, ativos, totalAtivos: ativos.length, ativosByGestor, source };
+  return { clientes, ativos, encerrados, totalAtivos: ativos.length, ativosByGestor, source };
 }
 
 // Carrega a planilha "Controle dos Grupos" — fonte dos Clientes Ativos E do churn.
@@ -3709,7 +3748,7 @@ async function loadActiveClients(force){
   } catch(e2){
     console.error('[ActiveClients] fallback Supabase também falhou:', e2);
     _churnRows = [];
-    _activeClientsData = { clientes: [], ativos: [], totalAtivos: 0, ativosByGestor: {}, source:'none', error: e2.message||String(e2) };
+    _activeClientsData = { clientes: [], ativos: [], encerrados: new Set(), totalAtivos: 0, ativosByGestor: {}, source:'none', error: e2.message||String(e2) };
     return _activeClientsData;
   }
 }
@@ -4587,6 +4626,13 @@ async function bootData(){
     return;
   }
   _booted = true;
+  // A planilha de grupos diz quem já saiu — sem ela a aba 1 cobra relatório de
+  // ex-cliente. Dispara em paralelo, sem travar o boot: ela é pequena e chega
+  // bem antes de a paginação das mensagens terminar. Se por acaso chegar depois,
+  // o applyFilter refaz o universo com a informação nova.
+  loadActiveClients(false)
+    .then(() => { if(_dataLoaded) applyFilter(); })
+    .catch(() => {});
   fetchData();
   startAutoRefresh();
 }
