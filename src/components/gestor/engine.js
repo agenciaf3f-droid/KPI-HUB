@@ -3331,9 +3331,23 @@ function npsParseUtm(utm){
 let npsGaugeGestor = null;
 let npsGaugeAgencia = null;
 
+/* ── RESUMO: todos os meses juntos ────────────────────────────────
+   Valor sentinela do seletor de mês. Não é um gid: quando ele está escolhido, o
+   painel carrega TODAS as abas, soma as respostas e desenha a evolução mês a
+   mês em vez do retrato de um mês só. */
+const NPS_RESUMO = '__resumo__';
+let _npsChartEvolucao = null;
+let _npsPorMes = [];          // [{label, mesRef, data:[...]}] na ordem das abas
+let _npsGestorFiltro = '';    // utm_source escolhido no seletor; '' = todos
+
 function npsInit(){
   const sel = document.getElementById('nps-month-select');
   sel.innerHTML = '';
+  // Resumo primeiro, separado dos meses: é uma visão diferente, não mais um mês.
+  const optResumo = document.createElement('option');
+  optResumo.value = NPS_RESUMO;
+  optResumo.textContent = '📊 Resumo (todos os meses)';
+  sel.appendChild(optResumo);
   const sheetKeys = Object.keys(NPS_SHEETS);
   sheetKeys.forEach((name,i)=>{
     const opt = document.createElement('option');
@@ -3342,6 +3356,7 @@ function npsInit(){
     if(i === sheetKeys.length - 1) opt.selected = true; // Default to latest month
     sel.appendChild(opt);
   });
+  npsMostraEvolucao(false);
   npsLoadMonth();
 }
 
@@ -3416,22 +3431,202 @@ async function npsFetchCsv(url, tentativas){
   throw ultimoErro;
 }
 
+/**
+ * Baixa e converte UMA aba do formulário em respostas.
+ *
+ * Estava embutido no npsLoadMonth. Virou função para o Resumo poder carregar
+ * todas as abas com a mesma leitura — inclusive a detecção de coluna, que muda
+ * de mês para mês porque as perguntas foram reescritas ao longo do ano.
+ */
+async function npsCarregaAba(name){
+  const gid = NPS_SHEETS[name];
+  if(!gid) throw new Error('Mês não encontrado: ' + name);
+  const url = NPS_PUB_BASE + '?gid=' + gid + '&single=true&output=csv';
+  const text = await npsFetchCsv(url, 3);
+  const rows = npsParseCSV(text);
+  if(rows.length < 2) throw new Error('CSV vazio ou inválido');
+  const { data, datas } = npsExtraiRespostas(rows);
+  if(data.length === 0) throw new Error('Nenhuma resposta válida encontrada');
+  return { name, data, datas, mesRef: npsMesReferencia(name, datas) };
+}
+
 async function npsLoadMonth(){
   const sel = document.getElementById('nps-month-select');
   const name = sel.value;
-  const gid = NPS_SHEETS[name];
+  if(name === NPS_RESUMO) return npsLoadResumo();
   const mesLabel = name.replace('Formulário NPS - ','');
-  if(!gid){ npsSetStatus('error','Mês não encontrado'); return; }
+  if(!NPS_SHEETS[name]){ npsSetStatus('error','Mês não encontrado'); return; }
 
   npsSetStatus('loading','Carregando…');
   npsHideError();
 
   try {
-    const url = NPS_PUB_BASE + '?gid=' + gid + '&single=true&output=csv';
-    const text = await npsFetchCsv(url, 3);
-    const rows = npsParseCSV(text);
-    if(rows.length < 2) throw new Error('CSV vazio ou inválido');
+    const aba = await npsCarregaAba(name);
+    npsMostraEvolucao(false);
+    npsSetStatus('ok', 'OK — ' + aba.data.length + ' respostas');
+    npsRender(aba.data, aba.mesRef);
+  } catch(e){
+    console.error('[NPS] Error:', e);
+    // Limpar e obrigatorio: o seletor ja mudou para o mes novo, entao qualquer
+    // numero que sobrasse na tela seria lido como sendo desse mes.
+    npsLimpaPainel();
+    npsSetStatus('error','Erro');
+    const detalhe = (e && e.message) || 'erro desconhecido';
+    npsShowError('Não foi possível carregar ' + mesLabel + ' (' + detalhe + '). Os números foram limpos para não mostrar dados de outro mês — clique em Atualizar para tentar de novo.');
+  }
+}
 
+/**
+ * Modo Resumo: carrega todas as abas, soma tudo e desenha a evolução.
+ *
+ * Uma aba que falhe não derruba o resumo — ela fica de fora e o rodapé diz
+ * quais não vieram. Melhor um resumo com 5 de 6 meses, dizendo isso, do que
+ * tela de erro.
+ */
+async function npsLoadResumo(){
+  npsSetStatus('loading','Carregando todos os meses…');
+  npsHideError();
+  try {
+    const nomes = Object.keys(NPS_SHEETS);
+    const abas = await Promise.all(nomes.map(n => npsCarregaAba(n).catch(e => {
+      console.warn('[NPS] aba falhou no resumo:', n, e.message);
+      return null;
+    })));
+    const ok = abas.filter(Boolean);
+    if(!ok.length) throw new Error('nenhuma aba pôde ser carregada');
+
+    _npsPorMes = ok.map(a => ({
+      label: a.name.replace('Formulário NPS - ',''),
+      mesRef: a.mesRef,
+      data: a.data.map(d => {
+        const p = npsParseUtm(d.utm);
+        return Object.assign({}, d, {
+          utmAtual: p.atual,
+          gestorAnterior: p.anterior ? NPS_UTM_NAMES[p.anterior] : null
+        });
+      })
+    }));
+
+    const faltando = nomes.length - ok.length;
+    npsSetStatus(faltando ? 'warning' : 'ok',
+      `Resumo — ${_npsPorMes.reduce((s,m)=>s+m.data.length,0)} respostas em ${ok.length} mês(es)` +
+      (faltando ? ` · ${faltando} não carregou` : ''));
+    if(faltando){
+      npsShowError(`${faltando} mês(es) não puderam ser carregados e ficaram de fora do resumo. Clique em Atualizar para tentar de novo.`);
+    }
+
+    npsMostraEvolucao(true);
+    npsRenderResumo();
+  } catch(e){
+    console.error('[NPS] Erro no resumo:', e);
+    npsLimpaPainel();
+    npsMostraEvolucao(false);
+    npsSetStatus('error','Erro');
+    npsShowError('Não foi possível montar o resumo (' + ((e && e.message) || 'erro desconhecido') + ').');
+  }
+}
+
+/** Cabeçalho de respostas no Resumo — sem barra, porque não há meta acumulada. */
+function npsMetaResumo(respostas, meses){
+  const sub  = document.getElementById('nps-meta-sub');
+  const cnt  = document.getElementById('nps-meta-count');
+  const goal = document.getElementById('nps-meta-goal');
+  const fill = document.getElementById('nps-meta-fill');
+  const foot = document.getElementById('nps-meta-foot');
+  if(!sub || !cnt || !goal || !fill || !foot) return;
+  cnt.textContent = respostas;
+  goal.textContent = '';
+  fill.style.width = '0%';
+  sub.textContent = `Somando ${meses} ${meses === 1 ? 'mês' : 'meses'} de pesquisa`;
+  foot.textContent = 'A meta é mensal (metade dos clientes ativos do mês), então não se soma entre meses.';
+}
+
+/** Mostra ou esconde o bloco de evolução (só existe no Resumo). */
+function npsMostraEvolucao(mostrar){
+  const bloco = document.getElementById('nps-evolucao-bloco');
+  if(bloco) bloco.style.display = mostrar ? '' : 'none';
+}
+
+/** Troca do seletor de gestor — só redesenha, não baixa nada de novo. */
+function npsFiltraGestor(valor){
+  _npsGestorFiltro = valor || '';
+  npsRenderResumo();
+}
+
+function npsRenderResumo(){
+  if(!_npsPorMes.length) return;
+
+  // Escopo de gestor logado manda sobre o seletor: ele só vê o que é dele.
+  const meuNome = nomeDeEscopo();
+  const utmDoNome = (nome) => Object.keys(NPS_UTM_NAMES).find(k => NPS_UTM_NAMES[k] === nome) || '';
+  const utmFiltro = meuNome ? utmDoNome(meuNome) : _npsGestorFiltro;
+  const filtra = (arr) => utmFiltro ? arr.filter(d => d.utmAtual === utmFiltro) : arr;
+
+  // Seletor de gestor: sai de quem respondeu em qualquer mês.
+  const selG = document.getElementById('nps-gestor-select');
+  if(selG){
+    const utms = [...new Set(_npsPorMes.flatMap(m => m.data.map(d => d.utmAtual)))]
+      .filter(u => NPS_UTM_NAMES[u])
+      .sort((a,b) => NPS_UTM_NAMES[a].localeCompare(NPS_UTM_NAMES[b]));
+    selG.innerHTML = '<option value="">Todos os gestores</option>' +
+      utms.map(u => `<option value="${u}"${u === _npsGestorFiltro ? ' selected' : ''}>${sanitize(NPS_UTM_NAMES[u])}</option>`).join('');
+  }
+
+  // Cards e lista por gestor: mesma tela do mês, sobre a soma dos meses.
+  const todas = filtra(_npsPorMes.flatMap(m => m.data));
+  npsRenderCards(todas, null, true);
+
+  // Linha do tempo. Um mês sem resposta daquele gestor vira buraco (null) em vez
+  // de zero: zero seria lido como "NPS péssimo", não como "não teve resposta".
+  const labels = _npsPorMes.map(m => m.label);
+  const serie = (campo) => _npsPorMes.map(m => {
+    const arr = filtra(m.data);
+    if(!arr.length) return null;
+    return npsCalc(arr.map(d => d[campo])).nps;
+  });
+  npsDesenhaEvolucao(labels, serie('notaGestor'), serie('notaAgencia'),
+    _npsPorMes.map(m => filtra(m.data).length));
+}
+
+function npsDesenhaEvolucao(labels, npsGestor, npsAgencia, totais){
+  const canvas = document.getElementById('chart-nps-evolucao');
+  if(!canvas || typeof Chart === 'undefined') return;
+  if(_npsChartEvolucao) _npsChartEvolucao.destroy();
+  _npsChartEvolucao = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'NPS do Gestor', data:npsGestor, borderColor:'#8b5cf6',
+        backgroundColor:'rgba(139,92,246,.12)', borderWidth:2.5, tension:.35, fill:true,
+        pointBackgroundColor:'#fff', pointBorderColor:'#8b5cf6', pointBorderWidth:2,
+        pointRadius:4, pointHoverRadius:6, spanGaps:true },
+      { label:'NPS da Agência', data:npsAgencia, borderColor:'#0866ff',
+        backgroundColor:'rgba(8,102,255,.10)', borderWidth:2.5, tension:.35, fill:true,
+        pointBackgroundColor:'#fff', pointBorderColor:'#0866ff', pointBorderWidth:2,
+        pointRadius:4, pointHoverRadius:6, spanGaps:true }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'top', labels:{ color:CT().tick, font:{size:11}, boxWidth:12, usePointStyle:true } },
+        tooltip:{ backgroundColor:'#111827', padding:10, callbacks:{
+          label: (c) => `${c.dataset.label}: ${c.parsed.y == null ? 'sem resposta' : c.parsed.y}`,
+          afterBody: (items) => items.length ? `${totais[items[0].dataIndex]} respostas no mês` : ''
+        }}
+      },
+      scales:{
+        // Escala do NPS é -100 a 100; travar evita que uma variação pequena
+        // pareça despencar por causa do autoajuste do eixo.
+        y:{ min:-100, max:100, ticks:{ color:CT().tick, stepSize:25 }, grid:{ color:CT().grid },
+            title:{ display:true, text:'NPS', color:CT().tick, font:{size:11} } },
+        x:{ ticks:{ color:CT().tick }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function npsExtraiRespostas(rows){
+  {
     // Auto-detect column indices from header row
     const header = rows[0] || [];
     let colGestor = -1, colFbGestor = -1, colAgencia = -1, colFbAgencia = -1, colUtm = -1, colData = -1;
@@ -3470,8 +3665,6 @@ async function npsLoadMonth(){
       data.push({ utm, notaGestor, feedbackGestor, notaAgencia, feedbackAgencia });
     }
 
-    if(data.length === 0) throw new Error('Nenhuma resposta válida encontrada');
-
     // Datas de envio: nao entram em nenhuma metrica, servem so para saber o ano
     // da aba ao calcular a meta do mes.
     const datas = [];
@@ -3482,17 +3675,7 @@ async function npsLoadMonth(){
       }
     }
 
-    npsSetStatus('ok', 'OK — ' + data.length + ' respostas');
-    npsRender(data, npsMesReferencia(name, datas));
-
-  } catch(e){
-    console.error('[NPS] Error:', e);
-    // Limpar e obrigatorio: o seletor ja mudou para o mes novo, entao qualquer
-    // numero que sobrasse na tela seria lido como sendo desse mes.
-    npsLimpaPainel();
-    npsSetStatus('error','Erro');
-    const detalhe = (e && e.message) || 'erro desconhecido';
-    npsShowError('Não foi possível carregar ' + mesLabel + ' (' + detalhe + '). Os números foram limpos para não mostrar dados de outro mês — clique em Atualizar para tentar de novo.');
+    return { data, datas };
   }
 }
 
@@ -3583,6 +3766,17 @@ function npsRender(data, mesRef){
   if(meuNome){
     data = data.filter(d => (NPS_UTM_NAMES[d.utmAtual] || '') === meuNome);
   }
+  npsRenderCards(data, mesRef, false);
+}
+
+/**
+ * Cards, medidores, meta e lista por gestor.
+ *
+ * Separado do npsRender para o Resumo reaproveitar a mesma tela sobre a soma
+ * dos meses. Recebe os dados JÁ com utmAtual resolvido e já filtrados.
+ */
+function npsRenderCards(data, mesRef, ehResumo){
+  const meuNome = nomeDeEscopo();
 
   // Overall NPS Gestor
   const gestorStats = npsCalc(data.map(d=>d.notaGestor));
@@ -3609,7 +3803,10 @@ function npsRender(data, mesRef){
 
   // Meta de respostas. Sem await de proposito: depende da planilha de clientes
   // ativos, que e outra fonte — se ela demorar ou cair, o NPS ja esta na tela.
-  npsRenderMeta(data.length, meuNome, mesRef);
+  // No Resumo não há meta: metade dos ativos é um alvo mensal, e somar seis
+  // meses de alvo contra seis meses de resposta não significaria nada.
+  if(ehResumo) npsMetaResumo(data.length, _npsPorMes.length);
+  else npsRenderMeta(data.length, meuNome, mesRef);
 
   // Per-gestor
   const byGestor = {};
@@ -5040,7 +5237,7 @@ const WINDOW_FNS = { switchTab, applyFilter, sortBy, toggleDatePicker, reloadDat
   // dashboard original tudo era escopo global e o onclick inline resolvia; como
   // modulo ES, sem passar por window elas ficam invisiveis para o HTML.
   dpClick, openDrillLT, openDrillLTGroupByIdx, openDrillLog, logToggleAuto,
-  marcarRelatorio, filtraDrillSemana, abreMenuEnviado };
+  marcarRelatorio, filtraDrillSemana, abreMenuEnviado, npsFiltraGestor };
 
 export function initGestor(rootEl){
   rootEl.innerHTML = GESTOR_MARKUP;

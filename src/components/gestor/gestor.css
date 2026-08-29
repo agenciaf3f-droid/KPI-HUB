@@ -55,6 +55,10 @@
 .status-pill.loading .dot { background:#f59e0b; animation:pulse 1s infinite; }
 .status-pill.ok .dot      { background:#22c55e; }
 .status-pill.error .dot   { background:#ef4444; }
+/* "warning" já era usado pelo setStatus da aba 1 (carga parcial) e agora pelo
+   resumo do NPS com mês faltando, mas nunca teve estilo: a bolinha ficava
+   cinza, igual a "sem estado". */
+.status-pill.warning .dot { background:#f59e0b; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
 /* ── BTN DATE ── */

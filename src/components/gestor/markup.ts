@@ -269,6 +269,28 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
     <span id="nps-error-text"></span>
   </div>
 
+  <!-- Evolução: só aparece no Resumo. O seletor de gestor fica aqui, e não na
+       barra do topo, porque só faz sentido nesta visão — no mês, a quebra por
+       gestor já são os cards de baixo. Escondido para quem não é admin
+       (.filtro-gestor + .escopo-usuario): o gestor logado já vê só o dele. -->
+  <div id="nps-evolucao-bloco" style="display:none;margin-bottom:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+      <div class="section-title" style="margin-bottom:0;">Evolução do NPS</div>
+      <label class="filtro-gestor" style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-2);">
+        Gestor:
+        <select id="nps-gestor-select" class="filter-select" onchange="npsFiltraGestor(this.value)">
+          <option value="">Todos os gestores</option>
+        </select>
+      </label>
+    </div>
+    <div class="nps-card" style="padding:20px;">
+      <div style="font-size:.75rem;color:var(--text-2);margin-bottom:12px;">
+        NPS de cada mês de pesquisa. Mês sem resposta fica como buraco na linha, não como zero — zero seria lido como nota péssima. Escolha um gestor para ver a linha dele.
+      </div>
+      <div style="height:320px;"><canvas id="chart-nps-evolucao"></canvas></div>
+    </div>
+  </div>
+
   <div class="section-title">Meta de Respostas</div>
   <div class="nps-card nps-meta-card">
     <div class="nps-meta-top">
