@@ -3441,7 +3441,12 @@ async function npsFetchCsv(url, tentativas){
 async function npsCarregaAba(name){
   const gid = NPS_SHEETS[name];
   if(!gid) throw new Error('Mês não encontrado: ' + name);
-  const url = NPS_PUB_BASE + '?gid=' + gid + '&single=true&output=csv';
+  // Parâmetro descartável na URL. O Google devolve a planilha publicada com
+  // `cache-control: private, max-age=300`, então a MESMA URL entrega uma cópia
+  // de até 5 minutos atrás — inclusive para o botão Atualizar, que repetia a URL
+  // idêntica. Linha apagada da planilha continuava aparecendo no painel e não
+  // havia como forçar a atualização.
+  const url = NPS_PUB_BASE + '?gid=' + gid + '&single=true&output=csv&_=' + Date.now();
   const text = await npsFetchCsv(url, 3);
   const rows = npsParseCSV(text);
   if(rows.length < 2) throw new Error('CSV vazio ou inválido');
@@ -4276,7 +4281,11 @@ async function carregaGrupos(force){
   if(_activeClientsData && !force) return _activeClientsData;
   // 1) Tenta a planilha pública (fonte oficial)
   try {
-    const url = force ? `${ACTIVE_CLIENTS_CSV_URL}&_=${Date.now()}` : ACTIVE_CLIENTS_CSV_URL;
+    // Parâmetro descartável SEMPRE, não só no force: a planilha publicada vem
+    // com cache de 5 minutos, então sem ele uma edição recente (uma data nova em
+    // W, por exemplo) só apareceria no painel alguns minutos depois — e sem
+    // nenhuma pista de que o que está na tela é uma cópia velha.
+    const url = `${ACTIVE_CLIENTS_CSV_URL}&_=${Date.now()}`;
     // Sem timeout esta requisicao podia ficar pendurada para sempre; quem espera
     // por ela (barra de meta do NPS) ficava travado em "Calculando meta…".
     // Estourando o tempo, cai no fallback do Supabase logo abaixo.
