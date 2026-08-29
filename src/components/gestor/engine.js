@@ -829,9 +829,14 @@ function applyFilter(){
 
   // ── Período anterior, só para a barra de comparação do lead time ──
   // Mesma duração, imediatamente antes: filtro de 7 dias compara com os 7 dias
-  // anteriores. Roda PRIMEIRO e sem desenhar; a passada normal logo abaixo
-  // sobrescreve todo o estado compartilhado, então nada vaza de uma para a outra.
+  // anteriores.
+  //
+  // O recorte NÃO é o parâmetro `rows`: o motor de trilha monta a base dele a
+  // partir de rawRows e aplica a data no RESULTADO, lendo dpStart/dpEnd direto
+  // (ver o comentário do rowsTrilha). Passar outras linhas não mudava nada — as
+  // duas barras saíam idênticas. O jeito certo é mover a janela e devolver.
   window._ltMediaAnterior = {};
+  const dpStartReal = dpStart, dpEndReal = dpEnd;
   try {
     const dur = dpEnd - dpStart;
     const antFim = new Date(dpStart.getTime() - 1);
@@ -841,6 +846,7 @@ function applyFilter(){
       return d && d >= antIni && d <= antFim;
     });
     if(anteriores.length){
+      dpStart = antIni; dpEnd = antFim;
       aggregate(anteriores, planFilter, gestorFilter, statusFilter, true);
       const { ltMap } = montaLtMap();
       const media = {};
@@ -850,11 +856,16 @@ function applyFilter(){
       });
       window._ltMediaAnterior = media;
       window._ltPeriodoAnterior = { ini: antIni, fim: antFim };
+      console.log(`[LT] período anterior ${antIni.toLocaleDateString('pt-BR')} a ${antFim.toLocaleDateString('pt-BR')}:`, media);
     }
   } catch(e){
     // Comparação é enfeite: se falhar, o gráfico sai sem a barra cinza.
     console.warn('[LT] não foi possível calcular o período anterior:', e.message);
     window._ltMediaAnterior = {};
+  } finally {
+    // Devolver a janela é obrigatório: tudo o que vem depois — inclusive a
+    // passada real logo abaixo — lê estas duas variáveis.
+    dpStart = dpStartReal; dpEnd = dpEndReal;
   }
 
   aggregate(filtered, planFilter, gestorFilter, statusFilter);
