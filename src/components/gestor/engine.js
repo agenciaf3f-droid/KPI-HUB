@@ -3592,6 +3592,7 @@ function npsDesenhaEvolucao(labels, npsGestor, npsAgencia, totais){
   const canvas = document.getElementById('chart-nps-evolucao');
   if(!canvas || typeof Chart === 'undefined') return;
   if(_npsChartEvolucao) _npsChartEvolucao.destroy();
+  const temNegativo = [...npsGestor, ...npsAgencia].some(v => v != null && v < 0);
   _npsChartEvolucao = new Chart(canvas.getContext('2d'), {
     type:'line',
     data:{ labels, datasets:[
@@ -3615,9 +3616,12 @@ function npsDesenhaEvolucao(labels, npsGestor, npsAgencia, totais){
         }}
       },
       scales:{
-        // Escala do NPS é -100 a 100; travar evita que uma variação pequena
-        // pareça despencar por causa do autoajuste do eixo.
-        y:{ min:-100, max:100, ticks:{ color:CT().tick, stepSize:25 }, grid:{ color:CT().grid },
+        // Teto travado em 100 para uma variação pequena não parecer um tombo por
+        // causa do autoajuste. O piso começa em 0: o NPS vai até -100, mas as
+        // notas daqui nunca chegaram perto disso e metade do gráfico ficava
+        // vazia. Se algum mês FOR negativo o piso desce, senão o ponto sumiria.
+        y:{ min: temNegativo ? -100 : 0, max:100,
+            ticks:{ color:CT().tick, stepSize:25 }, grid:{ color:CT().grid },
             title:{ display:true, text:'NPS', color:CT().tick, font:{size:11} } },
         x:{ ticks:{ color:CT().tick }, grid:{ display:false } }
       }
