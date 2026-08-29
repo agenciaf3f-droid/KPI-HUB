@@ -275,7 +275,10 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
        (.filtro-gestor + .escopo-usuario): o gestor logado já vê só o dele. -->
   <div id="nps-evolucao-bloco" style="display:none;margin-bottom:28px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
-      <div class="section-title" style="margin-bottom:0;">Evolução do NPS</div>
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+        <div class="section-title" style="margin-bottom:0;">Evolução do NPS</div>
+        <span id="nps-resumo-total" style="font-size:.75rem;color:var(--text-2);"></span>
+      </div>
       <label class="filtro-gestor" style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-2);">
         Gestor:
         <select id="nps-gestor-select" class="filter-select" onchange="npsFiltraGestor(this.value)">
@@ -291,8 +294,10 @@ export const GESTOR_MARKUP = String.raw`<!-- ═══════════�
     </div>
   </div>
 
-  <div class="section-title">Meta de Respostas</div>
-  <div class="nps-card nps-meta-card">
+  <!-- Meta some no Resumo: ela é mensal, e somada entre meses não quer dizer
+       nada. Lá o total de respostas vira uma linha pequena acima do gráfico. -->
+  <div class="section-title" id="nps-meta-titulo">Meta de Respostas</div>
+  <div class="nps-card nps-meta-card" id="nps-meta-card">
     <div class="nps-meta-top">
       <div>
         <div class="nps-card-title">Respostas coletadas</div>

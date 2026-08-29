@@ -3526,25 +3526,28 @@ async function npsLoadResumo(){
   }
 }
 
-/** Cabeçalho de respostas no Resumo — sem barra, porque não há meta acumulada. */
-function npsMetaResumo(respostas, meses){
-  const sub  = document.getElementById('nps-meta-sub');
-  const cnt  = document.getElementById('nps-meta-count');
-  const goal = document.getElementById('nps-meta-goal');
-  const fill = document.getElementById('nps-meta-fill');
-  const foot = document.getElementById('nps-meta-foot');
-  if(!sub || !cnt || !goal || !fill || !foot) return;
-  cnt.textContent = respostas;
-  goal.textContent = '';
-  fill.style.width = '0%';
-  sub.textContent = `Somando ${meses} ${meses === 1 ? 'mês' : 'meses'} de pesquisa`;
-  foot.textContent = 'A meta é mensal (metade dos clientes ativos do mês), então não se soma entre meses.';
-}
-
-/** Mostra ou esconde o bloco de evolução (só existe no Resumo). */
+/**
+ * Alterna entre as duas visões: no mês vale a barra de meta; no Resumo ela sai
+ * e o total vira uma linha pequena ao lado do título do gráfico.
+ *
+ * A meta é mensal — metade dos clientes ativos DAQUELE mês. Somada entre meses
+ * não significa nada, e uma barra vazia com um total ao lado só confunde.
+ */
 function npsMostraEvolucao(mostrar){
   const bloco = document.getElementById('nps-evolucao-bloco');
   if(bloco) bloco.style.display = mostrar ? '' : 'none';
+  const card = document.getElementById('nps-meta-card');
+  const titulo = document.getElementById('nps-meta-titulo');
+  if(card) card.style.display = mostrar ? 'none' : '';
+  if(titulo) titulo.style.display = mostrar ? 'none' : '';
+}
+
+/** Linha pequena acima do gráfico, no lugar do card de meta. */
+function npsTotalResumo(respostas, meses){
+  const el = document.getElementById('nps-resumo-total');
+  if(!el) return;
+  el.textContent = `${respostas} ${respostas === 1 ? 'resposta coletada' : 'respostas coletadas'}` +
+                   ` em ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
 }
 
 /** Troca do seletor de gestor — só redesenha, não baixa nada de novo. */
@@ -3809,7 +3812,7 @@ function npsRenderCards(data, mesRef, ehResumo){
   // ativos, que e outra fonte — se ela demorar ou cair, o NPS ja esta na tela.
   // No Resumo não há meta: metade dos ativos é um alvo mensal, e somar seis
   // meses de alvo contra seis meses de resposta não significaria nada.
-  if(ehResumo) npsMetaResumo(data.length, _npsPorMes.length);
+  if(ehResumo) npsTotalResumo(data.length, _npsPorMes.length);
   else npsRenderMeta(data.length, meuNome, mesRef);
 
   // Per-gestor
