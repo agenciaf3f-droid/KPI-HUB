@@ -827,12 +827,42 @@ function applyFilter(){
     return d >= dpStart && d <= dpEnd;
   });
 
+  // ── Período anterior, só para a barra de comparação do lead time ──
+  // Mesma duração, imediatamente antes: filtro de 7 dias compara com os 7 dias
+  // anteriores. Roda PRIMEIRO e sem desenhar; a passada normal logo abaixo
+  // sobrescreve todo o estado compartilhado, então nada vaza de uma para a outra.
+  window._ltMediaAnterior = {};
+  try {
+    const dur = dpEnd - dpStart;
+    const antFim = new Date(dpStart.getTime() - 1);
+    const antIni = new Date(antFim.getTime() - dur);
+    const anteriores = rawRows.filter(row => {
+      const d = parseDate(row);
+      return d && d >= antIni && d <= antFim;
+    });
+    if(anteriores.length){
+      aggregate(anteriores, planFilter, gestorFilter, statusFilter, true);
+      const { ltMap } = montaLtMap();
+      const media = {};
+      Object.keys(ltMap).forEach(nome => {
+        const v = ltMap[nome];
+        if(v && v.length) media[nome] = Math.round(v.reduce((a,b)=>a+b,0) / v.length);
+      });
+      window._ltMediaAnterior = media;
+      window._ltPeriodoAnterior = { ini: antIni, fim: antFim };
+    }
+  } catch(e){
+    // Comparação é enfeite: se falhar, o gráfico sai sem a barra cinza.
+    console.warn('[LT] não foi possível calcular o período anterior:', e.message);
+    window._ltMediaAnterior = {};
+  }
+
   aggregate(filtered, planFilter, gestorFilter, statusFilter);
 }
 
 function normalizePhone(p){ return p.replace(/\D/g,''); }
 
-function aggregate(rows, planFilter, gestorFilter, statusFilter){
+function aggregate(rows, planFilter, gestorFilter, statusFilter, semRender){
   /* ================================================================
      PASS 1 — Build LATEST metadata (name/plan/gestor/status) per
      group from the ENTIRE sheet (allSorted — dataset_completo),
@@ -1659,7 +1689,7 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
   });
 
   /* ── Log summary for debugging ── */
-  console.log(`[LT] ${ltCases.length} tickets gestor. EDICAO: ${ltCasesEdicao.length}, WEBDESIGN: ${ltCasesWebdesign.length}, ESTRATEGIA: ${ltCasesEstrategia.length}`);
+  if(!semRender) console.log(`[LT] ${ltCases.length} tickets gestor. EDICAO: ${ltCasesEdicao.length}, WEBDESIGN: ${ltCasesWebdesign.length}, ESTRATEGIA: ${ltCasesEstrategia.length}`);
 
   window._ltCases = ltCases;
   window._ltCasesEdicao = ltCasesEdicao;
@@ -1668,7 +1698,7 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
 
   // ── Save global gestor set & populate filter dropdowns ──
   allGestors = allGestorNames;
-  populateFilters(Object.values(grpMap), allGestorNames);
+  if(!semRender) populateFilters(Object.values(grpMap), allGestorNames);
 
   // ── Store active filters globally for charts/KPIs ──
   window._activeGestorFilter = gestorFilter;
@@ -1725,11 +1755,16 @@ function aggregate(rows, planFilter, gestorFilter, statusFilter){
   // Sem este log, "fulano cancelou e continua sendo cobrado" vira adivinhação:
   // não dá para saber se a planilha não chegou, se o nome não casou, ou se o
   // corte funcionou e o problema é outro.
-  const encSize = (_activeClientsData && _activeClientsData.encerrados) ? _activeClientsData.encerrados.size : 0;
-  console.log(`[Relatórios] ${cortadosPorSaida.length} grupo(s) fora da cobrança por cliente encerrado ` +
-    `(planilha: ${encSize} encerrados${encSize ? '' : ' — NÃO CARREGOU'}).`, cortadosPorSaida);
+  if(!semRender){
+    const encSize = (_activeClientsData && _activeClientsData.encerrados) ? _activeClientsData.encerrados.size : 0;
+    console.log(`[Relatórios] ${cortadosPorSaida.length} grupo(s) fora da cobrança por cliente encerrado ` +
+      `(planilha: ${encSize} encerrados${encSize ? '' : ' — NÃO CARREGOU'}).`, cortadosPorSaida);
+  }
 
-  renderAll();
+  // semRender: passada só para calcular (o lead time do período anterior, que
+  // alimenta a barra cinza de comparação). Não desenha nem mexe nos seletores —
+  // quem chama roda a passada normal logo depois, e ela sobrescreve tudo.
+  if(!semRender) renderAll();
 }
 
 
@@ -1750,6 +1785,78 @@ function populateFilters(allGroups, allGestorNames){
     : [...new Set(allGroups.map(g => g.gestor).filter(g => g && !INVALID_GESTORS.includes(g.toLowerCase().trim())))].sort();
   gestSel.innerHTML = '<option value="">Todos os gestores</option>' +
     gestores.map(g => `<option value="${esc(g)}" ${g===curGest?'selected':''}>${esc(g)}</option>`).join('');
+}
+
+/**
+ * Média de lead time por pessoa, a partir do estado já agregado.
+ *
+ * Extraído do renderAll para poder rodar duas vezes: uma no período escolhido e
+ * outra no período anterior, que vira a barra cinza de comparação.
+ */
+function montaLtMap(){
+  const drillLT = {};
+  const ltMap = {};
+  groupData.forEach(g => {
+    if(!g.gestor || !g.leadTimes.length) return;
+    if(!ltMap[g.gestor]) ltMap[g.gestor] = [];
+    ltMap[g.gestor].push(...g.leadTimes);
+  });
+
+  // ── pessoas dos outros setores no mesmo gráfico ──
+  // O gráfico se chama "Lead Time da equipe", então edição/webdesign/estratégia
+  // entram junto dos gestores, cada pessoa como sua própria barra. Só quando não
+  // há filtro de gestor ativo — esse filtro é específico de gestor de tráfego.
+  // A barra é a pessoa, sem prefixo de setor: se alguém aparecer nas duas pontas
+  // (é gestor e também atende outro setor), as duas viram uma barra só, que é o
+  // lead time real daquela pessoa.
+  if(!window._activeGestorFilter){
+    const setoresEquipe = [
+      window._ltCasesEdicao,
+      window._ltCasesWebdesign,
+      window._ltCasesEstrategia,
+    ];
+    setoresEquipe.forEach(cases => {
+      (cases || []).forEach(caso => {
+        if(caso.leadMins == null) return;
+        if(caso.aberto) return;   // pendente é do grupo, não é atendimento de ninguém
+        // Ancora no telefone (estável, vem do roster), não no nome do WhatsApp —
+        // que a pessoa troca e faz a mesma virar duas barras. Em caso fechado de
+        // marcação dupla, creditar_phone é o marcado — o tempo entra no painel de
+        // cada um dos dois. Aberto segue como antes (respondente nulo → descartado).
+        const tel = normalizePhone(
+          (caso.aberto ? caso.respondente_phone : (caso.creditar_phone || caso.respondente_phone)) || '');
+        const reg = EQUIPE_POR_TELEFONE.get(tel);
+        // Sem telefone identificado (casos abertos por citação onde não dá para
+        // saber quem respondeu): descarta. Barra "Sem nome" com média absurda só
+        // sujaria o gráfico — melhor não inventar dono.
+        if(!reg) return;
+        const key = reg.nome;
+        if(!ltMap[key]) ltMap[key] = [];
+        ltMap[key].push(caso.leadMins);
+        if(!drillLT[key]) drillLT[key] = [];
+        const gd = groupData.find(x => x.id === caso.grpId);
+        drillLT[key].push({ ...caso, grpNameCurrent: gd?.name || caso.grpId });
+      });
+    });
+  }
+
+  // Build _drillLT from ltCasesGlobal (set in aggregate)
+  if(window._ltCases){
+    window._ltCases.forEach(caso => {
+      if(caso.tipo !== 'GESTOR') return;
+      // Pendente não é atendimento do gestor da conta: enquanto ninguém pega, a
+      // conversa é do grupo. Aparecia na lista dele como se fosse um caso seu — e
+      // no N — mesmo esperando outra pessoa. Pendente tem lugar próprio, a tabela
+      // "Grupos em Aberto".
+      if(caso.aberto) return;
+      const g = groupData.find(gd => gd.id === caso.grpId);
+      if(!g) return; // filtered out
+      const gname = caso.gestor_nome || g?.gestor || '—';
+      if(!drillLT[gname]) drillLT[gname] = [];
+      drillLT[gname].push({ ...caso, grpNameCurrent: g?.name || caso.grpId });
+    });
+  }
+  return { ltMap, drillLT };
 }
 
 /* ================================================================
@@ -2006,6 +2113,9 @@ const rotuloBarras = {
     ctx.textBaseline = 'bottom';
     chart.data.datasets.forEach((ds, i) => {
       if(!chart.isDatasetVisible(i)) return;
+      // Série de comparação não recebe rótulo: as barras se sobrepõem e os dois
+      // números cairiam um em cima do outro.
+      if(ds.semRotulo) return;
       ctx.fillStyle = ds.borderColor || '#6b7280';
       chart.getDatasetMeta(i).data.forEach((barra, j) => {
         const v = ds.data[j];
@@ -2028,72 +2138,12 @@ function renderCharts(){
   };
 
   // ── 1) Lead Time by Gestor ──
-  window._drillLT = {};
-  const ltMap = {};
-  groupData.forEach(g => {
-    if(!g.gestor || !g.leadTimes.length) return;
-    if(!ltMap[g.gestor]) ltMap[g.gestor] = [];
-    ltMap[g.gestor].push(...g.leadTimes);
-  });
+  const { ltMap, drillLT } = montaLtMap();
+  window._drillLT = drillLT;
 
-  // ── pessoas dos outros setores no mesmo gráfico ──
-  // O gráfico se chama "Lead Time da equipe", então edição/webdesign/estratégia
-  // entram junto dos gestores, cada pessoa como sua própria barra. Só quando não
-  // há filtro de gestor ativo — esse filtro é específico de gestor de tráfego.
-  // A barra é a pessoa, sem prefixo de setor: se alguém aparecer nas duas pontas
-  // (é gestor e também atende outro setor), as duas viram uma barra só, que é o
-  // lead time real daquela pessoa.
-  if(!window._activeGestorFilter){
-    const setoresEquipe = [
-      window._ltCasesEdicao,
-      window._ltCasesWebdesign,
-      window._ltCasesEstrategia,
-    ];
-    setoresEquipe.forEach(cases => {
-      (cases || []).forEach(caso => {
-        if(caso.leadMins == null) return;
-        if(caso.aberto) return;   // pendente é do grupo, não é atendimento de ninguém
-        // Ancora no telefone (estável, vem do roster), não no nome do WhatsApp —
-        // que a pessoa troca e faz a mesma virar duas barras. Em caso fechado de
-        // marcação dupla, creditar_phone é o marcado — o tempo entra no painel de
-        // cada um dos dois. Aberto segue como antes (respondente nulo → descartado).
-        const tel = normalizePhone(
-          (caso.aberto ? caso.respondente_phone : (caso.creditar_phone || caso.respondente_phone)) || '');
-        const reg = EQUIPE_POR_TELEFONE.get(tel);
-        // Sem telefone identificado (casos abertos por citação onde não dá para
-        // saber quem respondeu): descarta. Barra "Sem nome" com média absurda só
-        // sujaria o gráfico — melhor não inventar dono.
-        if(!reg) return;
-        const key = reg.nome;
-        if(!ltMap[key]) ltMap[key] = [];
-        ltMap[key].push(caso.leadMins);
-        if(!window._drillLT[key]) window._drillLT[key] = [];
-        const gd = groupData.find(x => x.id === caso.grpId);
-        window._drillLT[key].push({ ...caso, grpNameCurrent: gd?.name || caso.grpId });
-      });
-    });
-  }
-
-  // Build _drillLT from ltCasesGlobal (set in aggregate)
-  if(window._ltCases){
-    window._ltCases.forEach(caso => {
-      if(caso.tipo !== 'GESTOR') return;
-      // Pendente não é atendimento do gestor da conta: enquanto ninguém pega, a
-      // conversa é do grupo. Aparecia na lista dele como se fosse um caso seu — e
-      // no N — mesmo esperando outra pessoa. Pendente tem lugar próprio, a tabela
-      // "Grupos em Aberto".
-      if(caso.aberto) return;
-      const g = groupData.find(gd => gd.id === caso.grpId);
-      if(!g) return; // filtered out
-      const gname = caso.gestor_nome || g?.gestor || '—';
-      if(!window._drillLT[gname]) window._drillLT[gname] = [];
-      window._drillLT[gname].push({ ...caso, grpNameCurrent: g?.name || caso.grpId });
-    });
-  }
   // Collect gestor names — respect gestor filter
   const activeGF = window._activeGestorFilter || '';
   const allLtGestors = new Set([...Object.keys(ltMap)]);
-  // Remove gestors not matching filter
   if(activeGF){
     allLtGestors.forEach(g => { if(g !== activeGF) allLtGestors.delete(g); });
   }
@@ -2105,6 +2155,10 @@ function renderCharts(){
     return Math.round(times.reduce((a,b) => a+b, 0) / times.length);
   });
   const ltNComercial = ltLabels.map(name => (ltMap[name] || []).length);
+  // Média do mesmo nome no período anterior. Quem não atendeu lá fica em 0 —
+  // sem barra cinza, que é honesto: não houve o que comparar.
+  const anterior = window._ltMediaAnterior || {};
+  const ltDataAnterior = ltLabels.map(name => anterior[name] || 0);
 
   const ltCtx = document.getElementById('chart-lt').getContext('2d');
   if(chartLT) chartLT.destroy();
@@ -2114,13 +2168,28 @@ function renderCharts(){
     data:{
       labels: ltLabels.length ? ltLabels : ['Sem dados'],
       datasets:[
+        // Cinza apagado atrás: a mesma métrica no período anterior, só para
+        // comparar. Vem primeiro no array para ficar ATRÁS da barra atual.
+        {
+          label:'Período anterior',
+          data:  ltLabels.length ? ltDataAnterior : [0],
+          backgroundColor:'rgba(148,163,184,0.20)',
+          borderColor:'rgba(148,163,184,0.5)',
+          borderWidth:1.5, borderRadius:8, borderSkipped:false,
+          yAxisID:'y',
+          // Sobrepostas, não lado a lado: com 8 pessoas no eixo, duas barras
+          // finas por pessoa ficariam ilegíveis. A atual é mais estreita e fica
+          // na frente, então a cinza aparece como moldura em volta dela.
+          barPercentage:0.92, categoryPercentage:0.8, order:2, semRotulo:true
+        },
         {
           label:'Lead Time (min úteis)',
           data:  ltLabels.length ? ltDataComercial : [0],
           backgroundColor:'rgba(8,102,255,0.12)',
           borderColor:'rgba(8,102,255,0.75)',
           borderWidth:2, borderRadius:8, borderSkipped:false,
-          yAxisID:'y'
+          yAxisID:'y',
+          barPercentage:0.55, categoryPercentage:0.8, order:1
         }
       ]
     },
@@ -2136,9 +2205,22 @@ function renderCharts(){
         openDrillLT(gname, casos);
       },
       plugins:{
-        legend:{ display:false },
+        legend:{ position:'bottom', labels:{ color:CT().tick, font:{size:11,family:"'Poppins',sans-serif"}, boxWidth:10, padding:16, usePointStyle:true } },
         tooltip:{ callbacks:{
-          label: (c) => ` Lead Time: ${fmtMins(c.raw)} (n=${ltNComercial[c.dataIndex]})`
+          label: (c) => c.datasetIndex === 0
+            ? ` Período anterior: ${c.raw ? fmtMins(c.raw) : 'sem atendimento'}`
+            : ` Lead Time: ${fmtMins(c.raw)} (n=${ltNComercial[c.dataIndex]})`,
+          // A diferença é o motivo de existir a barra cinza — melhor dizer do
+          // que obrigar a comparar duas alturas no olho.
+          afterBody: (items) => {
+            const i = items[0].dataIndex;
+            const ant = ltDataAnterior[i], atual = ltDataComercial[i];
+            if(!ant || !atual) return '';
+            const d = atual - ant;
+            if(d === 0) return 'Igual ao período anterior';
+            return (d < 0 ? '▼ ' : '▲ ') + fmtMins(Math.abs(d)) +
+                   (d < 0 ? ' mais rápido' : ' mais lento') + ' que o período anterior';
+          }
         }}
       },
       scales:{
